@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Claim preflight | ClaimGuard</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./review.mjs"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap mast">
+      <span class="brand">ClaimGuard</span>
+      <span>Kenya SHA <span aria-hidden="true">/</span> Synthetic demo <a class="judge-link" href="?judge=1">Judge walkthrough</a></span>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="intro">
+      <h1>Claim preflight</h1>
+      <p>Find the preauthorization reference on a referral letter, then confirm it against the original before applying it to the claim.</p>
+    </div>
+
+    <section id="judge-panel" class="card judge-panel" aria-labelledby="judge-title" hidden>
+      <h2 id="judge-title">Judge walkthrough</h2>
+      <ol>
+        <li>Open the specialist referral. Read it with Nano or local OCR, then confirm the reference against the scan.</li>
+        <li>Open the pending referral and check that the hospital tracking ID leaves the finding open.</li>
+        <li>Inspect the exact public-rule request before running the cloud explanation. Compare Nano and OCR on the same labeled scans in the benchmark.</li>
+      </ol>
+      <div class="judge-actions">
+        <button type="button" class="secondary" id="judge-referral">Open specialist referral</button>
+        <button type="button" class="secondary" id="judge-pending">Open pending referral</button>
+        <button type="button" class="secondary" id="judge-benchmark">Open benchmark</button>
+      </div>
+      <p class="fine">Local OCR runs here without an account. Live model paths require a configured Firebase project, and Nano requires a compatible Chrome profile.</p>
+    </section>
+
+    <div class="workspace">
+      <section class="card document" aria-labelledby="support-title">
+        <h2 id="support-title">Supporting document</h2>
+        <fieldset id="document-controls">
+          <legend class="sr-only">Supporting document controls</legend>
+          <div class="mode">
+            <label><input type="radio" name="mode" value="scan" checked> Scan</label>
+            <label><input type="radio" name="mode" value="text"> Pasted text</label>
+          </div>
+          <label for="sample">Synthetic sample</label>
+          <select id="sample"></select>
+          <div id="scan-panel">
+            <figure class="document-frame" id="scan-drop">
+              <img id="scan-preview" alt="" hidden>
+            </figure>
+            <button type="button" class="secondary" id="full-scan" hidden>View full scan</button>
+            <button type="button" class="secondary" id="straighten" hidden>Straighten scan</button>
+            <p id="scan-view-status" class="fine status" role="status"></p>
+            <label for="scan-file" class="file-label">Choose a synthetic scan</label>
+            <input type="file" id="scan-file" accept="image/jpeg,image/png" aria-describedby="file-help">
+            <p class="fine" id="file-help">Choose or drop a PNG or JPEG up to 12 MB. Scan processing stays on this device.</p>
+          </div>
+          <div id="text-panel" hidden>
+            <label for="letter">Supporting letter</label>
+            <textarea id="letter" maxlength="8000" rows="9" spellcheck="false"></textarea>
+            <button type="button" class="secondary" id="match-text">Find reference with text matching</button>
+          </div>
+        </fieldset>
+      </section>
+
+      <div class="review-column">
+        <section class="card" aria-labelledby="check-title">
+          <div class="rubric">
+            <h2 id="check-title">Preauthorization check</h2>
+            <span>SHA-AUTH-001</span>
+          </div>
+          <p class="finding" id="finding" data-pass="false" role="status">Missing preauthorization reference</p>
+          <p class="fine authority"><strong>SHA confirmation pending.</strong> Reference validity and approval require confirmation in SHA's records.</p>
+          <button type="button" id="extract" disabled>Read scan on-device</button>
+          <button type="button" class="secondary" id="extract-ocr" disabled>Read with local OCR</button>
+          <p id="local-status" class="fine status" role="status">Checking Firebase configuration.</p>
+
+          <div id="candidate" class="evidence" hidden>
+            <span id="candidate-label" class="fine"></span>
+            <strong id="number"></strong>
+            <blockquote id="quote"></blockquote>
+            <button id="locate-evidence" type="button" class="secondary" hidden>Locate evidence on scan</button>
+            <label class="confirm"><input id="confirm" type="checkbox"> I compared the reference and label with the original.</label>
+            <button id="apply" type="button" disabled>Apply and rerun check</button>
+          </div>
+          <details id="manual" class="manual">
+            <summary>Enter reference manually</summary>
+            <form id="manual-form">
+              <label for="manual-reference">Reference printed on the document</label>
+              <input id="manual-reference" type="text" maxlength="40" autocomplete="off" spellcheck="false" required>
+              <label class="confirm"><input id="manual-confirm" type="checkbox" required> The document explicitly labels this as the payer's preauthorization reference.</label>
+              <button type="submit" class="secondary">Apply manual reference</button>
+              <p id="manual-status" class="fine" role="status"></p>
+            </form>
+          </details>
+        </section>
+
+        <section class="card rule-card" aria-labelledby="rule-title">
+          <h2 id="rule-title">Public rule</h2>
+          <p class="fine">ClaimGuard's presence check refers to regulation 60 and the preauthorization field in Form 3.</p>
+          <a href="https://libraryir.parliament.go.ke/items/91a81590-90ac-424b-b591-1a48b892d53a/full" target="_blank" rel="noreferrer">Social Health Insurance Regulations, 2024</a>
+          <details>
+            <summary>View the exact cloud request</summary>
+            <pre id="payload"></pre>
+          </details>
+          <button id="explain" type="button" class="secondary" disabled>Explain rule with cloud AI</button>
+          <p id="cloud-status" class="fine status" role="status"></p>
+          <p id="explanation"></p>
+        </section>
+      </div>
+    </div>
+
+    <details class="card evaluation" id="benchmark">
+      <summary>Benchmark 12 labeled scans</summary>
+      <p class="fine">Run Gemini Nano and local OCR on the same synthetic scans. Compare how each handles look-alike characters, missing fields, and conflicting references.</p>
+      <button id="evaluate" type="button" class="secondary" disabled>Run Gemini Nano</button>
+      <button id="evaluate-ocr" type="button" class="secondary">Run local OCR baseline</button>
+      <button id="export-evaluation" type="button" class="secondary" disabled>Export benchmark JSON</button>
+      <p id="eval-status" class="fine status" role="status"></p>
+      <p id="eval-metrics" class="fine"></p>
+      <p id="eval-ocr-status" class="fine status" role="status"></p>
+      <p id="eval-comparison" class="fine status" role="status"></p>
+      <div class="table-scroll" id="eval-table" hidden>
+        <table>
+          <caption class="sr-only">Synthetic scan outcomes</caption>
+          <thead><tr><th scope="col">Scan</th><th scope="col">Expected</th><th scope="col">Model proposed</th><th scope="col">Outcome</th><th scope="col">Inference</th></tr></thead>
+          <tbody id="eval-results"></tbody>
+        </table>
+      </div>
+    </details>
+  </main>
+  <dialog id="scan-dialog" aria-labelledby="scan-dialog-title">
+    <header class="dialog-heading">
+      <h2 id="scan-dialog-title">Supporting scan</h2>
+      <form method="dialog"><button class="secondary" autofocus>Close</button></form>
+    </header>
+    <p id="evidence-location" class="fine status" role="status"></p>
+    <div class="dialog-image" tabindex="0">
+      <div id="detail-frame" class="detail-frame">
+        <img id="full-preview" alt="">
+        <span id="evidence-marker" aria-hidden="true" hidden></span>
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>

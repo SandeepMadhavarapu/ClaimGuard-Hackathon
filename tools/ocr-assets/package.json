@@ -1,0 +1,9 @@
+{
+  "name": "claimguard-local-ocr-assets",
+  "private": true,
+  "dependencies": {
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0",
+    "@tesseract.js-data/eng": "1.0.0"
+  }
+}

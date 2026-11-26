@@ -1,0 +1,10 @@
+{
+  "firebase": {
+    "apiKey": "",
+    "appId": "",
+    "projectId": ""
+  },
+  "recaptchaSiteKey": "",
+  "recaptchaProvider": "v3",
+  "localDebug": false
+}
