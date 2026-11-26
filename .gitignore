@@ -1,0 +1,6 @@
+dist/
+node_modules/
+.vercel/
+.env*
+firebase-debug.log
+firebase-config.local.json
