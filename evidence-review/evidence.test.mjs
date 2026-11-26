@@ -53,16 +53,16 @@ test("an empty model result is scored against the expected reference", () => {
 
 test("adding a reference clears only the presence finding", () => {
   assert.deepEqual(preauthorizationFinding(null), {
-    rule: "SHA-AUTH-001", pass: false, approval: "pending",
+    rule: "CG-AUTH-001", pass: false, approval: "pending",
   });
   assert.deepEqual(preauthorizationFinding(CASES[0].expected), {
-    rule: "SHA-AUTH-001", pass: true, approval: "pending",
+    rule: "CG-AUTH-001", pass: true, approval: "pending",
   });
 });
 
 test("the cloud prompt includes the public rule and excludes every fixture", () => {
-  assert.match(PUBLIC_PROMPT, /SHA-AUTH-001/);
-  assert.match(PUBLIC_PROMPT, /regulation 60/);
+  assert.match(PUBLIC_PROMPT, /CG-AUTH-001/);
+  assert.match(PUBLIC_PROMPT, /Synthetic payer policy/);
   assert.doesNotMatch(PUBLIC_PROMPT, /DEMO-PA|SYNTHETIC|DRAFT-5071/);
 });
 

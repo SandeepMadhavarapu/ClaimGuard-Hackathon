@@ -1,6 +1,6 @@
 # ClaimGuard Evidence Review
 
-This standalone Chrome demo helps a billing clerk clear a missing preauthorization reference on a synthetic Kenya SHA claim. Open a supporting scan, let Gemini Nano suggest a reference, compare the suggestion with the original, and confirm it. SHA confirmation stays pending.
+This standalone Chrome demo helps a billing clerk locate and record a preauthorization reference on a synthetic claim. Read a supporting scan with local OCR or Gemini Nano, compare the suggestion with the original, and confirm it. Payer verification stays pending.
 
 ## Start the demo
 
@@ -26,7 +26,7 @@ Use [Judge walkthrough](http://127.0.0.1:8000/?judge=1) for the two sample cases
 
 1. Open **Specialist referral** and click **Read scan on-device**. Compare Nano's transcription with the scan, tick the confirmation, and click **Apply and rerun check**.
 2. Switch to **Request pending** and rerun. The hospital tracking ID alone leaves the reference missing. **Conflicting references** exercises the case where the clerk must resolve which value applies.
-3. Open **View the exact cloud request** and click **Explain rule with cloud AI**. The request contains a fixed published-rule summary and no scan, case data, reference, or patient text.
+3. Open **Policy and cloud request**, then **View the exact cloud request**. **Explain rule with cloud AI** sends a fixed synthetic policy summary and excludes scans, case data, references, and patient text.
 4. Open **Benchmark 12 labeled scans** and run both Gemini Nano and the local OCR baseline. Six scans have a payer reference and six require abstention. The set includes faint print, low resolution, leading zeros, an O/0 confusion case, blank fields, and conflicting references.
 
 ### Source image tools
@@ -57,10 +57,8 @@ The local OCR baseline runs without Firebase. It applies the same reference pars
 
 - Both inference calls use Firebase AI Logic. Scan extraction uses `ONLY_ON_DEVICE`, and the rule explanation uses `ONLY_IN_CLOUD`. The display checks the SDK's `response.inferenceSource` before labeling results.
 - The suggested text and label must agree before the suggestion is shown. The clerk is responsible for comparing the transcription against the original pixels. The pasted-text path verifies the quote directly against the underlying text.
-- The demo applies a browser adaptation of ClaimGuard's existing `SHA-AUTH-001` presence check. The original ClaimGuard engine handles full-claim review, and only the payer's records can confirm authorization.
+- The synthetic `CG-AUTH-001` rule checks whether a preauthorization reference was recorded. Authorization requires verification with the payer.
 - Selected images are prepared in memory. Use bundled or synthetic scans for the contest recording and judging.
-
-This edition builds on [ClaimGuard's original Evidence Review PR](https://github.com/SandeepMadhavarapu/SHA-ClaimGuard/pull/1). The scan workflow, confirmation and evaluation updates, and original synthetic fixtures are the contest additions in this package.
 
 ## Run the tests
 
@@ -72,4 +70,4 @@ node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test
 
 The suite checks evidence handling and exercises routing with a simulated Firebase SDK. A live Nano and cloud run requires the Firebase and Chrome setup above.
 
-[Social Health Insurance Regulations, 2024](https://libraryir.parliament.go.ke/items/91a81590-90ac-424b-b591-1a48b892d53a/full) · [Firebase inference modes and response metadata](https://firebase.google.com/docs/ai-logic/hybrid/web/configuration-options)
+[Firebase inference modes and response metadata](https://firebase.google.com/docs/ai-logic/hybrid/web/configuration-options)

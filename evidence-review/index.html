@@ -4,36 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <title>Claim preflight | ClaimGuard</title>
+  <meta name="theme-color" content="#121b2c">
+  <title>Claim review | ClaimGuard</title>
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./review.mjs"></script>
 </head>
 <body>
   <header class="top">
     <div class="wrap mast">
-      <span class="brand">ClaimGuard</span>
-      <span>Kenya SHA <span aria-hidden="true">/</span> Synthetic demo <a class="judge-link" href="?judge=1">Judge walkthrough</a></span>
+      <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"></span>ClaimGuard</a>
+      <nav class="mast-nav" aria-label="Demo navigation">
+        <span class="demo-label">Synthetic demo</span>
+        <a class="judge-link" href="?judge=1">Judge walkthrough <span aria-hidden="true">↗</span></a>
+      </nav>
     </div>
   </header>
   <main class="wrap">
-    <div class="intro">
-      <h1>Claim preflight</h1>
-      <p>Find the preauthorization reference on a referral letter, then confirm it against the original before applying it to the claim.</p>
-    </div>
+    <section class="intro" aria-labelledby="page-title">
+      <div class="intro-copy">
+        <h1 id="page-title">Claim review</h1>
+        <p>Find the payer’s preauthorization reference and verify it against the original scan.</p>
+      </div>
+      <ol class="review-steps" id="review-steps" aria-label="Review progress">
+        <li aria-current="step"><span class="step-number">1</span> Read</li>
+        <li><span class="step-number">2</span> Verify</li>
+        <li><span class="step-number">3</span> Record</li>
+      </ol>
+    </section>
 
     <section id="judge-panel" class="card judge-panel" aria-labelledby="judge-title" hidden>
       <h2 id="judge-title">Judge walkthrough</h2>
       <ol>
-        <li>Open the specialist referral. Read it with Nano or local OCR, then confirm the reference against the scan.</li>
+        <li>Read the specialist referral with local OCR. Locate the source line, compare the reference, and record it.</li>
         <li>Open the pending referral and check that the hospital tracking ID leaves the finding open.</li>
-        <li>Inspect the exact public-rule request before running the cloud explanation. Compare Nano and OCR on the same labeled scans in the benchmark.</li>
+        <li>Run the 12-scan benchmark or inspect the exact cloud request under Policy and cloud request.</li>
       </ol>
       <div class="judge-actions">
         <button type="button" class="secondary" id="judge-referral">Open specialist referral</button>
         <button type="button" class="secondary" id="judge-pending">Open pending referral</button>
         <button type="button" class="secondary" id="judge-benchmark">Open benchmark</button>
       </div>
-      <p class="fine">Local OCR runs here without an account. Live model paths require a configured Firebase project, and Nano requires a compatible Chrome profile.</p>
     </section>
 
     <div class="workspace">
@@ -41,22 +51,35 @@
         <h2 id="support-title">Supporting document</h2>
         <fieldset id="document-controls">
           <legend class="sr-only">Supporting document controls</legend>
-          <div class="mode">
-            <label><input type="radio" name="mode" value="scan" checked> Scan</label>
-            <label><input type="radio" name="mode" value="text"> Pasted text</label>
+          <div class="document-controls-row">
+            <div class="mode">
+              <label><input type="radio" name="mode" value="scan" checked> Scan</label>
+              <label><input type="radio" name="mode" value="text"> Pasted text</label>
+            </div>
+            <div class="sample-control">
+              <label for="sample">Synthetic sample</label>
+              <select id="sample"></select>
+            </div>
           </div>
-          <label for="sample">Synthetic sample</label>
-          <select id="sample"></select>
           <div id="scan-panel">
-            <figure class="document-frame" id="scan-drop">
-              <img id="scan-preview" alt="" hidden>
-            </figure>
-            <button type="button" class="secondary" id="full-scan" hidden>View full scan</button>
-            <button type="button" class="secondary" id="straighten" hidden>Straighten scan</button>
+            <div class="scan-viewer">
+              <div class="scan-toolbar">
+                <span class="viewer-label">Document preview</span>
+                <div class="viewer-actions">
+                  <button type="button" class="secondary" id="full-scan" hidden>View full scan</button>
+                  <button type="button" class="secondary" id="straighten" hidden>Straighten scan</button>
+                </div>
+              </div>
+              <figure class="document-frame" id="scan-drop">
+                <img id="scan-preview" alt="" hidden>
+              </figure>
+            </div>
             <p id="scan-view-status" class="fine status" role="status"></p>
-            <label for="scan-file" class="file-label">Choose a synthetic scan</label>
-            <input type="file" id="scan-file" accept="image/jpeg,image/png" aria-describedby="file-help">
-            <p class="fine" id="file-help">Choose or drop a PNG or JPEG up to 12 MB. Scan processing stays on this device.</p>
+            <div class="file-area">
+              <label for="scan-file">Upload a synthetic scan</label>
+              <input type="file" id="scan-file" accept="image/jpeg,image/png" aria-describedby="file-help">
+              <p class="fine" id="file-help">Choose or drop a PNG or JPEG up to 12 MB.</p>
+            </div>
           </div>
           <div id="text-panel" hidden>
             <label for="letter">Supporting letter</label>
@@ -67,16 +90,18 @@
       </section>
 
       <div class="review-column">
-        <section class="card" aria-labelledby="check-title">
+        <section class="card review-card" aria-labelledby="check-title">
           <div class="rubric">
             <h2 id="check-title">Preauthorization check</h2>
-            <span>SHA-AUTH-001</span>
+            <span id="rule-id"></span>
           </div>
           <p class="finding" id="finding" data-pass="false" role="status">Missing preauthorization reference</p>
-          <p class="fine authority"><strong>SHA confirmation pending.</strong> Reference validity and approval require confirmation in SHA's records.</p>
-          <button type="button" id="extract" disabled>Read scan on-device</button>
-          <button type="button" class="secondary" id="extract-ocr" disabled>Read with local OCR</button>
-          <p id="local-status" class="fine status" role="status">Checking Firebase configuration.</p>
+          <p class="fine authority">Payer verification is still required.</p>
+          <div class="read-actions">
+            <button type="button" id="extract-ocr" disabled>Read with local OCR <span aria-hidden="true">→</span></button>
+            <button type="button" class="secondary" id="extract" hidden disabled>Read scan on-device</button>
+          </div>
+          <p id="local-status" class="fine status" role="status"></p>
 
           <div id="candidate" class="evidence" hidden>
             <span id="candidate-label" class="fine"></span>
@@ -98,10 +123,9 @@
           </details>
         </section>
 
-        <section class="card rule-card" aria-labelledby="rule-title">
-          <h2 id="rule-title">Public rule</h2>
-          <p class="fine">ClaimGuard's presence check refers to regulation 60 and the preauthorization field in Form 3.</p>
-          <a href="https://libraryir.parliament.go.ke/items/91a81590-90ac-424b-b591-1a48b892d53a/full" target="_blank" rel="noreferrer">Social Health Insurance Regulations, 2024</a>
+        <details class="card rule-card">
+          <summary>Policy and cloud request</summary>
+          <p class="fine" id="policy-summary"></p>
           <details>
             <summary>View the exact cloud request</summary>
             <pre id="payload"></pre>
@@ -109,7 +133,7 @@
           <button id="explain" type="button" class="secondary" disabled>Explain rule with cloud AI</button>
           <p id="cloud-status" class="fine status" role="status"></p>
           <p id="explanation"></p>
-        </section>
+        </details>
       </div>
     </div>
 

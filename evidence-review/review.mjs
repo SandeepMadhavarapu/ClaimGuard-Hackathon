@@ -1,5 +1,5 @@
 import {
-  CASES, PUBLIC_PROMPT, SCAN_CASES, compareReferenceEvidence, matchLetter, parseReference, preauthorizationFinding,
+  CASES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, compareReferenceEvidence, matchLetter, parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
 import { compareBenchmarkRuns, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
@@ -30,6 +30,7 @@ const apply = el("apply");
 const localStatus = el("local-status");
 const manual = el("manual");
 const manualForm = el("manual-form");
+const steps = [...el("review-steps").children];
 
 let mode = "scan";
 let inference;
@@ -47,6 +48,16 @@ let latestBenchmark;
 let latestOcrBenchmark;
 let anchor;
 
+function renderProgress() {
+  const recorded = el("finding").dataset.pass === "true";
+  const current = selection ? 1 : recorded ? 2 : 0;
+  steps.forEach((step, index) => {
+    step.classList.toggle("complete", index < current);
+    if (index === current) step.setAttribute("aria-current", "step");
+    else step.removeAttribute("aria-current");
+  });
+}
+
 function renderFinding(reference, method = "") {
   const finding = preauthorizationFinding(reference);
   const status = el("finding");
@@ -57,6 +68,7 @@ function renderFinding(reference, method = "") {
     details.textContent = `${reference} · ${method}`;
     status.append(details);
   }
+  renderProgress();
 }
 
 function present(candidate, method = "", label = "", box = null) {
@@ -69,6 +81,7 @@ function present(candidate, method = "", label = "", box = null) {
   anchor = null;
   confirm.checked = false;
   apply.disabled = true;
+  renderProgress();
 }
 
 function resetReview() {
@@ -83,6 +96,7 @@ function updateControls() {
   const canReview = mode === "scan" ? Boolean(currentImage) : Boolean(letter.value.trim());
   el("document-controls").disabled = busy;
   extract.disabled = busy || !inference || !canReview;
+  extract.hidden = !inference;
   extractOcr.hidden = mode !== "scan";
   extractOcr.disabled = busy || !currentImage;
   for (const id of ["judge-referral", "judge-pending", "judge-benchmark"]) el(id).disabled = busy;
@@ -102,8 +116,8 @@ function showIdleStatus() {
   }
   if (inferenceUnavailable) {
     localStatus.textContent = mode === "scan"
-      ? "Firebase AI is unavailable. Use local OCR or enter the reference manually."
-      : "Firebase AI is unavailable. Use text matching to review the pasted letter.";
+      ? "Local OCR reads the scan on this device."
+      : "Use text matching to check the pasted letter.";
   } else {
     const availabilityNote = {
       available: "Gemini Nano image input is ready in this Chrome.",
@@ -222,6 +236,8 @@ for (const radio of document.querySelectorAll('input[name="mode"]')) {
   radio.addEventListener("change", () => setMode(radio.value));
 }
 el("payload").textContent = PUBLIC_PROMPT;
+el("rule-id").textContent = PUBLIC_RULE.id;
+el("policy-summary").textContent = PUBLIC_RULE.summary;
 setMode(document.querySelector('input[name="mode"]:checked').value);
 
 sample.addEventListener("change", loadSample);
@@ -482,7 +498,7 @@ explain.addEventListener("click", async () => {
     status.textContent = `${sourceAndTime(response)} · AI explanation`;
     explanation.textContent = response.text;
   } catch {
-    status.textContent = "Cloud explanation unavailable. Open the published rule above.";
+    status.textContent = "Cloud explanation unavailable. Review the synthetic policy above.";
   } finally {
     explain.disabled = false;
   }

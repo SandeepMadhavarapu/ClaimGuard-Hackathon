@@ -90,7 +90,7 @@ async function runBenchmark({
   const rows = [];
   const report = status => ({
     schemaVersion: 1,
-    dataset: "claimguard-synthetic-sha-v2",
+    dataset: "claimguard-synthetic-v3",
     mode,
     startedAt,
     finishedAt: new Date().toISOString(),

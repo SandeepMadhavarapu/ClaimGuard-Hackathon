@@ -1,12 +1,12 @@
 export const PUBLIC_RULE = Object.freeze({
-  id: "SHA-AUTH-001",
-  citation: "Social Health Insurance Regulations, 2024, regulation 60(1)",
-  summary: "A health facility or provider sends an online preauthorization request to SHA for specialized healthcare services designated by SHA.",
+  id: "CG-AUTH-001",
+  citation: "Synthetic payer policy",
+  summary: "In this demo, claims flagged for preauthorization require one clearly labeled payer reference. Approval must be verified separately with the payer.",
 });
 
 // Only these static, public fields can enter the cloud prompt.
 export const PUBLIC_PROMPT = [
-  "Explain this public regulation for a hospital billing clerk in two short sentences.",
+  "Explain this synthetic payer policy for a hospital billing clerk in two short sentences.",
   "Use only the supplied summary. Do not add requirements or decide whether a claim is approved.",
   `${PUBLIC_RULE.id} | ${PUBLIC_RULE.citation} | ${PUBLIC_RULE.summary}`,
 ].join("\n");
