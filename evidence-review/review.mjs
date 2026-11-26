@@ -13,6 +13,7 @@ const letter = el("letter");
 const fileInput = el("scan-file");
 const dropZone = el("scan-drop");
 const preview = el("scan-preview");
+const previewMarker = el("preview-evidence");
 const fullScan = el("full-scan");
 const scanDialog = el("scan-dialog");
 const straighten = el("straighten");
@@ -78,7 +79,8 @@ function present(candidate, method = "", label = "", box = null) {
   el("number").textContent = candidate?.reference ?? "";
   el("quote").textContent = candidate?.quote ?? "";
   locateEvidence.hidden = !candidate || mode !== "scan";
-  anchor = null;
+  anchor = mode === "scan" ? boxAnchor(box, preview.naturalWidth, preview.naturalHeight) : null;
+  paintAnchor();
   confirm.checked = false;
   apply.disabled = true;
   renderProgress();
@@ -211,7 +213,6 @@ function setMode(nextMode, firstSample = 0) {
   clearScan();
   el("scan-panel").hidden = mode !== "scan";
   el("text-panel").hidden = mode !== "text";
-  extract.textContent = mode === "scan" ? "Read scan on-device" : "Read letter on-device";
   const fixtures = mode === "scan" ? SCAN_CASES : CASES;
   sample.replaceChildren(...fixtures.map((fixture, index) => new Option(fixture.label, String(index))));
   sample.value = String(firstSample);
@@ -262,11 +263,34 @@ el("judge-benchmark").addEventListener("click", () => {
   benchmark.open = true;
   benchmark.querySelector("summary").focus();
 });
+function boxAnchor(box, width, height) {
+  if (!box || !width || !height || box.x0 < 0 || box.y0 < 0 || box.x1 > width || box.y1 > height) return null;
+  return {
+    left: box.x0 / width, top: box.y0 / height,
+    width: (box.x1 - box.x0) / width, height: (box.y1 - box.y0) / height,
+  };
+}
+
 function paintAnchor() {
   marker.hidden = !anchor;
+  previewMarker.hidden = !anchor || preview.hidden || !preview.naturalWidth;
+  el("preview-evidence-status").hidden = previewMarker.hidden;
   if (!anchor) return;
   for (const [key, value] of Object.entries(anchor)) marker.style[key] = `${value * 100}%`;
+  if (previewMarker.hidden) return;
+  const scale = Math.min(preview.clientWidth / preview.naturalWidth, preview.clientHeight / preview.naturalHeight);
+  const imageWidth = preview.naturalWidth * scale;
+  const imageHeight = preview.naturalHeight * scale;
+  const left = preview.offsetLeft + (preview.clientWidth - imageWidth) / 2;
+  const top = preview.offsetTop + (preview.clientHeight - imageHeight) / 2;
+  Object.assign(previewMarker.style, {
+    left: `${left + anchor.left * imageWidth}px`, top: `${top + anchor.top * imageHeight}px`,
+    width: `${anchor.width * imageWidth}px`, height: `${anchor.height * imageHeight}px`,
+  });
 }
+
+preview.addEventListener("load", paintAnchor);
+new ResizeObserver(paintAnchor).observe(dropZone);
 
 function openScan(marking = false) {
   const fullPreview = el("full-preview");
@@ -299,16 +323,12 @@ locateEvidence.addEventListener("click", async () => {
   try {
     const { locateOnScan } = await import("./ocr-evidence.mjs");
     const box = candidate.box ?? await locateOnScan(image, candidate.reference);
-    const view = el("full-preview");
     if (!scanDialog.open || selection !== candidate || currentImage !== image) return;
-    if (!box || !view.naturalWidth || box.x1 > view.naturalWidth || box.y1 > view.naturalHeight) {
+    anchor = boxAnchor(box, preview.naturalWidth, preview.naturalHeight);
+    if (!anchor) {
       enableManualMarking();
       return;
     }
-    anchor = {
-      left: box.x0 / view.naturalWidth, top: box.y0 / view.naturalHeight,
-      width: (box.x1 - box.x0) / view.naturalWidth, height: (box.y1 - box.y0) / view.naturalHeight,
-    };
     paintAnchor();
     location.textContent = "Local OCR matched the labeled reference. Compare it with the scan.";
   } catch {
@@ -394,6 +414,7 @@ apply.addEventListener("click", () => {
     const confirmedAnchor = anchor;
     present(null);
     anchor = confirmedAnchor;
+    paintAnchor();
     const finding = el("finding");
     finding.tabIndex = -1;
     finding.focus();

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="theme-color" content="#121b2c">
+  <meta name="theme-color" content="#102a27">
   <title>Claim review | ClaimGuard</title>
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./review.mjs"></script>
@@ -23,7 +23,7 @@
     <section class="intro" aria-labelledby="page-title">
       <div class="intro-copy">
         <h1 id="page-title">Claim review</h1>
-        <p>Find the payer’s preauthorization reference and verify it against the original scan.</p>
+        <p>Find the payer’s preauthorization reference. Verify it against the document before recording it.</p>
       </div>
       <ol class="review-steps" id="review-steps" aria-label="Review progress">
         <li aria-current="step"><span class="step-number">1</span> Read</li>
@@ -48,7 +48,10 @@
 
     <div class="workspace">
       <section class="card document" aria-labelledby="support-title">
-        <h2 id="support-title">Supporting document</h2>
+        <div class="panel-heading">
+          <h2 id="support-title">Supporting document</h2>
+          <span class="privacy-note">Read on this device</span>
+        </div>
         <fieldset id="document-controls">
           <legend class="sr-only">Supporting document controls</legend>
           <div class="document-controls-row">
@@ -64,7 +67,7 @@
           <div id="scan-panel">
             <div class="scan-viewer">
               <div class="scan-toolbar">
-                <span class="viewer-label">Document preview</span>
+                <span class="viewer-label">Document preview <span id="preview-evidence-status" hidden>· Source marked</span></span>
                 <div class="viewer-actions">
                   <button type="button" class="secondary" id="full-scan" hidden>View full scan</button>
                   <button type="button" class="secondary" id="straighten" hidden>Straighten scan</button>
@@ -72,6 +75,7 @@
               </div>
               <figure class="document-frame" id="scan-drop">
                 <img id="scan-preview" alt="" hidden>
+                <span id="preview-evidence" class="evidence-marker" aria-hidden="true" hidden></span>
               </figure>
             </div>
             <p id="scan-view-status" class="fine status" role="status"></p>
@@ -99,7 +103,7 @@
           <p class="fine authority">Payer verification is still required.</p>
           <div class="read-actions">
             <button type="button" id="extract-ocr" disabled>Read with local OCR <span aria-hidden="true">→</span></button>
-            <button type="button" class="secondary" id="extract" hidden disabled>Read scan on-device</button>
+            <button type="button" class="secondary" id="extract" hidden disabled>Read with Gemini Nano</button>
           </div>
           <p id="local-status" class="fine status" role="status"></p>
 
@@ -109,7 +113,7 @@
             <blockquote id="quote"></blockquote>
             <button id="locate-evidence" type="button" class="secondary" hidden>Locate evidence on scan</button>
             <label class="confirm"><input id="confirm" type="checkbox"> I compared the reference and label with the original.</label>
-            <button id="apply" type="button" disabled>Apply and rerun check</button>
+            <button id="apply" type="button" disabled>Record reference</button>
           </div>
           <details id="manual" class="manual">
             <summary>Enter reference manually</summary>
@@ -165,7 +169,7 @@
     <div class="dialog-image" tabindex="0">
       <div id="detail-frame" class="detail-frame">
         <img id="full-preview" alt="">
-        <span id="evidence-marker" aria-hidden="true" hidden></span>
+        <span id="evidence-marker" class="evidence-marker" aria-hidden="true" hidden></span>
       </div>
     </div>
   </dialog>
