@@ -133,3 +133,25 @@ test("a loosely transcribed payer label is accepted only with a single matching 
     assert.equal(reviewScanSuggestion(JSON.stringify({ reference: "PA-000741", quote })).status, "unsupported", quote);
   }
 });
+
+test("next-step prompts are fixed public text for known outcome codes only", async () => {
+  const { NEXT_STEP_CODES, nextStepCode, nextStepPrompt } = await import("./evidence.mjs");
+  assert.deepEqual(NEXT_STEP_CODES, ["RECORDED", "NO_REFERENCE", "CONFLICT", "NEEDS_REVIEW"]);
+  const fixtureValues = [...CASES.map(c => c.text), ...SCAN_CASES.map(c => c.expected)].filter(Boolean);
+  for (const code of NEXT_STEP_CODES) {
+    const prompt = nextStepPrompt(code);
+    assert.equal(prompt, nextStepPrompt(code));
+    assert.match(prompt, new RegExp(`Outcome: ${code} \\|`));
+    assert.match(prompt, /synthetic, not official payer guidance/);
+    assert.doesNotMatch(prompt, /DEMO-PA|DRAFT-|FAC-|REF-\d|PA-\d/);
+    for (const value of fixtureValues) assert.ok(!prompt.includes(value), value);
+  }
+  for (const bad of ["DEMO-PA-240817", "", "constructor", "__proto__", "recorded", undefined]) {
+    assert.throws(() => nextStepPrompt(bad), /Unknown outcome code/);
+  }
+  assert.equal(nextStepCode("review"), null);
+  assert.equal(nextStepCode("verified"), null);
+  assert.equal(nextStepCode("empty"), "NO_REFERENCE");
+  assert.equal(nextStepCode("conflict"), "CONFLICT");
+  for (const status of ["unsupported", "uncorroborated", "disagreement"]) assert.equal(nextStepCode(status), "NEEDS_REVIEW");
+});

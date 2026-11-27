@@ -11,6 +11,74 @@ export const PUBLIC_PROMPT = [
   `${PUBLIC_RULE.id} | ${PUBLIC_RULE.citation} | ${PUBLIC_RULE.summary}`,
 ].join("\n");
 
+// Next-step guidance. Only one of these fixed outcome codes and its public demo checklist can
+// reach a model. No document text, reference, OCR output, or image is ever part of the prompt.
+export const NEXT_STEPS = Object.freeze({
+  RECORDED: Object.freeze({
+    label: "Reference recorded",
+    meaning: "A clearly labeled payer preauthorization reference was found, compared with the original, and recorded by the clerk.",
+    checklist: [
+      "Enter the recorded reference in the claim's preauthorization field.",
+      "Attach the supporting document to the claim.",
+      "Confirm the approval status with the payer before submitting.",
+      "Submit the claim within the payer's filing window.",
+    ],
+  }),
+  NO_REFERENCE: Object.freeze({
+    label: "No payer reference",
+    meaning: "No clearly labeled payer preauthorization reference was found. The field may be missing, blank, or pending.",
+    checklist: [
+      "Do not use a hospital, referral, case, or tracking number in its place.",
+      "Check the payer portal or payer correspondence for an issued preauthorization.",
+      "If the request is still pending, hold the claim and set a follow-up date.",
+      "If no request exists, submit a preauthorization request before claiming the service.",
+    ],
+  }),
+  CONFLICT: Object.freeze({
+    label: "Conflicting references",
+    meaning: "More than one different payer preauthorization reference appears on the document.",
+    checklist: [
+      "Do not choose between the references without confirmation.",
+      "Ask the payer which reference applies to this service and date.",
+      "Enter the confirmed reference manually and note where it came from.",
+      "Keep both documents with the claim file.",
+    ],
+  }),
+  NEEDS_REVIEW: Object.freeze({
+    label: "Needs manual review",
+    meaning: "The automated reads could not confirm a single reference, so the suggestion was withheld.",
+    checklist: [
+      "Compare the original scan line by line.",
+      "If the payer label and value are clear, enter the reference manually.",
+      "If the scan is unreadable, request a clearer copy.",
+      "Escalate to a supervisor if the reference still cannot be confirmed.",
+    ],
+  }),
+});
+
+export const NEXT_STEP_CODES = Object.freeze(Object.keys(NEXT_STEPS));
+
+export function nextStepPrompt(code) {
+  const step = NEXT_STEPS[code];
+  if (!Object.hasOwn(NEXT_STEPS, code) || !step) throw new Error("Unknown outcome code");
+  return [
+    "You help a hospital billing clerk decide what to do next on a claim.",
+    "Use only the demo checklist below. In the first sentence, state the single most important next action.",
+    "Then list the remaining steps in short bullets. Do not add steps, numbers, names, or approval decisions.",
+    `Outcome: ${code} | ${step.meaning}`,
+    "Demo checklist (synthetic, not official payer guidance):",
+    ...step.checklist.map((item, index) => `${index + 1}. ${item}`),
+  ].join("\n");
+}
+
+// Maps a review decision to an outcome code. A candidate still awaiting the clerk has no code yet.
+export function nextStepCode(status) {
+  return {
+    empty: "NO_REFERENCE", conflict: "CONFLICT", unsupported: "NEEDS_REVIEW",
+    uncorroborated: "NEEDS_REVIEW", disagreement: "NEEDS_REVIEW", recorded: "RECORDED",
+  }[status] ?? null;
+}
+
 export const CASES = [
   { label: "Reference provided", text: "SYNTHETIC REFERRAL LETTER\nPlease review the planned specialist service.\nPreauthorization reference: DEMO-PA-240817\nConfirm the authorization status in the payer portal.", expected: "DEMO-PA-240817" },
   { label: "Request pending", text: "SYNTHETIC FACILITY NOTE\nHospital reference: DEMO-PA-427091\nPreauthorization is pending and no payer reference has been issued.", expected: null },

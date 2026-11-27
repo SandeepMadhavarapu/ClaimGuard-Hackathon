@@ -27,6 +27,9 @@ final class ClaimReview {
     var policy: VerifiedReply?
     var policyWasCloudTest = false
     var policyError: String?
+    var outcome: NextStepCode?
+    var nextStep: VerifiedReply?
+    var nextStepError: String?
 
     func select(_ sample: ScanSample) {
         do {
@@ -69,7 +72,14 @@ final class ClaimReview {
         status = "Ready to read \(document.title)."
     }
 
+    private func setOutcome(_ code: NextStepCode?) {
+        outcome = code
+        nextStep = nil
+        nextStepError = nil
+    }
+
     private func resetFinding() {
+        setOutcome(nil)
         location = nil
         suggestion = nil
         recordedReference = nil
@@ -102,11 +112,13 @@ final class ClaimReview {
         if !useModel {
             if read.evidence.references.count > 1 {
                 status = "Conflict: resolve manually."
+                setOutcome(.conflict)
             } else if let candidate = read.evidence.candidate {
                 show(candidate.value, at: candidate.location)
                 status = "Local OCR found a labeled reference. Compare it with the scan."
             } else {
                 status = "Local OCR found no clearly labeled payer reference."
+                setOutcome(.noReference)
             }
             return
         }
@@ -114,7 +126,9 @@ final class ClaimReview {
         do {
             let reply = try await ClaimInference.extract(from: read.text)
             trace("Check payer reference", reply.route, reply.milliseconds)
-            switch EvidenceParser.decide(EvidenceParser.reviewScanSuggestion(reply.text, source: read.text), against: read.evidence) {
+            let decision = EvidenceParser.decide(EvidenceParser.reviewScanSuggestion(reply.text, source: read.text), against: read.evidence)
+            setOutcome(NextStepCode(decision))
+            switch decision {
             case .conflict:
                 status = "Conflict: resolve manually."
             case .disagreement:
@@ -132,6 +146,7 @@ final class ClaimReview {
         } catch {
             if read.evidence.references.count > 1 {
                 status = "Conflict: resolve manually."
+                setOutcome(.conflict)
             } else if let modelError = error as? LocalModelError {
                 status = modelError.localizedDescription
             } else {
@@ -154,6 +169,24 @@ final class ClaimReview {
         recordedReference = reference
         status = "Reference recorded. Payer approval is pending verification."
         trace("Record reference", .human, 0)
+        setOutcome(.recorded)
+    }
+
+    func suggestNextStep() async {
+        guard let code = outcome, !busy else { return }
+        busy = true
+        defer { busy = false }
+        nextStep = nil
+        nextStepError = nil
+        do {
+            let result = try await ClaimInference.nextStep(code)
+            nextStep = result
+            trace("Next step (\(code.label))", result.route, result.milliseconds)
+        } catch let error as LocalModelError {
+            nextStepError = error.localizedDescription
+        } catch {
+            nextStepError = "AI guidance unavailable. Follow the checklist."
+        }
     }
 
     func explain(cloudOnly: Bool = false) async {

@@ -1,4 +1,4 @@
-import { PUBLIC_PROMPT } from "./evidence.mjs";
+import { PUBLIC_PROMPT, nextStepPrompt } from "./evidence.mjs";
 
 const sdk = "https://www.gstatic.com/firebasejs/13.4.0/";
 const extractionInstructions = [
@@ -51,6 +51,11 @@ export async function setupInference() {
     return local ??= getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE });
   }
 
+  function hybridModel() {
+    if (!InferenceMode.PREFER_ON_DEVICE) throw new Error("Hybrid inference unavailable");
+    return hybrid ??= getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE });
+  }
+
   async function generate(model, prompt, ...routes) {
     if (routes.some(route => !InferenceSource?.[route])) throw new Error("Inference source could not be verified");
     const start = performance.now();
@@ -71,10 +76,11 @@ export async function setupInference() {
     extract: async letter => generate(localModel(), extractionInstructions + "\n" + JSON.stringify({ letter }), "ON_DEVICE"),
     extractScan: async inlineData => generate(localModel(), [extractionInstructions, { inlineData }], "ON_DEVICE"),
     explain: () => generate(cloud, PUBLIC_PROMPT, "IN_CLOUD"),
-    explainHybrid: async () => {
-      if (!InferenceMode.PREFER_ON_DEVICE) throw new Error("Hybrid inference unavailable");
-      hybrid ??= getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE });
-      return generate(hybrid, PUBLIC_PROMPT, "ON_DEVICE", "IN_CLOUD");
+    explainHybrid: async () => generate(hybridModel(), PUBLIC_PROMPT, "ON_DEVICE", "IN_CLOUD"),
+    // Only a fixed outcome code and its public checklist are sent; the code is validated first.
+    nextStep: async code => {
+      const prompt = nextStepPrompt(code);
+      return generate(hybridModel(), prompt, "ON_DEVICE", "IN_CLOUD");
     },
   };
 }

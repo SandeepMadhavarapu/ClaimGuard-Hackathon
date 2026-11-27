@@ -166,3 +166,82 @@ enum EvidenceParser {
         }
     }
 }
+
+
+/// Next-step guidance. Only one of these fixed outcome codes and its public demo checklist can
+/// reach a model. The prompt text matches the Web app exactly. No document data is ever included.
+enum NextStepCode: String, CaseIterable, Sendable {
+    case recorded = "RECORDED"
+    case noReference = "NO_REFERENCE"
+    case conflict = "CONFLICT"
+    case needsReview = "NEEDS_REVIEW"
+
+    var label: String {
+        switch self {
+        case .recorded: "Reference recorded"
+        case .noReference: "No payer reference"
+        case .conflict: "Conflicting references"
+        case .needsReview: "Needs manual review"
+        }
+    }
+
+    var meaning: String {
+        switch self {
+        case .recorded: "A clearly labeled payer preauthorization reference was found, compared with the original, and recorded by the clerk."
+        case .noReference: "No clearly labeled payer preauthorization reference was found. The field may be missing, blank, or pending."
+        case .conflict: "More than one different payer preauthorization reference appears on the document."
+        case .needsReview: "The automated reads could not confirm a single reference, so the suggestion was withheld."
+        }
+    }
+
+    var checklist: [String] {
+        switch self {
+        case .recorded: [
+            "Enter the recorded reference in the claim's preauthorization field.",
+            "Attach the supporting document to the claim.",
+            "Confirm the approval status with the payer before submitting.",
+            "Submit the claim within the payer's filing window.",
+        ]
+        case .noReference: [
+            "Do not use a hospital, referral, case, or tracking number in its place.",
+            "Check the payer portal or payer correspondence for an issued preauthorization.",
+            "If the request is still pending, hold the claim and set a follow-up date.",
+            "If no request exists, submit a preauthorization request before claiming the service.",
+        ]
+        case .conflict: [
+            "Do not choose between the references without confirmation.",
+            "Ask the payer which reference applies to this service and date.",
+            "Enter the confirmed reference manually and note where it came from.",
+            "Keep both documents with the claim file.",
+        ]
+        case .needsReview: [
+            "Compare the original scan line by line.",
+            "If the payer label and value are clear, enter the reference manually.",
+            "If the scan is unreadable, request a clearer copy.",
+            "Escalate to a supervisor if the reference still cannot be confirmed.",
+        ]
+        }
+    }
+
+    var prompt: String {
+        ([
+            "You help a hospital billing clerk decide what to do next on a claim.",
+            "Use only the demo checklist below. In the first sentence, state the single most important next action.",
+            "Then list the remaining steps in short bullets. Do not add steps, numbers, names, or approval decisions.",
+            "Outcome: \(rawValue) | \(meaning)",
+            "Demo checklist (synthetic, not official payer guidance):",
+        ] + checklist.enumerated().map { "\($0.offset + 1). \($0.element)" }).joined(separator: "\n")
+    }
+
+    /// A candidate still awaiting the clerk has no outcome yet.
+    init?(_ decision: ScanDecision) {
+        switch decision {
+        case .conflict: self = .conflict
+        case .disagreement, .corroborationMissing, .unsupported: self = .needsReview
+        case .abstained: self = .noReference
+        case .ready: return nil
+        }
+    }
+
+    init?(code: String) { self.init(rawValue: code) }
+}

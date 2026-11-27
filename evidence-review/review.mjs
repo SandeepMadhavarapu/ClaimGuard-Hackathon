@@ -1,5 +1,6 @@
 import {
-  CASES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, parseReference, preauthorizationFinding,
+  CASES, NEXT_STEPS, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
+  parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
 import { compareBenchmarkRuns, shareableBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
@@ -44,6 +45,7 @@ let mode = "scan";
 let inference;
 let inferenceUnavailable = false;
 let busy = false;
+let outcomeCode = null;
 let currentImage;
 let originalImage;
 let deviceAvailability;
@@ -109,6 +111,24 @@ function renderFinding(reference, method = "") {
   renderProgress();
 }
 
+function setOutcome(code) {
+  outcomeCode = code;
+  el("next-step").hidden = !code;
+  el("next-step-status").textContent = "";
+  el("next-step-text").textContent = "";
+  if (!code) return;
+  const step = NEXT_STEPS[code];
+  el("next-step-code").textContent = step.label;
+  const list = el("next-step-checklist");
+  list.replaceChildren(...step.checklist.map(item => {
+    const entry = document.createElement("li");
+    entry.textContent = item;
+    return entry;
+  }));
+  el("next-step-payload").textContent = nextStepPrompt(code);
+  updateControls();
+}
+
 function present(candidate, method = "", label = "", box = null) {
   selection = candidate && { ...candidate, method, box };
   el("candidate").hidden = !candidate;
@@ -126,6 +146,7 @@ function present(candidate, method = "", label = "", box = null) {
 
 function resetReview() {
   present(null);
+  setOutcome(null);
   renderFinding(null);
   manualForm.reset();
   manual.open = false;
@@ -146,6 +167,7 @@ function updateControls() {
   manual.inert = busy || !canReview;
   manual.hidden = !canReview;
   straighten.disabled = busy || scanLoading || !currentImage;
+  el("next-step-run").disabled = busy || !inference || !outcomeCode;
 }
 
 function showIdleStatus() {
@@ -457,6 +479,7 @@ apply.addEventListener("click", () => {
   if (confirm.checked && selection) {
     renderFinding(selection.reference, selection.method);
     recordTrace("Record reference", "HUMAN", "Confirmed against source");
+    setOutcome("RECORDED");
     const confirmedAnchor = anchor;
     present(null);
     anchor = confirmedAnchor;
@@ -476,6 +499,7 @@ manualForm.addEventListener("submit", event => {
   resetReview();
   renderFinding(reference, "Manually confirmed");
   recordTrace("Record reference", "HUMAN", "Entered and confirmed manually");
+  setOutcome("RECORDED");
   el("manual").querySelector("summary").focus();
 });
 
@@ -485,23 +509,28 @@ el("match-text").addEventListener("click", () => {
     : "Text matching found no single labeled reference.";
   recordTrace("Read pasted text", "LOCAL_TEXT", result ? "Candidate for review" : "No single reference");
   present(result, "Confirmed from pasted text", "Text match");
+  setOutcome(result ? null : "NO_REFERENCE");
 });
 
 extractOcr.addEventListener("click", async () => {
   const image = currentImage;
   present(null);
+  setOutcome(null);
   busy = true;
   updateControls();
   localStatus.textContent = "Reading the scan with local OCR.";
   const start = performance.now();
   try {
-    const { readScanReference } = await import("./ocr-evidence.mjs");
-    const candidate = await readScanReference(image);
-    localStatus.textContent = candidate
-      ? "Local OCR · Compare the proposed reference with the scan."
-      : "Local OCR · No single payer reference was found.";
-    present(candidate, "Confirmed after local OCR", "Local OCR", candidate?.box);
-    recordTrace("Read scan", "LOCAL_OCR", candidate ? "Candidate for review" : "No single reference", Math.round(performance.now() - start));
+    const { readScanEvidence } = await import("./ocr-evidence.mjs");
+    const { candidate, references } = await readScanEvidence(image);
+    const conflict = references > 1;
+    localStatus.textContent = conflict ? "Local OCR · More than one payer reference was found. Resolve the conflict manually."
+      : candidate ? "Local OCR · Compare the proposed reference with the scan."
+        : "Local OCR · No single payer reference was found.";
+    present(conflict ? null : candidate, "Confirmed after local OCR", "Local OCR", candidate?.box);
+    setOutcome(conflict ? "CONFLICT" : candidate ? null : "NO_REFERENCE");
+    recordTrace("Read scan", "LOCAL_OCR", conflict ? "Conflict blocked" : candidate ? "Candidate for review" : "No single reference",
+      Math.round(performance.now() - start));
   } catch {
     recordTrace("Read scan", "LOCAL_OCR", "OCR unavailable");
     localStatus.textContent = "Local OCR is unavailable. Review the scan and enter the reference manually.";
@@ -552,6 +581,7 @@ extract.addEventListener("click", async () => {
     recordTrace("Read with Nano", response.source, outcome, response.duration);
     present(decision.candidate, "Confirmed after on-device review", scanning ? "Nano + local OCR" : "Matched quote",
       decision.box);
+    setOutcome(nextStepCode(decision.status));
   } catch {
     recordTrace("Read with Nano", "UNCONFIRMED", "Inference unavailable");
     localStatus.textContent = "On-device inference unavailable. Review the original and enter the reference manually.";
@@ -585,6 +615,32 @@ async function explainPolicy(hybrid) {
     explainHybrid.disabled = false;
   }
 }
+
+el("next-step-run").addEventListener("click", async () => {
+  const code = outcomeCode;
+  if (!code || !inference) return;
+  const status = el("next-step-status");
+  const text = el("next-step-text");
+  busy = true;
+  updateControls();
+  text.textContent = "";
+  status.textContent = "Asking Firebase AI Logic for the next step.";
+  try {
+    const response = await inference.nextStep(code);
+    const route = response.source === "ON_DEVICE" ? "Answered by Gemini Nano on this device"
+      : "Gemini Nano was not ready, so Firebase AI Logic fell back to the cloud";
+    status.textContent = `${sourceAndTime(response)} · ${route}`;
+    text.textContent = response.text;
+    recordTrace(`Next step (${NEXT_STEPS[code].label})`, response.source,
+      response.source === "IN_CLOUD" ? "Cloud fallback" : "Guidance returned", response.duration, true);
+  } catch {
+    recordTrace("Next step", "UNCONFIRMED", "Guidance unavailable", null, true);
+    status.textContent = "AI guidance unavailable. Follow the checklist above.";
+  } finally {
+    busy = false;
+    updateControls();
+  }
+});
 
 explain.addEventListener("click", () => explainPolicy(false));
 explainHybrid.addEventListener("click", () => explainPolicy(true));
