@@ -1,4 +1,4 @@
-import { readSuggestion, reviewScanSuggestion, SCAN_CASES, scoreScanFixture } from "./evidence.mjs";
+import { decideScanReview, readSuggestion, reviewScanSuggestion, SCAN_CASES, scoreScanFixture } from "./evidence.mjs";
 import { levenshtein, percentile } from "./vendor/medocr/metrics.mjs";
 
 const expectedQuotes = new Map([
@@ -42,15 +42,27 @@ async function fingerprint(image) {
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export function scoreBenchmarkCase(fixture, response) {
+export function scoreBenchmarkCase(fixture, response, evidence) {
   const raw = readSuggestion(response.text);
   const reviewed = reviewScanSuggestion(response.text);
   const suggestion = typeof raw?.reference === "string" && raw.reference.length <= 80 ? raw.reference.trim() : null;
   const quote = typeof raw?.quote === "string" && raw.quote.length <= 240 ? raw.quote : null;
   const candidate = reviewed.candidate?.reference ?? null;
   const outcome = scoreScanFixture(fixture, reviewed);
+  const guarded = evidence ? decideScanReview(reviewed, evidence) : null;
+  const guardedReference = guarded?.candidate?.reference ?? null;
   return {
     ...baseRow(fixture),
+    ...(evidence === null ? { guarded: { decision: "ocr-unavailable", outcome: "OCR unavailable" } } : guarded ? {
+      guarded: {
+        decision: guarded.status,
+        reference: guardedReference,
+        outcome: guardedReference === fixture.expected
+          ? guardedReference ? "Correct extraction" : "Correct abstention"
+          : guardedReference ? fixture.expected ? "Wrong suggestion" : "False suggestion" : "Missed reference",
+        wrongProposalBlocked: Boolean(suggestion && suggestion !== fixture.expected && !guardedReference),
+      },
+    } : {}),
     outcome: outcome === "Wrong suggestion" && fixture.expected === null ? "False suggestion" : outcome,
     modelSuggestion: suggestion,
     displayedCandidate: candidate,
@@ -64,6 +76,8 @@ export function scoreBenchmarkCase(fixture, response) {
 function summarize(rows, total) {
   const counts = {};
   const times = [];
+  const guarded = { measured: 0, correct: 0, wrongProposalsBlocked: 0 };
+  const guardTimes = [];
   let edits = 0;
   let referenceCharacters = 0;
   let quotesScored = 0;
@@ -72,6 +86,12 @@ function summarize(rows, total) {
     counts[row.outcome] = (counts[row.outcome] ?? 0) + 1;
     if (row.inferenceMs !== null && row.inferenceMs !== undefined) times.push(row.inferenceMs);
     if (row.wrongProposalBlocked) wrongProposalsBlocked++;
+    if (row.guarded && row.guarded.decision !== "ocr-unavailable") {
+      guarded.measured++;
+      if (Number.isFinite(row.guarded.milliseconds)) guardTimes.push(row.guarded.milliseconds);
+      if (["Correct extraction", "Correct abstention"].includes(row.guarded.outcome)) guarded.correct++;
+      if (row.guarded.wrongProposalBlocked) guarded.wrongProposalsBlocked++;
+    }
     if (row.quoteScore) {
       quotesScored++;
       edits += row.quoteScore.edits;
@@ -84,13 +104,16 @@ function summarize(rows, total) {
     correctOutcomes: (counts["Correct extraction"] ?? 0) + (counts["Correct abstention"] ?? 0),
     counts,
     wrongProposalsBlocked,
+    ...(rows.some(row => row.guarded) ? {
+      guarded: { ...guarded, latencyMs: { samples: guardTimes.length, p50: percentile(guardTimes, 50), p95: percentile(guardTimes, 95) } },
+    } : {}),
     quoteCharacters: { quotesScored, edits, referenceCharacters, errorRate: referenceCharacters ? edits / referenceCharacters : null },
     latencyMs: { samples: times.length, p50: percentile(times, 50), p95: percentile(times, 95) },
   };
 }
 
 async function runBenchmark({
-  prepare, readSample, infer, onProgress, fixtures = BENCHMARK_CASES,
+  prepare, readSample, infer, readEvidence, onProgress, fixtures = BENCHMARK_CASES,
 }, mode, source) {
   const startedAt = new Date().toISOString();
   const rows = [];
@@ -122,9 +145,17 @@ async function runBenchmark({
     }
     const sampleSha256 = await fingerprint(image).catch(() => null);
     try {
+      const started = performance.now();
       const response = await infer(image);
       if (response.source !== source) throw new Error("Unverified inference source");
-      rows.push({ ...scoreBenchmarkCase(fixture, response), sampleSha256 });
+      let evidence;
+      if (readEvidence) {
+        try { evidence = await readEvidence(image); }
+        catch { evidence = null; }
+      }
+      const scored = scoreBenchmarkCase(fixture, response, evidence);
+      if (evidence && scored.guarded) scored.guarded.milliseconds = Math.round(performance.now() - started);
+      rows.push({ ...scored, sampleSha256 });
       responses++;
     } catch {
       rows.push({ ...baseRow(fixture), outcome: "Inference error", sampleSha256 });
@@ -160,7 +191,7 @@ export function compareBenchmarkRuns(nano, ocr) {
   for (const row of nano.rows) {
     const baseline = cases.get(row.sample);
     if (row.inferenceSource !== "ON_DEVICE" || baseline?.inferenceSource !== "LOCAL_OCR"
-      || row.expectedReference !== baseline.expectedReference || row.sampleSha256 === null
+      || row.expectedReference !== baseline.expectedReference || !/^[a-f0-9]{64}$/.test(row.sampleSha256)
       || row.sampleSha256 !== baseline.sampleSha256) continue;
     const nanoCorrect = isCorrect(row);
     const ocrCorrect = isCorrect(baseline);
@@ -171,4 +202,37 @@ export function compareBenchmarkRuns(nano, ocr) {
     else counts.neitherCorrect++;
   }
   return counts.paired ? counts : null;
+}
+
+// This is the only shareable benchmark representation. Do not include model
+// prose, candidate text, images, or the current document from the review UI.
+export function shareableBenchmark(...runs) {
+  const fixtureNames = new Set(BENCHMARK_CASES.map(fixture => fixture.file));
+  return {
+    schemaVersion: 2,
+    platform: "web",
+    dataset: "claimguard-synthetic-v3",
+    runs: runs.filter(Boolean).map(run => ({
+      mode: run.mode,
+      status: run.status,
+      startedAt: run.startedAt,
+      finishedAt: run.finishedAt,
+      summary: run.summary,
+      rows: run.rows.filter(row => fixtureNames.has(row.sample)).map(row => ({
+        sample: row.sample,
+        sampleSha256: row.sampleSha256 ?? null,
+        inferenceSource: row.inferenceSource ?? null,
+        milliseconds: row.inferenceMs ?? null,
+        outcome: row.outcome,
+        wrongProposalBlocked: row.wrongProposalBlocked ?? false,
+        guarded: row.guarded ? {
+          decision: row.guarded.decision,
+          milliseconds: row.guarded.milliseconds ?? null,
+          outcome: row.guarded.outcome,
+          wrongProposalBlocked: row.guarded.wrongProposalBlocked ?? false,
+        } : null,
+      })),
+    })),
+    comparison: compareBenchmarkRuns(...runs),
+  };
 }

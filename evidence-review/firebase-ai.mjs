@@ -45,6 +45,9 @@ export async function setupInference() {
     if (typeof globalThis.LanguageModel?.create !== "function") {
       throw new Error("Chrome's on-device Prompt API is unavailable");
     }
+    if (!InferenceMode?.ONLY_ON_DEVICE || !InferenceSource?.ON_DEVICE) {
+      throw new Error("The SDK cannot enforce and verify device-only inference");
+    }
     return local ??= getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE });
   }
 

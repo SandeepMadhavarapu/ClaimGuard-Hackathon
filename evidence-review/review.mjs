@@ -1,8 +1,8 @@
 import {
-  CASES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, compareReferenceEvidence, matchLetter, parseReference, preauthorizationFinding,
+  CASES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
-import { compareBenchmarkRuns, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
+import { compareBenchmarkRuns, shareableBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
 import { imageModelAvailability } from "./browser-readiness.mjs";
 import { setupInference } from "./firebase-ai.mjs";
 import { prepareScan, scanPart } from "./scan.mjs";
@@ -526,40 +526,32 @@ extract.addEventListener("click", async () => {
       ? await inference.extractScan(await scanPart(image))
       : await inference.extract(text);
     const result = scanning ? reviewScanSuggestion(response.text) : verifySuggestion(text, response.text);
-    let independent = null;
-    if (scanning && result.candidate) {
-      localStatus.textContent = "Cross-checking the proposed reference against local OCR.";
-      let ocrReferences = 0;
+    let decision = result;
+    if (scanning) {
+      localStatus.textContent = "Cross-checking with local OCR.";
+      let evidence = { references: 0, candidate: null };
       try {
         const { readScanEvidence } = await import("./ocr-evidence.mjs");
-        ({ candidate: independent, references: ocrReferences } = await readScanEvidence(image));
+        evidence = await readScanEvidence(image);
       } catch {
-        // The clerk can verify the source directly when the OCR worker is unavailable.
+        // With no independent read, a model proposal cannot enter confirmation.
       }
-      if (ocrReferences > 1) {
-        localStatus.textContent = `${sourceAndTime(response)} · Local OCR found more than one payer reference on this page. Nano's suggestion was withheld. Resolve which reference applies and enter it manually.`;
-        recordTrace("Read with Nano", response.source, "Conflict blocked", response.duration);
-        return;
-      }
-      const check = compareReferenceEvidence(result.candidate, independent);
-      if (check === "conflict") {
-        localStatus.textContent = `${sourceAndTime(response)} · Nano and local OCR read different references. Review the scan and enter the reference manually.`;
-        recordTrace("Read with Nano", response.source, "Disagreement blocked", response.duration);
-        return;
-      }
+      decision = decideScanReview(result, evidence);
     }
-    const message = {
-      review: independent ? "Local OCR agrees. Confirm the reference against the scan."
-        : "Local OCR could not confirm the number. Compare it directly with the scan.",
-      verified: "The quote matches the pasted letter.",
-      empty: "No single payer reference was suggested.",
-      unsupported: "The output could not be used. Review the original document.",
-    }[result.status];
+    const messages = {
+      review: ["Local OCR agrees. Confirm the highlighted reference against the scan.", "Candidate for review"],
+      verified: ["The quote matches the pasted letter.", "Quote matched"],
+      empty: ["No single payer reference was suggested.", "Abstained"],
+      unsupported: ["The output could not be used. Review the original document.", "Suggestion blocked"],
+      conflict: ["OCR found multiple payer references. Resolve the conflict and enter the verified reference manually.", "Conflict blocked"],
+      disagreement: ["Nano and OCR read different references. Review the scan before manual entry.", "Disagreement blocked"],
+      uncorroborated: ["OCR could not confirm the reference. Review the scan before manual entry.", "Uncorroborated proposal blocked"],
+    };
+    const [message, outcome] = messages[decision.status];
     localStatus.textContent = `${sourceAndTime(response)} · ${message}`;
-    const outcome = { review: "Candidate for review", verified: "Quote matched", empty: "Abstained", unsupported: "Suggestion blocked" }[result.status];
     recordTrace("Read with Nano", response.source, outcome, response.duration);
-    present(result.candidate, "Confirmed after on-device review", scanning ? "Nano transcription" : "Matched quote",
-      independent?.box);
+    present(decision.candidate, "Confirmed after on-device review", scanning ? "Nano + local OCR" : "Matched quote",
+      decision.box);
   } catch {
     recordTrace("Read with Nano", "UNCONFIRMED", "Inference unavailable");
     localStatus.textContent = "On-device inference unavailable. Review the original and enter the reference manually.";
@@ -606,6 +598,7 @@ function renderBenchmark(report) {
     : `${prefix}${correctOutcomes}/${planned} correct outcomes · ${Object.entries(counts).map(([name, count]) => `${count} ${name.toLowerCase()}`).join(" · ")}`;
   const notes = [];
   if (wrongProposalsBlocked) notes.push(`Wrong model proposals blocked: ${wrongProposalsBlocked}`);
+  if (summary.guarded) notes.push(`Nano + OCR gate: ${summary.guarded.correct}/${planned} correct · ${summary.guarded.wrongProposalsBlocked} wrong proposals blocked · ${summary.guarded.measured} measured`);
   if (latencyMs.samples) notes.push(`Inference p50 ${latencyMs.p50} ms · p95 ${latencyMs.p95} ms (${latencyMs.samples} responses)`);
   if (quoteCharacters.quotesScored) notes.push(`Quote character error ${(quoteCharacters.errorRate * 100).toFixed(1)}% (${quoteCharacters.quotesScored} lines)`);
   el("eval-metrics").textContent = notes.join(" · ");
@@ -625,7 +618,8 @@ function renderBenchmarkRows() {
     const line = body.insertRow();
     const method = routeNames[row.inferenceSource];
     const values = [
-      row.label, row.expectedReference ?? "Abstain", row.modelSuggestion || "—", row.outcome,
+      row.label, row.expectedReference ?? "Abstain", row.modelSuggestion || "—",
+      row.guarded ? `${row.outcome} · Gate: ${row.guarded.outcome}` : row.outcome,
       row.inferenceMs != null ? `${method} · ${row.inferenceMs} ms` : method ?? "-",
     ];
     if (paired) {
@@ -658,6 +652,7 @@ evaluate.addEventListener("click", async () => {
       prepare: () => inference.prepareLocal(progressFor(status)),
       readSample: bundledScan,
       infer: async image => inference.extractScan(await scanPart(image)),
+      readEvidence: async image => (await import("./ocr-evidence.mjs")).readScanEvidence(image),
       onProgress: (current, total) => { status.textContent = `Reading scan ${current} of ${total} on-device.`; },
     });
     renderBenchmark(latestBenchmark);
@@ -705,10 +700,7 @@ evaluateOcr.addEventListener("click", async () => {
 
 exportEvaluation.addEventListener("click", () => {
   if (!latestBenchmark && !latestOcrBenchmark) return;
-  const report = latestBenchmark && latestOcrBenchmark
-    ? { ...latestBenchmark, ocrBaseline: latestOcrBenchmark, comparison: compareBenchmarkRuns(latestBenchmark, latestOcrBenchmark) }
-    : latestBenchmark ?? latestOcrBenchmark;
-  downloadJson(report, "claimguard-scan-benchmark.json");
+  downloadJson(shareableBenchmark(latestBenchmark, latestOcrBenchmark), "claimguard-web-benchmark.json");
 });
 
 setupInference().then(client => {

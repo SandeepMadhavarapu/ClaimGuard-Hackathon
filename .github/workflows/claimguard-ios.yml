@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/claimguard-ios
+      - audit/claimguard-judge-readiness
     paths:
       - 'ios/ClaimGuard/**'
       - 'evidence-review/samples/**'
@@ -47,6 +48,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
   device-ipa:
+    if: github.ref_name != 'audit/claimguard-judge-readiness'
     runs-on: macos-26
     timeout-minutes: 25
     steps:

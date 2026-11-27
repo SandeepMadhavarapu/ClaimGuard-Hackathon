@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { BENCHMARK_CASES, compareBenchmarkRuns, runOcrBenchmark, runScanBenchmark, scoreBenchmarkCase } from "./benchmark.mjs";
+import { BENCHMARK_CASES, compareBenchmarkRuns, runOcrBenchmark, runScanBenchmark, scoreBenchmarkCase, shareableBenchmark } from "./benchmark.mjs";
 import { imageMimeType } from "./scan.mjs";
 
 const [positive, negative] = BENCHMARK_CASES;
@@ -97,7 +97,7 @@ test("the OCR baseline records real execution independently of Firebase", async 
 test("paired comparison uses shared scored cases and does not favor either method", () => {
   const correct = "Correct extraction";
   const wrong = "Missed reference";
-  const rows = ["a", "b", "c", "d", "e"].map(sample => ({ sample, expectedReference: "PA-123" }));
+  const rows = ["a", "b", "c", "d", "e"].map(sample => ({ sample, expectedReference: "PA-123", sampleSha256: "a".repeat(64) }));
   const dataset = "fixture-set";
   const nano = { dataset, rows: rows.map((row, index) => ({
     ...row, inferenceSource: "ON_DEVICE", outcome: index < 2 ? correct : wrong,
@@ -125,4 +125,47 @@ test("different scan bytes cannot be paired as the same benchmark input", async 
   assert.equal(nano.rows[0].sampleSha256, matching.rows[0].sampleSha256);
   assert.equal(compareBenchmarkRuns(nano, matching)?.bothCorrect, 1);
   assert.equal(compareBenchmarkRuns(nano, different), null);
+});
+
+test("live gate withholds uncorroborated, conflicting, and disagreeing model IDs", () => {
+  const infer = onDevice(positive.expected, positive.quote);
+  const box = { x0: 1, y0: 2, x1: 7, y1: 10 };
+  const matched = scoreBenchmarkCase(positive, infer, { references: 1, candidate: { reference: positive.expected, box } });
+  assert.equal(matched.guarded.outcome, "Correct extraction");
+  assert.equal(matched.guarded.reference, positive.expected);
+  for (const [evidence, status] of [
+    [{ references: 0, candidate: null }, "uncorroborated"],
+    [{ references: 2, candidate: null }, "conflict"],
+    [{ references: 1, candidate: { reference: "PA-000", box } }, "disagreement"],
+  ]) {
+    const result = scoreBenchmarkCase(positive, infer, evidence);
+    assert.equal(result.guarded.reference, null);
+    assert.equal(result.guarded.decision, status);
+    assert.equal(result.guarded.outcome, "Missed reference");
+  }
+  assert.equal(scoreBenchmarkCase(negative, onDevice(null, null), null).guarded.outcome, "OCR unavailable");
+});
+
+test("the benchmark export excludes model output and hashes only the actual fixture bytes", async () => {
+  const run = await runScanBenchmark({
+    fixtures: [positive, negative],
+    prepare: async () => {},
+    readSample: async fixture => new Blob([fixture.file]),
+    infer: async () => onDevice("CANARY-123", "Preauthorization reference: CANARY-123", 12),
+    readEvidence: async () => { throw new Error("OCR unavailable"); },
+  });
+  assert.equal(run.summary.guarded.measured, 0);
+  assert.equal(run.summary.guarded.correct, 0);
+  const report = shareableBenchmark(run);
+  assert.match(report.runs[0].rows[0].sampleSha256, /^[a-f0-9]{64}$/);
+  assert.equal(report.runs[0].rows[0].guarded.outcome, "OCR unavailable");
+  assert.doesNotMatch(JSON.stringify(report), /CANARY|quote":|modelSuggestion/);
+});
+
+test("a paired report requires case fingerprints on both sides", () => {
+  const row = { sample: "referral.png", expectedReference: "PA-123", outcome: "Correct extraction" };
+  assert.equal(compareBenchmarkRuns(
+    { dataset: "fixture", rows: [{ ...row, inferenceSource: "ON_DEVICE" }] },
+    { dataset: "fixture", rows: [{ ...row, inferenceSource: "LOCAL_OCR" }] },
+  ), null);
 });
