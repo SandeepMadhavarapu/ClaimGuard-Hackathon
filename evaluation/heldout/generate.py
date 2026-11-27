@@ -9,8 +9,12 @@ clinic and identifier is invented. Run once; results are reported against a froz
 import asyncio, json, pathlib, random
 from PIL import Image, ImageFilter
 
+import sys
 OUT = pathlib.Path(__file__).resolve().parents[2] / "evidence-review" / "heldout"
-SEED = 20261128
+SET = sys.argv[1] if len(sys.argv) > 1 else "a"   # "a" = first held-out set, "b" = fresh set generated after fixes
+SEED = 20261128 if SET == "a" else 20261129
+PREFIX = "h" if SET == "a" else "b"
+JSON_NAME = "cases.json" if SET == "a" else "cases-b.json"
 rng = random.Random(SEED)
 
 CLINICS = ["Ridgeview Demo Hospital", "Lakeshore Sample Clinic", "Acacia Training Medical Centre",
@@ -23,6 +27,9 @@ FAMILIAR = ["Preauthorization reference:", "Preauthorization number:", "Pre-auth
 UNFAMILIAR = ["Pre-auth ref:", "Payer authorization no.:", "Authorization code:", "Approval reference:",
               "PA number:", "Preauth #:", "Insurer approval ref:", "Prior authorization number:",
               "Authorisation reference:", "Payer approval number:", "Auth. ref:", "SHA preauthorization:"]
+if SET == "b":
+    # Set B swaps in four wordings that were never seen during development.
+    UNFAMILIAR = UNFAMILIAR[:8] + ["Payer auth code:", "Pre-approval no.:", "Authorization ID:", "Approval #:"]
 FONTS = ["'DejaVu Serif'", "'DejaVu Sans'", "Inter", "'Courier 10 Pitch', Courier, monospace", "'DejaVu Sans Condensed'"]
 
 
@@ -103,7 +110,7 @@ for i, rows in enumerate(pending):
 assert len(cases) == 50, len(cases)
 rng.shuffle(cases)
 for i, case in enumerate(cases, 1):
-    case["file"] = f"h{i:02d}.jpg"
+    case["file"] = f"{PREFIX}{i:02d}.jpg"
 
 CSS = """
 body{margin:0;background:#cfd2d6}
@@ -172,5 +179,5 @@ if __name__ == "__main__":
     asyncio.run(render())
     var = variants()
     labels = [dict(file=c["file"], category=c["category"], expected=c["expected"], note=c["note"], layout=c["layout"]) for c in cases]
-    (OUT / "cases.json").write_text(json.dumps({"seed": SEED, "documents": labels, "variants": var}, indent=1) + "\n")
+    (OUT / JSON_NAME).write_text(json.dumps({"seed": SEED, "documents": labels, "variants": var}, indent=1) + "\n")
     print(len(labels), "documents,", len(var), "variants")

@@ -114,3 +114,21 @@ test("the leak gate passes a clean layout and blocks any identifier value or ID-
   assert.equal(leakGate(prompt + "\nCR10000000001-1", layout).identifiers, 1);
   assert.match(await sha256Hex(prompt), /^[a-f0-9]{64}$/);
 });
+
+test("labels belong to the field they precede, so grid rows and prose work and other fields stay out", async () => {
+  const { labeledValues } = await import("./layout-read.mjs");
+  const grid = buildLayout(page("Case number: CASE-3494 Auth. ref: DEMO-PA-571220", "Member number: CR63655673325-4 Facility: FID-21-100001-1"));
+  assert.deepEqual(labeledValues(grid), ["DEMO-PA-571220"]);
+  assert.equal(resolveLayoutSlot('{"slot":"ID-2"}', grid).status, "review");
+  assert.equal(resolveLayoutSlot('{"slot":"ID-1"}', grid).status, "unsupported");
+  const prose = buildLayout(page("The payer issued preauthorization reference DEMO-PA-463173 for this service."));
+  assert.equal(resolveLayoutSlot('{"slot":"ID-1"}', prose).status, "review");
+  const pa = buildLayout(page("PA number: AUTH-26-06198", "Case number: CASE-1"));
+  assert.deepEqual(labeledValues(pa), ["AUTH-26-06198"]);
+  // A blank payer field followed by another ID on the same line is not a payer reference.
+  const blank = buildLayout(page("Preauthorization reference: Hospital tracking ID: FAC-01328"));
+  assert.deepEqual(labeledValues(blank), []);
+  // Two differently worded payer labels are still a conflict.
+  const two = buildLayout(page("Preauthorization number: DEMO-PA-1", "Authorization code: AUTH-26-84909"));
+  assert.equal(resolveLayoutSlot('{"slot":"ID-1"}', two).status, "conflict");
+});

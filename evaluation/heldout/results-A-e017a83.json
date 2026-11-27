@@ -1,0 +1,1504 @@
+{
+ "summary": {
+  "commit": "e017a83",
+  "documents": 50,
+  "variants": 30,
+  "ocr_rule": {
+   "documents": {
+    "readable": 32,
+    "extracted": 7,
+    "readable_held": 24,
+    "readable_wrong": 1,
+    "should_hold": 18,
+    "held": 16,
+    "wrongly_ready": 2
+   },
+   "variants": {
+    "readable": 24,
+    "extracted": 4,
+    "readable_held": 18,
+    "readable_wrong": 2,
+    "should_hold": 6,
+    "held": 6,
+    "wrongly_ready": 0
+   }
+  },
+  "private_layout_best_case": {
+   "documents": {
+    "readable": 32,
+    "extracted": 17,
+    "readable_held": 15,
+    "readable_wrong": 0,
+    "should_hold": 18,
+    "held": 18,
+    "wrongly_ready": 0
+   },
+   "variants": {
+    "readable": 24,
+    "extracted": 17,
+    "readable_held": 7,
+    "readable_wrong": 0,
+    "should_hold": 6,
+    "held": 6,
+    "wrongly_ready": 0
+   }
+  },
+  "private_layout_any_model": {
+   "documents_with_a_wrong_value_possible": 4,
+   "variants_with_a_wrong_value_possible": 5,
+   "picks_tried": 287
+  },
+  "leak_gate": {
+   "blocked": 0,
+   "requests": 80
+  },
+  "ocr_read_expected_value": 22,
+  "set": "A"
+ },
+ "rows": {
+  "documents": [
+   {
+    "file": "h01.jpg",
+    "category": "readable",
+    "expected": "AUTH-26-85388",
+    "note": "unfamiliar label 'Authorization code:'",
+    "layout": "plain",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 820,
+    "bestShown": "AUTH-26-85388",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h02.jpg",
+    "category": "readable",
+    "expected": "DEMO-PA-585114",
+    "note": "unfamiliar label 'SHA preauthorization:'",
+    "layout": "memo",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 805,
+    "bestShown": "DEMO-PA-585114",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h03.jpg",
+    "category": "readable",
+    "expected": "AUTH-26-68746",
+    "note": "unfamiliar label 'Authorisation reference:'",
+    "layout": "letter",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 806,
+    "bestShown": "AUTH-26-68746",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h04.jpg",
+    "category": "readable",
+    "expected": "DEMO-PA-838936",
+    "note": "familiar label",
+    "layout": "letter",
+    "ocrReferences": 1,
+    "ocrShown": "DEMO-PA-838936",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 817,
+    "bestShown": "DEMO-PA-838936",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h05.jpg",
+    "category": "lookalike",
+    "expected": "PA-64O730",
+    "note": "O/0 or I/1 look-alike",
+    "layout": "plain",
+    "ocrReferences": 1,
+    "ocrShown": "PA-640730",
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 805,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 1
+    }
+   },
+   {
+    "file": "h06.jpg",
+    "category": "conflict",
+    "expected": null,
+    "note": "two different payer references on one page",
+    "layout": "memo",
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 823,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h07.jpg",
+    "category": "lookalike",
+    "expected": "PA-0160O8",
+    "note": "O/0 or I/1 look-alike",
+    "layout": "letter",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 819,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 1
+    }
+   },
+   {
+    "file": "h08.jpg",
+    "category": "conflict",
+    "expected": null,
+    "note": "two documents, different references",
+    "layout": "fax",
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 916,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h09.jpg",
+    "category": "readable",
+    "expected": "DPA9670602",
+    "note": "unfamiliar label 'Payer approval number:'",
+    "layout": "memo",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 796,
+    "bestShown": "DPA9670602",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h10.jpg",
+    "category": "readable",
+    "expected": "DPA4978198",
+    "note": "same reference twice",
+    "layout": "fax",
+    "ocrReferences": 1,
+    "ocrShown": "DPA4978198",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 823,
+    "bestShown": "DPA4978198",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h11.jpg",
+    "category": "readable",
+    "expected": "DPA5700545",
+    "note": "same reference twice",
+    "layout": "table",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 826,
+    "bestShown": "DPA5700545",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 2,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h12.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "pending/blank/denied",
+    "layout": "table",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 822,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 2,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h13.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "pending/blank/denied",
+    "layout": "fax",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 805,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h14.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "hospital identifiers only",
+    "layout": "memo",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 784,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h15.jpg",
+    "category": "readable",
+    "expected": "PA-001362",
+    "note": "unfamiliar label 'Pre-auth ref:'",
+    "layout": "memo",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 794,
+    "bestShown": "PA-001362",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h16.jpg",
+    "category": "readable",
+    "expected": "DEMO-PA-463173",
+    "note": "reference stated in prose",
+    "layout": "letter",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 873,
+    "bestShown": null,
+    "bestStatus": "unsupported",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h17.jpg",
+    "category": "readable",
+    "expected": "DEMO-PA-571220",
+    "note": "unfamiliar label 'Auth. ref:'",
+    "layout": "card",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 784,
+    "bestShown": null,
+    "bestStatus": "unsupported",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h18.jpg",
+    "category": "conflict",
+    "expected": null,
+    "note": "original and amended references",
+    "layout": "fax",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 808,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h19.jpg",
+    "category": "readable",
+    "expected": "DPA7716232",
+    "note": "familiar label",
+    "layout": "table",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 805,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h20.jpg",
+    "category": "readable",
+    "expected": "DPA9538410",
+    "note": "unfamiliar label 'Payer authorization no.:'",
+    "layout": "plain",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 844,
+    "bestShown": "DPA9538410",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h21.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "hospital identifiers only",
+    "layout": "plain",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 824,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h22.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "pending/blank/denied",
+    "layout": "fax",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 826,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h23.jpg",
+    "category": "readable",
+    "expected": "DPA0813666",
+    "note": "familiar label",
+    "layout": "fax",
+    "ocrReferences": 1,
+    "ocrShown": "DPA0813666",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 791,
+    "bestShown": "DPA0813666",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h24.jpg",
+    "category": "lookalike",
+    "expected": "PA-157l51",
+    "note": "O/0 or I/1 look-alike",
+    "layout": "plain",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 800,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 1
+    }
+   },
+   {
+    "file": "h25.jpg",
+    "category": "lookalike",
+    "expected": "DEM0-PA-196139",
+    "note": "O/0 or I/1 look-alike",
+    "layout": "card",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 842,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h26.jpg",
+    "category": "conflict",
+    "expected": null,
+    "note": "two different payer references on one page",
+    "layout": "letter",
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 846,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h27.jpg",
+    "category": "lookalike",
+    "expected": "DPA481O173",
+    "note": "O/0 or I/1 look-alike",
+    "layout": "memo",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 796,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 1
+    }
+   },
+   {
+    "file": "h28.jpg",
+    "category": "lookalike",
+    "expected": "AUTH-26-15I36",
+    "note": "O/0 or I/1 look-alike",
+    "layout": "table",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 763,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 1,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h29.jpg",
+    "category": "readable",
+    "expected": "DEMO-PA-812318",
+    "note": "familiar label",
+    "layout": "table",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 773,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 2,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h30.jpg",
+    "category": "conflict",
+    "expected": null,
+    "note": "two different payer references on one page",
+    "layout": "letter",
+    "ocrReferences": 1,
+    "ocrShown": "AUTH-26-84909",
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 827,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h31.jpg",
+    "category": "conflict",
+    "expected": null,
+    "note": "two different payer references on one page",
+    "layout": "letter",
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 864,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h32.jpg",
+    "category": "readable",
+    "expected": "AUTH-26-53983",
+    "note": "unfamiliar label 'Insurer approval ref:'",
+    "layout": "fax",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 829,
+    "bestShown": "AUTH-26-53983",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h33.jpg",
+    "category": "readable",
+    "expected": "PA-788876",
+    "note": "familiar label",
+    "layout": "memo",
+    "ocrReferences": 1,
+    "ocrShown": "PA-788876",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 802,
+    "bestShown": "PA-788876",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h34.jpg",
+    "category": "readable",
+    "expected": "AUTH-26-20581",
+    "note": "unfamiliar label 'Preauth #:'",
+    "layout": "memo",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 816,
+    "bestShown": "AUTH-26-20581",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h35.jpg",
+    "category": "lookalike",
+    "expected": "DEMO-PA-088O03",
+    "note": "O/0 or I/1 look-alike",
+    "layout": "card",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 813,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h36.jpg",
+    "category": "readable",
+    "expected": "PA-274530",
+    "note": "unfamiliar label 'Prior authorization number:'",
+    "layout": "fax",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 841,
+    "bestShown": "PA-274530",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h37.jpg",
+    "category": "readable",
+    "expected": "DEMO-PA-900175",
+    "note": "reference stated in prose",
+    "layout": "letter",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 882,
+    "bestShown": null,
+    "bestStatus": "unsupported",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h38.jpg",
+    "category": "readable",
+    "expected": "AUTH-26-06198",
+    "note": "unfamiliar label 'PA number:'",
+    "layout": "letter",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 788,
+    "bestShown": null,
+    "bestStatus": "unsupported",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h39.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "hospital identifiers only",
+    "layout": "fax",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 807,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h40.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "pending/blank/denied",
+    "layout": "fax",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 826,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h41.jpg",
+    "category": "conflict",
+    "expected": null,
+    "note": "two documents, different references",
+    "layout": "plain",
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 948,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h42.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "pending/blank/denied",
+    "layout": "fax",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 815,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h43.jpg",
+    "category": "readable",
+    "expected": "PA-125249",
+    "note": "familiar label",
+    "layout": "memo",
+    "ocrReferences": 1,
+    "ocrShown": "PA-125249",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 816,
+    "bestShown": "PA-125249",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h44.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "pending/blank/denied",
+    "layout": "letter",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 825,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h45.jpg",
+    "category": "readable",
+    "expected": "AUTH-26-13091",
+    "note": "familiar label",
+    "layout": "plain",
+    "ocrReferences": 1,
+    "ocrShown": "AUTH-26-13091",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 807,
+    "bestShown": "AUTH-26-13091",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h46.jpg",
+    "category": "no_reference",
+    "expected": null,
+    "note": "pending/blank/denied",
+    "layout": "letter",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 814,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h47.jpg",
+    "category": "conflict",
+    "expected": null,
+    "note": "two different payer references on one page",
+    "layout": "card",
+    "ocrReferences": 1,
+    "ocrShown": "DEMO-PA-062908",
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 836,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h48.jpg",
+    "category": "readable",
+    "expected": "PA-154417",
+    "note": "unfamiliar label 'Approval reference:'",
+    "layout": "plain",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 858,
+    "bestShown": "PA-154417",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h49.jpg",
+    "category": "lookalike",
+    "expected": "AUTH-2I-07442",
+    "note": "O/0 or I/1 look-alike",
+    "layout": "card",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 831,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h50.jpg",
+    "category": "readable",
+    "expected": "DEMO-PA-662845",
+    "note": "familiar label",
+    "layout": "card",
+    "ocrReferences": 1,
+    "ocrShown": "DEMO-PA-662845",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 810,
+    "bestShown": null,
+    "bestStatus": "unsupported",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   }
+  ],
+  "variants": [
+   {
+    "file": "h01-blur.jpg",
+    "of": "h01.jpg",
+    "kind": "blur",
+    "category": "readable",
+    "expected": "AUTH-26-85388",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 789,
+    "bestShown": "AUTH-26-85388",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h01-lowres.jpg",
+    "of": "h01.jpg",
+    "kind": "lowres",
+    "category": "readable",
+    "expected": "AUTH-26-85388",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 820,
+    "bestShown": "AUTH-26-85388",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h01-skew.jpg",
+    "of": "h01.jpg",
+    "kind": "skew",
+    "category": "readable",
+    "expected": "AUTH-26-85388",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 812,
+    "bestShown": "AUTH-26-85388",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h02-blur.jpg",
+    "of": "h02.jpg",
+    "kind": "blur",
+    "category": "readable",
+    "expected": "DEMO-PA-585114",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 784,
+    "bestShown": "DEMO-PA-585114",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h02-lowres.jpg",
+    "of": "h02.jpg",
+    "kind": "lowres",
+    "category": "readable",
+    "expected": "DEMO-PA-585114",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 805,
+    "bestShown": "DEMO-PA-585114",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h02-skew.jpg",
+    "of": "h02.jpg",
+    "kind": "skew",
+    "category": "readable",
+    "expected": "DEMO-PA-585114",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 805,
+    "bestShown": "DEMO-PA-585114",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h03-blur.jpg",
+    "of": "h03.jpg",
+    "kind": "blur",
+    "category": "readable",
+    "expected": "AUTH-26-68746",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 791,
+    "bestShown": "AUTH-26-68746",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h03-lowres.jpg",
+    "of": "h03.jpg",
+    "kind": "lowres",
+    "category": "readable",
+    "expected": "AUTH-26-68746",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 795,
+    "bestShown": "AUTH-26-68746",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h03-skew.jpg",
+    "of": "h03.jpg",
+    "kind": "skew",
+    "category": "readable",
+    "expected": "AUTH-26-68746",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 803,
+    "bestShown": "AUTH-26-68746",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h04-blur.jpg",
+    "of": "h04.jpg",
+    "kind": "blur",
+    "category": "readable",
+    "expected": "DEMO-PA-838936",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 778,
+    "bestShown": "DEMO-PA-838936",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h04-lowres.jpg",
+    "of": "h04.jpg",
+    "kind": "lowres",
+    "category": "readable",
+    "expected": "DEMO-PA-838936",
+    "ocrReferences": 1,
+    "ocrShown": "DEMO-PA-838936",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 806,
+    "bestShown": "DEMO-PA-838936",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h04-skew.jpg",
+    "of": "h04.jpg",
+    "kind": "skew",
+    "category": "readable",
+    "expected": "DEMO-PA-838936",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 797,
+    "bestShown": null,
+    "bestStatus": "unsupported",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h05-blur.jpg",
+    "of": "h05.jpg",
+    "kind": "blur",
+    "category": "lookalike",
+    "expected": "PA-64O730",
+    "ocrReferences": 1,
+    "ocrShown": "PA-640730",
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 790,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 1
+    }
+   },
+   {
+    "file": "h05-lowres.jpg",
+    "of": "h05.jpg",
+    "kind": "lowres",
+    "category": "lookalike",
+    "expected": "PA-64O730",
+    "ocrReferences": 1,
+    "ocrShown": "PA-640730",
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 805,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 1
+    }
+   },
+   {
+    "file": "h05-skew.jpg",
+    "of": "h05.jpg",
+    "kind": "skew",
+    "category": "lookalike",
+    "expected": "PA-64O730",
+    "ocrReferences": 1,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 805,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 1
+    }
+   },
+   {
+    "file": "h07-blur.jpg",
+    "of": "h07.jpg",
+    "kind": "blur",
+    "category": "lookalike",
+    "expected": "PA-0160O8",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 810,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 1
+    }
+   },
+   {
+    "file": "h07-lowres.jpg",
+    "of": "h07.jpg",
+    "kind": "lowres",
+    "category": "lookalike",
+    "expected": "PA-0160O8",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 820,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h07-skew.jpg",
+    "of": "h07.jpg",
+    "kind": "skew",
+    "category": "lookalike",
+    "expected": "PA-0160O8",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 810,
+    "bestShown": null,
+    "bestStatus": "empty",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 1
+    }
+   },
+   {
+    "file": "h09-blur.jpg",
+    "of": "h09.jpg",
+    "kind": "blur",
+    "category": "readable",
+    "expected": "DPA9670602",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 796,
+    "bestShown": "DPA9670602",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h09-lowres.jpg",
+    "of": "h09.jpg",
+    "kind": "lowres",
+    "category": "readable",
+    "expected": "DPA9670602",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 796,
+    "bestShown": "DPA9670602",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h09-skew.jpg",
+    "of": "h09.jpg",
+    "kind": "skew",
+    "category": "readable",
+    "expected": "DPA9670602",
+    "ocrReferences": 0,
+    "ocrShown": null,
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 796,
+    "bestShown": "DPA9670602",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h10-blur.jpg",
+    "of": "h10.jpg",
+    "kind": "blur",
+    "category": "readable",
+    "expected": "DPA4978198",
+    "ocrReferences": 1,
+    "ocrShown": "DPA4978198",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 810,
+    "bestShown": "DPA4978198",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h10-lowres.jpg",
+    "of": "h10.jpg",
+    "kind": "lowres",
+    "category": "readable",
+    "expected": "DPA4978198",
+    "ocrReferences": 1,
+    "ocrShown": "DPA4978198",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 814,
+    "bestShown": "DPA4978198",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h10-skew.jpg",
+    "of": "h10.jpg",
+    "kind": "skew",
+    "category": "readable",
+    "expected": "DPA4978198",
+    "ocrReferences": 1,
+    "ocrShown": "DPA4978198",
+    "valueRead": true,
+    "gateOk": true,
+    "gateBytes": 815,
+    "bestShown": "DPA4978198",
+    "bestStatus": "review",
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h06-blur.jpg",
+    "of": "h06.jpg",
+    "kind": "blur",
+    "category": "conflict",
+    "expected": null,
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 790,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h06-lowres.jpg",
+    "of": "h06.jpg",
+    "kind": "lowres",
+    "category": "conflict",
+    "expected": null,
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 823,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h06-skew.jpg",
+    "of": "h06.jpg",
+    "kind": "skew",
+    "category": "conflict",
+    "expected": null,
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 823,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h08-blur.jpg",
+    "of": "h08.jpg",
+    "kind": "blur",
+    "category": "conflict",
+    "expected": null,
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 914,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h08-lowres.jpg",
+    "of": "h08.jpg",
+    "kind": "lowres",
+    "category": "conflict",
+    "expected": null,
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 907,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "file": "h08-skew.jpg",
+    "of": "h08.jpg",
+    "kind": "skew",
+    "category": "conflict",
+    "expected": null,
+    "ocrReferences": 2,
+    "ocrShown": null,
+    "valueRead": false,
+    "gateOk": true,
+    "gateBytes": 899,
+    "bestShown": null,
+    "bestStatus": "conflict",
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   }
+  ]
+ }
+}

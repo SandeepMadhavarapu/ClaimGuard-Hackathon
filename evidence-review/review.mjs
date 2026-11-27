@@ -1,5 +1,5 @@
 import {
-  CASES, NEXT_STEPS, groundNextStep, NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
+  CASES, NEXT_STEPS, groundNextStep, lookalikeNote, NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
   parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
@@ -213,7 +213,9 @@ function present(candidate, method = "", label = "", box = null) {
   el("candidate-label").textContent = label;
   el("number").textContent = candidate?.reference ?? "";
   el("quote").textContent = candidate?.quote ?? "";
-  el("character-check").hidden = !/[O0I1]/i.test(candidate?.reference ?? "");
+  const lookalikes = lookalikeNote(candidate?.reference);
+  el("character-check").hidden = !lookalikes;
+  el("character-check").textContent = lookalikes;
   locateEvidence.hidden = !candidate || mode !== "scan";
   anchor = mode === "scan" ? boxAnchor(box, preview.naturalWidth, preview.naturalHeight) : null;
   paintAnchor();

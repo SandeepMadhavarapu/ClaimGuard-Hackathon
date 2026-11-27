@@ -1,4 +1,5 @@
 import { labeledReferences } from "./evidence.mjs";
+import { buildLayout, labeledValues } from "./layout-read.mjs";
 import { joinOcrWords, wordsOverlappingFindings } from "./vendor/plainsight/ocr-map.mjs";
 
 function labeledLines(lines) {
@@ -10,14 +11,15 @@ function labeledLines(lines) {
   return labels;
 }
 
-// Number of distinct payer references OCR can read on the page.
+// Number of distinct payer references OCR can read on the page: values under the familiar label
+// grammar plus any value whose own label (in any wording) says payer authorization.
 export function countOcrReferences(lines) {
-  return new Set(labeledLines(lines).map(label => label.match.reference)).size;
+  return new Set([...labeledLines(lines).map(label => label.match.reference), ...labeledValues(buildLayout(lines))]).size;
 }
 
 export function readOcrCandidate(lines) {
   const labels = labeledLines(lines);
-  if (labels.length !== 1) return null;
+  if (labels.length !== 1 || countOcrReferences(lines) > 1) return null;
   const { text, spans, match } = labels[0];
   const start = text.indexOf(match.quote);
   const words = wordsOverlappingFindings(spans, [{ start, end: start + match.quote.length }]);

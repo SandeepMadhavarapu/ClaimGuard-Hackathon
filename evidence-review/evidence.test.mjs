@@ -178,3 +178,10 @@ test("generated next-step guidance is discarded if it adds identifiers, numbers 
   assert.equal(groundNextStep("See https://example.com for help.").reason, "link or email");
   assert.equal(groundNextStep("").ok, false);
 });
+
+test("look-alike characters are named with their positions", async () => {
+  const { lookalikeCharacters, lookalikeNote } = await import("./evidence.mjs");
+  assert.deepEqual(lookalikeCharacters("PA-64O730").map(entry => [entry.position, entry.name]), [[6, "letter O"], [9, "zero"]]);
+  assert.match(lookalikeNote("DEM0-PA-1"), /zero at position 4, one at position 9/);
+  assert.equal(lookalikeNote("PA-2345"), "");
+});
