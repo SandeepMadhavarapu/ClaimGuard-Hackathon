@@ -223,8 +223,10 @@ enum NextStepCode: String, CaseIterable, Sendable {
         }
     }
 
-    var prompt: String {
-        ([
+    var prompt: String { prompt(language: .english) }
+
+    func prompt(language: NextStepLanguage) -> String {
+        ((language.instruction.map { [$0] } ?? []) + [
             "You help a hospital billing clerk decide what to do next on a claim.",
             "Use only the demo checklist below. In the first sentence, state the single most important next action.",
             "Then list the remaining steps in short bullets. Do not add steps, numbers, names, or approval decisions.",
@@ -244,4 +246,33 @@ enum NextStepCode: String, CaseIterable, Sendable {
     }
 
     init?(code: String) { self.init(rawValue: code) }
+}
+
+/// Gemini Nano and Apple's on-device model don't output Kiswahili, so Kiswahili guidance is a
+/// cloud-only request. It is still only the fixed public checklist plus one instruction.
+enum NextStepLanguage: String, CaseIterable, Identifiable, Sendable {
+    case english = "en"
+    case kiswahili = "sw"
+
+    var id: String { rawValue }
+    var name: String { self == .english ? "English" : "Kiswahili" }
+    var instruction: String? { self == .english ? nil : "Write the whole answer in Kiswahili." }
+    var cloudOnly: Bool { self == .kiswahili }
+}
+
+/// Generated guidance that adds an identifier, a long number, a link or an email is discarded and
+/// the fixed checklist is shown instead. Matches groundNextStep in the Web app.
+enum NextStepGrounding {
+    static func check(_ text: String) -> String? {
+        let answer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if answer.isEmpty { return "empty" }
+        if answer.count > 1500 { return "too long" }
+        func has(_ pattern: String, _ options: String.CompareOptions = [.regularExpression]) -> Bool {
+            answer.range(of: pattern, options: options) != nil
+        }
+        if has(#"https?://|www\.|@[A-Za-z0-9-]+\."#, [.regularExpression, .caseInsensitive]) { return "link or email" }
+        if has(#"\b(?=[A-Za-z0-9-]*\d)(?=[A-Za-z0-9-]*[A-Za-z])[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+\b"#) { return "identifier" }
+        if has(#"\d{3,}|\+\d"#) { return "number" }
+        return nil
+    }
 }

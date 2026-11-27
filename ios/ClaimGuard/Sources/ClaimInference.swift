@@ -119,8 +119,15 @@ enum ClaimInference {
     }
 
     /// Sends only the fixed public prompt for one outcome code, on-device first with a cloud fallback.
-    static func nextStep(_ code: NextStepCode) async throws -> VerifiedReply {
-        try await respondPublic(code.prompt, cloudOnly: false)
+    /// Kiswahili is not an on-device output language, so that request is cloud-only.
+    static func nextStep(_ code: NextStepCode, language: NextStepLanguage = .english) async throws -> VerifiedReply {
+        try await respondPublic(code.prompt(language: language), cloudOnly: language.cloudOnly)
+    }
+
+    /// The private layout read: the prompt holds only form words and slot names, never identifier
+    /// values, so it may use the hybrid route. Apple Foundation Models first, Gemini as fallback.
+    static func readLayout(_ prompt: String, cloudOnly: Bool = false) async throws -> VerifiedReply {
+        try await respondPublic(prompt, cloudOnly: cloudOnly)
     }
 
     private static func respondPublic(_ prompt: String, cloudOnly: Bool) async throws -> VerifiedReply {
@@ -136,7 +143,7 @@ enum ClaimInference {
         }
         let clock = ContinuousClock()
         let started = clock.now
-        // The mode switch does not affect the model input, which is always a fixed public string.
+        // The mode switch does not affect the model input: a fixed public string or a redacted layout.
         let response = try await session.respond(to: prompt)
         guard let route = InferenceRoute.verifiedFirebaseRoute(
             modelVersion: response.rawResponse.modelVersion, expectedCloud: cloudModelName
