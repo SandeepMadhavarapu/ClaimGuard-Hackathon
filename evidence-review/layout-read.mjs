@@ -154,3 +154,20 @@ export function guardSweep(layoutResult, ocrEvidence, expected) {
   }
   return { tried, wrongShown };
 }
+
+// Leak gate: re-scan the exact outbound text before any model call. Any OCR identifier value, or any
+// token shaped like an identifier (letters and digits, not a slot name), blocks the call.
+export function leakGate(prompt, layoutResult) {
+  const text = String(prompt);
+  const lower = text.toLowerCase();
+  const values = layoutResult.slots.map(slot => slot.value).filter(value => lower.includes(value.toLowerCase()));
+  const shaped = (text.match(/[A-Za-z0-9][A-Za-z0-9-]{2,39}/g) ?? [])
+    .filter(token => /\d/.test(token) && !/^ID-\d+$/.test(token));
+  const hits = [...new Set([...values, ...shaped])];
+  return { ok: hits.length === 0, identifiers: hits.length, bytes: new TextEncoder().encode(text).length };
+}
+
+export async function sha256Hex(text) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(text)));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}

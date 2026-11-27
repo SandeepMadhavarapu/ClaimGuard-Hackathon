@@ -101,3 +101,16 @@ test("the guard sweep tries every slot and counts wrong values that would be sho
   // If the expected value were the tracking ID, the labeled payer slot would count as wrong.
   assert.equal(guardSweep(layout, { references: 1, candidate: null }, "FAC-01328").wrongShown, 1);
 });
+
+test("the leak gate passes a clean layout and blocks any identifier value or ID-shaped token", async () => {
+  const { leakGate, sha256Hex } = await import("./layout-read.mjs");
+  const layout = buildLayout(referral);
+  const prompt = layoutPrompt(layout.layout);
+  const clean = leakGate(prompt, layout);
+  assert.deepEqual([clean.ok, clean.identifiers], [true, 0]);
+  assert.ok(clean.bytes > 500);
+  assert.equal(leakGate(prompt + "\nDEMO-PA-240817", layout).ok, false);
+  assert.equal(leakGate(prompt + "\ndemo-pa-240817", layout).ok, false);
+  assert.equal(leakGate(prompt + "\nCR10000000001-1", layout).identifiers, 1);
+  assert.match(await sha256Hex(prompt), /^[a-f0-9]{64}$/);
+});

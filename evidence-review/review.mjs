@@ -639,7 +639,7 @@ extractLayout.addEventListener("click", async () => {
   el("layout-request").hidden = true;
   localStatus.textContent = "Reading the scan with local OCR, then removing identifier values.";
   try {
-    const [{ readScanLayoutEvidence }, { buildLayout, layoutPrompt, resolveLayoutSlot }] = await Promise.all([
+    const [{ readScanLayoutEvidence }, { buildLayout, layoutPrompt, resolveLayoutSlot, leakGate, sha256Hex }] = await Promise.all([
       import("./ocr-evidence.mjs"), import("./layout-read.mjs"),
     ]);
     const evidence = await readScanLayoutEvidence(image);
@@ -647,6 +647,18 @@ extractLayout.addEventListener("click", async () => {
     const prompt = layoutPrompt(layout.layout);
     el("layout-request-text").textContent = prompt;
     el("layout-request").hidden = false;
+    const gate = leakGate(prompt, layout);
+    const hash = await sha256Hex(prompt);
+    el("layout-receipt").textContent = gate.ok
+      ? `Leak gate passed: 0 identifiers in ${gate.bytes} outbound bytes · SHA-256 ${hash.slice(0, 16)}…`
+      : `Leak gate blocked the call: ${gate.identifiers} identifier(s) found in the outbound text.`;
+    el("layout-receipt").dataset.ok = String(gate.ok);
+    if (!gate.ok) {
+      recordTrace("Read private layout", "UNCONFIRMED", "Blocked by leak gate");
+      localStatus.textContent = "The leak gate found an identifier in the outbound text, so nothing was sent. Use local OCR or enter the reference manually.";
+      setOutcome("NEEDS_REVIEW");
+      return;
+    }
     localStatus.textContent = "Asking Gemini for the slot · on-device first, cloud fallback.";
     const response = await inference.readLayout(prompt);
     const decision = resolveLayoutSlot(response.text, layout, evidence);

@@ -1,0 +1,567 @@
+{
+ "seed": 20261128,
+ "documents": [
+  {
+   "file": "h01.jpg",
+   "category": "readable",
+   "expected": "AUTH-26-85388",
+   "note": "unfamiliar label 'Authorization code:'",
+   "layout": "plain"
+  },
+  {
+   "file": "h02.jpg",
+   "category": "readable",
+   "expected": "DEMO-PA-585114",
+   "note": "unfamiliar label 'SHA preauthorization:'",
+   "layout": "memo"
+  },
+  {
+   "file": "h03.jpg",
+   "category": "readable",
+   "expected": "AUTH-26-68746",
+   "note": "unfamiliar label 'Authorisation reference:'",
+   "layout": "letter"
+  },
+  {
+   "file": "h04.jpg",
+   "category": "readable",
+   "expected": "DEMO-PA-838936",
+   "note": "familiar label",
+   "layout": "letter"
+  },
+  {
+   "file": "h05.jpg",
+   "category": "lookalike",
+   "expected": "PA-64O730",
+   "note": "O/0 or I/1 look-alike",
+   "layout": "plain"
+  },
+  {
+   "file": "h06.jpg",
+   "category": "conflict",
+   "expected": null,
+   "note": "two different payer references on one page",
+   "layout": "memo"
+  },
+  {
+   "file": "h07.jpg",
+   "category": "lookalike",
+   "expected": "PA-0160O8",
+   "note": "O/0 or I/1 look-alike",
+   "layout": "letter"
+  },
+  {
+   "file": "h08.jpg",
+   "category": "conflict",
+   "expected": null,
+   "note": "two documents, different references",
+   "layout": "fax"
+  },
+  {
+   "file": "h09.jpg",
+   "category": "readable",
+   "expected": "DPA9670602",
+   "note": "unfamiliar label 'Payer approval number:'",
+   "layout": "memo"
+  },
+  {
+   "file": "h10.jpg",
+   "category": "readable",
+   "expected": "DPA4978198",
+   "note": "same reference twice",
+   "layout": "fax"
+  },
+  {
+   "file": "h11.jpg",
+   "category": "readable",
+   "expected": "DPA5700545",
+   "note": "same reference twice",
+   "layout": "table"
+  },
+  {
+   "file": "h12.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "pending/blank/denied",
+   "layout": "table"
+  },
+  {
+   "file": "h13.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "pending/blank/denied",
+   "layout": "fax"
+  },
+  {
+   "file": "h14.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "hospital identifiers only",
+   "layout": "memo"
+  },
+  {
+   "file": "h15.jpg",
+   "category": "readable",
+   "expected": "PA-001362",
+   "note": "unfamiliar label 'Pre-auth ref:'",
+   "layout": "memo"
+  },
+  {
+   "file": "h16.jpg",
+   "category": "readable",
+   "expected": "DEMO-PA-463173",
+   "note": "reference stated in prose",
+   "layout": "letter"
+  },
+  {
+   "file": "h17.jpg",
+   "category": "readable",
+   "expected": "DEMO-PA-571220",
+   "note": "unfamiliar label 'Auth. ref:'",
+   "layout": "card"
+  },
+  {
+   "file": "h18.jpg",
+   "category": "conflict",
+   "expected": null,
+   "note": "original and amended references",
+   "layout": "fax"
+  },
+  {
+   "file": "h19.jpg",
+   "category": "readable",
+   "expected": "DPA7716232",
+   "note": "familiar label",
+   "layout": "table"
+  },
+  {
+   "file": "h20.jpg",
+   "category": "readable",
+   "expected": "DPA9538410",
+   "note": "unfamiliar label 'Payer authorization no.:'",
+   "layout": "plain"
+  },
+  {
+   "file": "h21.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "hospital identifiers only",
+   "layout": "plain"
+  },
+  {
+   "file": "h22.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "pending/blank/denied",
+   "layout": "fax"
+  },
+  {
+   "file": "h23.jpg",
+   "category": "readable",
+   "expected": "DPA0813666",
+   "note": "familiar label",
+   "layout": "fax"
+  },
+  {
+   "file": "h24.jpg",
+   "category": "lookalike",
+   "expected": "PA-157l51",
+   "note": "O/0 or I/1 look-alike",
+   "layout": "plain"
+  },
+  {
+   "file": "h25.jpg",
+   "category": "lookalike",
+   "expected": "DEM0-PA-196139",
+   "note": "O/0 or I/1 look-alike",
+   "layout": "card"
+  },
+  {
+   "file": "h26.jpg",
+   "category": "conflict",
+   "expected": null,
+   "note": "two different payer references on one page",
+   "layout": "letter"
+  },
+  {
+   "file": "h27.jpg",
+   "category": "lookalike",
+   "expected": "DPA481O173",
+   "note": "O/0 or I/1 look-alike",
+   "layout": "memo"
+  },
+  {
+   "file": "h28.jpg",
+   "category": "lookalike",
+   "expected": "AUTH-26-15I36",
+   "note": "O/0 or I/1 look-alike",
+   "layout": "table"
+  },
+  {
+   "file": "h29.jpg",
+   "category": "readable",
+   "expected": "DEMO-PA-812318",
+   "note": "familiar label",
+   "layout": "table"
+  },
+  {
+   "file": "h30.jpg",
+   "category": "conflict",
+   "expected": null,
+   "note": "two different payer references on one page",
+   "layout": "letter"
+  },
+  {
+   "file": "h31.jpg",
+   "category": "conflict",
+   "expected": null,
+   "note": "two different payer references on one page",
+   "layout": "letter"
+  },
+  {
+   "file": "h32.jpg",
+   "category": "readable",
+   "expected": "AUTH-26-53983",
+   "note": "unfamiliar label 'Insurer approval ref:'",
+   "layout": "fax"
+  },
+  {
+   "file": "h33.jpg",
+   "category": "readable",
+   "expected": "PA-788876",
+   "note": "familiar label",
+   "layout": "memo"
+  },
+  {
+   "file": "h34.jpg",
+   "category": "readable",
+   "expected": "AUTH-26-20581",
+   "note": "unfamiliar label 'Preauth #:'",
+   "layout": "memo"
+  },
+  {
+   "file": "h35.jpg",
+   "category": "lookalike",
+   "expected": "DEMO-PA-088O03",
+   "note": "O/0 or I/1 look-alike",
+   "layout": "card"
+  },
+  {
+   "file": "h36.jpg",
+   "category": "readable",
+   "expected": "PA-274530",
+   "note": "unfamiliar label 'Prior authorization number:'",
+   "layout": "fax"
+  },
+  {
+   "file": "h37.jpg",
+   "category": "readable",
+   "expected": "DEMO-PA-900175",
+   "note": "reference stated in prose",
+   "layout": "letter"
+  },
+  {
+   "file": "h38.jpg",
+   "category": "readable",
+   "expected": "AUTH-26-06198",
+   "note": "unfamiliar label 'PA number:'",
+   "layout": "letter"
+  },
+  {
+   "file": "h39.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "hospital identifiers only",
+   "layout": "fax"
+  },
+  {
+   "file": "h40.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "pending/blank/denied",
+   "layout": "fax"
+  },
+  {
+   "file": "h41.jpg",
+   "category": "conflict",
+   "expected": null,
+   "note": "two documents, different references",
+   "layout": "plain"
+  },
+  {
+   "file": "h42.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "pending/blank/denied",
+   "layout": "fax"
+  },
+  {
+   "file": "h43.jpg",
+   "category": "readable",
+   "expected": "PA-125249",
+   "note": "familiar label",
+   "layout": "memo"
+  },
+  {
+   "file": "h44.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "pending/blank/denied",
+   "layout": "letter"
+  },
+  {
+   "file": "h45.jpg",
+   "category": "readable",
+   "expected": "AUTH-26-13091",
+   "note": "familiar label",
+   "layout": "plain"
+  },
+  {
+   "file": "h46.jpg",
+   "category": "no_reference",
+   "expected": null,
+   "note": "pending/blank/denied",
+   "layout": "letter"
+  },
+  {
+   "file": "h47.jpg",
+   "category": "conflict",
+   "expected": null,
+   "note": "two different payer references on one page",
+   "layout": "card"
+  },
+  {
+   "file": "h48.jpg",
+   "category": "readable",
+   "expected": "PA-154417",
+   "note": "unfamiliar label 'Approval reference:'",
+   "layout": "plain"
+  },
+  {
+   "file": "h49.jpg",
+   "category": "lookalike",
+   "expected": "AUTH-2I-07442",
+   "note": "O/0 or I/1 look-alike",
+   "layout": "card"
+  },
+  {
+   "file": "h50.jpg",
+   "category": "readable",
+   "expected": "DEMO-PA-662845",
+   "note": "familiar label",
+   "layout": "card"
+  }
+ ],
+ "variants": [
+  {
+   "file": "h01-blur.jpg",
+   "of": "h01.jpg",
+   "kind": "blur",
+   "category": "readable",
+   "expected": "AUTH-26-85388"
+  },
+  {
+   "file": "h01-lowres.jpg",
+   "of": "h01.jpg",
+   "kind": "lowres",
+   "category": "readable",
+   "expected": "AUTH-26-85388"
+  },
+  {
+   "file": "h01-skew.jpg",
+   "of": "h01.jpg",
+   "kind": "skew",
+   "category": "readable",
+   "expected": "AUTH-26-85388"
+  },
+  {
+   "file": "h02-blur.jpg",
+   "of": "h02.jpg",
+   "kind": "blur",
+   "category": "readable",
+   "expected": "DEMO-PA-585114"
+  },
+  {
+   "file": "h02-lowres.jpg",
+   "of": "h02.jpg",
+   "kind": "lowres",
+   "category": "readable",
+   "expected": "DEMO-PA-585114"
+  },
+  {
+   "file": "h02-skew.jpg",
+   "of": "h02.jpg",
+   "kind": "skew",
+   "category": "readable",
+   "expected": "DEMO-PA-585114"
+  },
+  {
+   "file": "h03-blur.jpg",
+   "of": "h03.jpg",
+   "kind": "blur",
+   "category": "readable",
+   "expected": "AUTH-26-68746"
+  },
+  {
+   "file": "h03-lowres.jpg",
+   "of": "h03.jpg",
+   "kind": "lowres",
+   "category": "readable",
+   "expected": "AUTH-26-68746"
+  },
+  {
+   "file": "h03-skew.jpg",
+   "of": "h03.jpg",
+   "kind": "skew",
+   "category": "readable",
+   "expected": "AUTH-26-68746"
+  },
+  {
+   "file": "h04-blur.jpg",
+   "of": "h04.jpg",
+   "kind": "blur",
+   "category": "readable",
+   "expected": "DEMO-PA-838936"
+  },
+  {
+   "file": "h04-lowres.jpg",
+   "of": "h04.jpg",
+   "kind": "lowres",
+   "category": "readable",
+   "expected": "DEMO-PA-838936"
+  },
+  {
+   "file": "h04-skew.jpg",
+   "of": "h04.jpg",
+   "kind": "skew",
+   "category": "readable",
+   "expected": "DEMO-PA-838936"
+  },
+  {
+   "file": "h05-blur.jpg",
+   "of": "h05.jpg",
+   "kind": "blur",
+   "category": "lookalike",
+   "expected": "PA-64O730"
+  },
+  {
+   "file": "h05-lowres.jpg",
+   "of": "h05.jpg",
+   "kind": "lowres",
+   "category": "lookalike",
+   "expected": "PA-64O730"
+  },
+  {
+   "file": "h05-skew.jpg",
+   "of": "h05.jpg",
+   "kind": "skew",
+   "category": "lookalike",
+   "expected": "PA-64O730"
+  },
+  {
+   "file": "h07-blur.jpg",
+   "of": "h07.jpg",
+   "kind": "blur",
+   "category": "lookalike",
+   "expected": "PA-0160O8"
+  },
+  {
+   "file": "h07-lowres.jpg",
+   "of": "h07.jpg",
+   "kind": "lowres",
+   "category": "lookalike",
+   "expected": "PA-0160O8"
+  },
+  {
+   "file": "h07-skew.jpg",
+   "of": "h07.jpg",
+   "kind": "skew",
+   "category": "lookalike",
+   "expected": "PA-0160O8"
+  },
+  {
+   "file": "h09-blur.jpg",
+   "of": "h09.jpg",
+   "kind": "blur",
+   "category": "readable",
+   "expected": "DPA9670602"
+  },
+  {
+   "file": "h09-lowres.jpg",
+   "of": "h09.jpg",
+   "kind": "lowres",
+   "category": "readable",
+   "expected": "DPA9670602"
+  },
+  {
+   "file": "h09-skew.jpg",
+   "of": "h09.jpg",
+   "kind": "skew",
+   "category": "readable",
+   "expected": "DPA9670602"
+  },
+  {
+   "file": "h10-blur.jpg",
+   "of": "h10.jpg",
+   "kind": "blur",
+   "category": "readable",
+   "expected": "DPA4978198"
+  },
+  {
+   "file": "h10-lowres.jpg",
+   "of": "h10.jpg",
+   "kind": "lowres",
+   "category": "readable",
+   "expected": "DPA4978198"
+  },
+  {
+   "file": "h10-skew.jpg",
+   "of": "h10.jpg",
+   "kind": "skew",
+   "category": "readable",
+   "expected": "DPA4978198"
+  },
+  {
+   "file": "h06-blur.jpg",
+   "of": "h06.jpg",
+   "kind": "blur",
+   "category": "conflict",
+   "expected": null
+  },
+  {
+   "file": "h06-lowres.jpg",
+   "of": "h06.jpg",
+   "kind": "lowres",
+   "category": "conflict",
+   "expected": null
+  },
+  {
+   "file": "h06-skew.jpg",
+   "of": "h06.jpg",
+   "kind": "skew",
+   "category": "conflict",
+   "expected": null
+  },
+  {
+   "file": "h08-blur.jpg",
+   "of": "h08.jpg",
+   "kind": "blur",
+   "category": "conflict",
+   "expected": null
+  },
+  {
+   "file": "h08-lowres.jpg",
+   "of": "h08.jpg",
+   "kind": "lowres",
+   "category": "conflict",
+   "expected": null
+  },
+  {
+   "file": "h08-skew.jpg",
+   "of": "h08.jpg",
+   "kind": "skew",
+   "category": "conflict",
+   "expected": null
+  }
+ ]
+}
