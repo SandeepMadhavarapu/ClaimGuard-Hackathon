@@ -19,6 +19,7 @@ struct ClaimReviewScreen: View {
                     if let document = review.document { scanCard(document) }
                     verificationCard
                     if let code = review.outcome { nextStepCard(code) }
+                    claimCard
                     policyCard
                 }
                 .frame(maxWidth: 660)
@@ -189,11 +190,30 @@ struct ClaimReviewScreen: View {
                 .buttonStyle(.borderedProminent)
                 .tint(.claimPurple)
                 .disabled(review.busy || !FirebaseSetup.configured)
+                Button("Read with private layout · hybrid", systemImage: "rectangle.and.text.magnifyingglass") {
+                    Task { await review.readPrivateLayout() }
+                }
+                .buttonStyle(.bordered)
+                .disabled(review.busy || !FirebaseSetup.configured)
                 Button("Read with local OCR", systemImage: "text.viewfinder") {
                     Task { await review.read(useModel: false) }
                 }
                 .buttonStyle(.bordered)
                 .disabled(review.busy)
+                if let prompt = review.layoutPrompt {
+                    DisclosureGroup("View the exact private-layout request") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Identifier values became slots and words outside a fixed form vocabulary were removed on this device. The slot is mapped back here.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                            Text(prompt).font(.footnote.monospaced()).textSelection(.enabled)
+                            Button("Test the cloud route", systemImage: "cloud") {
+                                Task { await review.readPrivateLayout(cloudOnly: true) }
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(review.busy || !FirebaseSetup.configured)
+                        }.padding(.top, 6)
+                    }
+                }
                 if !FirebaseSetup.configured {
                     Text("Add the iOS Firebase configuration to enable the model.").font(.footnote)
                 }
@@ -249,11 +269,16 @@ struct ClaimReviewScreen: View {
                     Text("\(item.offset + 1). \(item.element)").font(.subheadline).foregroundStyle(.secondary)
                 }
             }
+            Picker("Guidance language", selection: Bindable(review).language) {
+                Text("English · on-device first").tag(NextStepLanguage.english)
+                Text("Kiswahili · cloud").tag(NextStepLanguage.kiswahili)
+            }
+            .pickerStyle(.segmented)
             Button("Suggest next step", systemImage: "arrow.forward.circle") { Task { await review.suggestNextStep() } }
                 .buttonStyle(.bordered)
                 .disabled(review.busy || !FirebaseSetup.configured)
             DisclosureGroup("View the exact request") {
-                Text(code.prompt).font(.footnote.monospaced()).textSelection(.enabled)
+                Text(code.prompt(language: review.language)).font(.footnote.monospaced()).textSelection(.enabled)
             }
             if let reply = review.nextStep {
                 Label(reply.route == .onDevice ? "On-device" : "Cloud fallback",
@@ -263,6 +288,52 @@ struct ClaimReviewScreen: View {
             }
             if let error = review.nextStepError { Text(error).font(.footnote).foregroundStyle(.secondary) }
         }
+    }
+
+    private var claimCard: some View {
+        let result = review.claimResult
+        let color: Color = result.verdict == .ready ? .privacyGreen : result.verdict == .hold ? .red : .orange
+        return ClaimCard {
+            HStack {
+                Text("Claim pre-check").font(.title3.bold()).accessibilityAddTraits(.isHeader)
+                Spacer()
+                Label("On this device", systemImage: "lock.shield").font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.privacyGreen)
+            }
+            Text(result.summary)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(color)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(result.checks) { check in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: check.status == .pass ? "checkmark.circle.fill" : check.status == .fail ? "xmark.circle.fill" : "clock")
+                            .foregroundStyle(check.status == .pass ? Color.privacyGreen : check.status == .fail ? .red : .orange)
+                            .accessibilityLabel(check.status == .pass ? "Passed" : check.status == .fail ? "Failed" : "Waiting")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(check.title).font(.subheadline.weight(.medium))
+                            Text(check.detail).font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack { claimButtons }
+                VStack(alignment: .leading) { claimButtons }
+            }
+            Text("Rules from the Digital Health Agency's SHA claims submission guide. Synthetic demo claim.")
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var claimButtons: some View {
+        Button("Demo claim", systemImage: "doc.text") { review.claim = .demo }
+            .buttonStyle(.bordered)
+        Button("Claim with errors", systemImage: "exclamationmark.triangle") { review.claim = .demoWithErrors }
+            .buttonStyle(.bordered)
     }
 
     private var policyCard: some View {

@@ -30,6 +30,13 @@ final class ClaimReview {
     var outcome: NextStepCode?
     var nextStep: VerifiedReply?
     var nextStepError: String?
+    var language: NextStepLanguage = .english
+    var layoutPrompt: String?
+    var claim = ClaimDraft.demo
+
+    var claimResult: ClaimCheckResult {
+        ClaimCheck.check(claim, confirmedReference: recordedReference, scanOutcome: outcome)
+    }
 
     func select(_ sample: ScanSample) {
         do {
@@ -80,6 +87,7 @@ final class ClaimReview {
 
     private func resetFinding() {
         setOutcome(nil)
+        layoutPrompt = nil
         location = nil
         suggestion = nil
         recordedReference = nil
@@ -155,6 +163,57 @@ final class ClaimReview {
         }
     }
 
+    /// Private layout read: Vision on this device, then only form words and slot names go to the
+    /// model (Apple Foundation Models first, Gemini fallback). The slot maps back here.
+    func readPrivateLayout(cloudOnly: Bool = false) async {
+        guard let document, !busy else { return }
+        busy = true
+        defer { busy = false }
+        resetFinding()
+        status = "Reading the scan on this device, then removing identifier values."
+        let read: OCRRead
+        do {
+            read = try await LocalVision.read(pages: document.pages)
+        } catch {
+            status = "Local OCR could not read this scan. You can review it manually."
+            return
+        }
+        trace("Read scan", .localOCR, read.milliseconds)
+        let page = LayoutRead.build(read.lines)
+        let prompt = LayoutRead.prompt(page)
+        layoutPrompt = prompt
+        do {
+            let reply = try await ClaimInference.readLayout(prompt, cloudOnly: cloudOnly)
+            trace("Read private layout", reply.route, reply.milliseconds)
+            let decision = LayoutRead.resolve(reply.text, page: page, ocr: read.evidence)
+            let pick = LayoutRead.pick(in: reply.text) ?? "nothing usable"
+            let route = reply.route == .onDevice ? "On-device" : cloudOnly ? "Cloud test" : "Cloud fallback"
+            setOutcome(NextStepCode(decision))
+            switch decision {
+            case .ready(let candidate, let evidence):
+                show(candidate, at: evidence)
+                status = "\(route) · \(reply.milliseconds) ms · Picked \(pick). Values stayed on this device. Compare the highlighted line with the original."
+            case .conflict:
+                status = "\(route) · Picked \(pick). Conflict: more than one payer reference is labeled. Resolve manually."
+            case .abstained:
+                status = "\(route) · No payer reference slot was found."
+            case .disagreement:
+                status = "\(route) · The model's slot and the OCR rule disagree. Review the scan."
+            case .corroborationMissing, .unsupported:
+                status = "\(route) · Picked \(pick), which is not labeled as a payer reference. Blocked."
+            }
+        } catch {
+            if read.evidence.references.count > 1 {
+                status = "Conflict: resolve manually."
+                setOutcome(.conflict)
+            } else if let modelError = error as? LocalModelError {
+                status = modelError.localizedDescription
+            } else {
+                status = "The private layout read is unavailable. Use local OCR or review the original."
+            }
+        }
+    }
+
     func recordSuggestion() {
         guard isCompared, let suggestion else { return }
         record(suggestion.reference)
@@ -179,9 +238,13 @@ final class ClaimReview {
         nextStep = nil
         nextStepError = nil
         do {
-            let result = try await ClaimInference.nextStep(code)
-            nextStep = result
-            trace("Next step (\(code.label))", result.route, result.milliseconds)
+            let result = try await ClaimInference.nextStep(code, language: language)
+            trace("Next step (\(code.label), \(language.name))", result.route, result.milliseconds)
+            if let reason = NextStepGrounding.check(result.text) {
+                nextStepError = "Answer discarded (\(reason) not in the checklist). Follow the checklist."
+            } else {
+                nextStep = result
+            }
         } catch let error as LocalModelError {
             nextStepError = error.localizedDescription
         } catch {
