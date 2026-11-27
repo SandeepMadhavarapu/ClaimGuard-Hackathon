@@ -37,13 +37,19 @@ Firebase AI Logic is imported and called at runtime in [`evidence-review/firebas
 
 ## Judge walkthrough (about 3 minutes)
 
-Open the [live demo](https://claimguard-hackathon.vercel.app/?judge=1) in desktop Chrome.
+### Web (Chrome)
 
-1. **Specialist referral.** Click **Read with Gemini Nano** (on-device) or **Read with local OCR** (works without an account). Click **Locate evidence on scan**, tick the confirmation, then click **Record reference**.
+Open the [live demo](https://claimguard-hackathon.vercel.app/?judge=1) in desktop Chrome. Everything except Gemini Nano works in any Chrome. For Nano, follow the [Firebase Chrome setup](https://firebase.google.com/docs/ai-logic/hybrid/web/get-started) (Chrome 139+, the `prompt-api-for-gemini-nano-multimodal-input` flag, then let the model download).
+
+1. **Specialist referral.** Click **Read with Gemini Nano** (on-device) or **Read with local OCR** (no setup). Nano's answer is shown only when local OCR reads the same reference, with the line highlighted. Tick the confirmation, then click **Record reference**.
 2. **Pending referral.** The only ID on the page is a hospital tracking ID. ClaimGuard abstains instead of guessing.
-3. **Conflicting references.** Two references are printed. The finding stays open for a human.
-4. **Policy and cloud request.** Click **View the exact cloud request**, then **Explain policy · on-device first**. The status line shows whether Nano answered or the cloud fallback did.
-5. **Benchmark 12 labeled scans.** Run Gemini Nano and the local OCR baseline on the same 12 synthetic scans. Six contain a payer reference and six require abstention, with faint print, low resolution, leading zeros, an O/0 confusion case, blank fields and conflicting references.
+3. **Conflicting references.** Two references are printed, so the finding stays open. Under **Next step**, click **Suggest next step · on-device first**. Only the outcome code and a public checklist are sent (open **View the exact request**), and the status line shows whether Nano or the cloud answered.
+4. **Policy and cloud request.** Click **View the exact cloud request**, then **Explain policy · on-device first**.
+5. **Benchmark 12 labeled scans.** Run Gemini Nano and the local OCR baseline on the same 12 synthetic scans. The report shows Nano alone and the Nano + OCR gate. Six scans contain a payer reference and six require abstention, including faint print, low resolution, leading zeros, an O/0 trap, blank fields and conflicting references.
+
+### iOS (iPhone)
+
+The demo video shows the native app on an iPhone 17 in airplane mode: on-device extraction with Apple Foundation Models, the green evidence highlight, a withheld conflict, on-device next-step guidance and policy explanation, and the 12-scan benchmark. The cloud route was verified online with App Check. A public TestFlight link is not available because this entry has no paid Apple Developer team. To run it yourself, use the build paths in the [iOS section](#ios) below.
 
 All documents in the demo are synthetic. There is no real patient data.
 
@@ -88,7 +94,7 @@ Firebase AI Logic (Gemini Nano in Chrome, Apple Foundation Models on iPhone, Gem
 
 ## iOS
 
-The native iPhone app is in [ios/ClaimGuard](ios/ClaimGuard). It uses VisionKit capture, on-device Vision OCR, and a Firebase AI Logic session that runs only on Apple Foundation Models for extraction. The OCR text never falls back to the cloud. The public policy explanation uses a separate hybrid session (Apple Foundation Models first, then Gemini in the cloud) protected by App Check. The guard is the same as on Web, plus one iOS rule: the model's reference must match exactly one labeled payer line in the OCR text it read.
+The native iPhone app is in [ios/ClaimGuard](ios/ClaimGuard). It uses VisionKit capture, on-device Vision OCR, and a Firebase AI Logic session that runs only on Apple Foundation Models for extraction. The OCR text never falls back to the cloud. The public policy explanation and the next-step guidance use a separate hybrid session (Apple Foundation Models first, then Gemini in the cloud) protected by App Check. Their only inputs are fixed public prompts. The guard is the same as on Web, plus one iOS rule: the model's reference must match exactly one labeled payer line in the OCR text it read.
 
 **Measured on an iPhone 17 (iOS 26.6.1) in airplane mode, Nov 27, 2026, on the same 12 synthetic scans:**
 
