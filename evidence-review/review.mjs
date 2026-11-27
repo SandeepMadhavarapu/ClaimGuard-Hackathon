@@ -1,5 +1,5 @@
 import {
-  CASES, NEXT_STEPS, NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
+  CASES, NEXT_STEPS, groundNextStep, NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
   parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
@@ -63,7 +63,7 @@ let latestLayoutBenchmark;
 let anchor;
 
 function recordTrace(action, source, outcome, elapsedMs = null, policyOnly = false) {
-  trace.push({ action, source, outcome, elapsedMs, inputScope: policyOnly ? "synthetic-policy" : "local-review" });
+  trace.push({ at: new Date().toISOString(), action, source, outcome, elapsedMs, inputScope: policyOnly ? "synthetic-policy" : "local-review" });
   if (trace.length > 16) trace.shift();
   const list = el("trace-entries");
   const row = document.createElement("li");
@@ -88,8 +88,24 @@ function downloadJson(value, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+let build = { commit: "local", builtAt: null };
+fetch("./build.json", { cache: "no-store" }).then(response => response.ok ? response.json() : null).then(value => {
+  if (value?.commit) build = value;
+  const stamp = el("build-stamp");
+  if (stamp) stamp.textContent = `Build ${build.commit}${build.builtAt ? ` · ${build.builtAt.slice(0, 10)}` : ""}`;
+}).catch(() => {});
+
 el("export-trace").addEventListener("click", () => {
-  if (trace.length) downloadJson({ schemaVersion: 1, scope: "In-app actions and SDK response routes", events: trace }, "claimguard-runtime-trace.json");
+  if (trace.length) {
+    downloadJson({
+      schemaVersion: 2,
+      kind: "claimguard-run-receipt",
+      scope: "In-app actions and SDK-reported inference routes. Synthetic documents only; no scan, reference or document text.",
+      build,
+      exportedAt: new Date().toISOString(),
+      events: trace,
+    }, "claimguard-run-receipt.json");
+  }
 });
 
 function renderProgress() {
@@ -762,8 +778,10 @@ el("next-step-run").addEventListener("click", async () => {
     const route = response.source === "ON_DEVICE" ? "Answered by Gemini Nano on this device"
       : language === "sw" ? "Kiswahili is not a Gemini Nano output language, so this public request ran in the cloud"
         : "Gemini Nano was not ready, so Firebase AI Logic fell back to the cloud";
-    status.textContent = `${sourceAndTime(response)} · ${route}`;
-    text.textContent = response.text;
+    const grounded = groundNextStep(response.text);
+    status.textContent = grounded.ok ? `${sourceAndTime(response)} · ${route}`
+      : `${sourceAndTime(response)} · ${route} · Answer discarded (${grounded.reason} not in the checklist). Follow the checklist above.`;
+    text.textContent = grounded.ok ? response.text : "";
     recordTrace(`Next step (${NEXT_STEPS[code].label}, ${NEXT_STEP_LANGUAGES[language].name})`, response.source,
       language === "sw" ? "Cloud by language" : response.source === "IN_CLOUD" ? "Cloud fallback" : "Guidance returned", response.duration, true);
   } catch {
@@ -889,7 +907,7 @@ evaluateOcr.addEventListener("click", async () => {
 
 exportEvaluation.addEventListener("click", () => {
   if (!latestBenchmark && !latestOcrBenchmark && !latestLayoutBenchmark) return;
-  downloadJson(shareableBenchmark(latestBenchmark, latestOcrBenchmark, latestLayoutBenchmark), "claimguard-web-benchmark.json");
+  downloadJson({ ...shareableBenchmark(latestBenchmark, latestOcrBenchmark, latestLayoutBenchmark), build }, "claimguard-web-benchmark.json");
 });
 
 el("evaluate-layout").addEventListener("click", async () => {
@@ -954,3 +972,8 @@ setupInference().then(client => {
   updateControls();
   showIdleStatus();
 });
+
+// Offline support (HTTPS only): the worker caches the app, samples and OCR data for airplane mode.
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}

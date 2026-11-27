@@ -168,3 +168,13 @@ test("Kiswahili next-step prompts add only a fixed language instruction", async 
     assert.throws(() => nextStepPrompt("CONFLICT", bad), /Unknown language/);
   }
 });
+
+test("generated next-step guidance is discarded if it adds identifiers, numbers or links", async () => {
+  const { groundNextStep } = await import("./evidence.mjs");
+  assert.equal(groundNextStep("Ask the payer which reference applies.\n- Enter the confirmed reference manually.\n- Keep both documents.").ok, true);
+  assert.equal(groundNextStep("Uliza mlipaji ni rejea ipi inayotumika.\n1. Usichague bila uthibitisho.").ok, true);
+  assert.equal(groundNextStep("Use DEMO-PA-134220 on the claim.").reason, "identifier");
+  assert.equal(groundNextStep("Call the payer on 0712345678.").reason, "number");
+  assert.equal(groundNextStep("See https://example.com for help.").reason, "link or email");
+  assert.equal(groundNextStep("").ok, false);
+});
