@@ -20,6 +20,7 @@ The supporting documents are scanned referral letters and cover sheets that cont
 2. **Cross-check.** Tesseract OCR runs on the same image in a browser worker. If Nano and OCR disagree, the suggestion is withheld and the case goes to manual review. If OCR cannot corroborate a proposal, it is also withheld. When the reads agree, the evidence line is highlighted on the scan.
 3. **The clerk confirms.** Nothing is recorded until the clerk compares the value with the original and ticks the confirmation. Payer verification stays pending; ClaimGuard never claims approval.
 4. **Explain the rule with hybrid inference.** The policy explanation uses `PREFER_ON_DEVICE`: Nano answers when it is ready, and Firebase AI Logic falls back to the cloud when it isn't. The UI shows which route the SDK actually reported. You can view the exact cloud request, which contains only a fixed, public policy summary.
+5. **Suggest the next step with hybrid inference.** After a read, ClaimGuard knows only the outcome type: reference recorded, no payer reference, conflicting references, or needs manual review. It sends just that code and a fixed public demo checklist to Firebase AI Logic (`PREFER_ON_DEVICE` on Web; Apple Foundation Models first, then Gemini, on iOS) and shows the clerk the most important next action. The exact request is visible in the app, and unknown codes are rejected before any call. No scan, reference, or document text can reach it.
 
 ## Why hybrid inference
 
@@ -28,6 +29,7 @@ The supporting documents are scanned referral letters and cover sheets that cont
 | Read a patient scan | `ONLY_ON_DEVICE` | Patient documents must never fall back to the cloud. If Nano isn't available, the app falls back to local OCR and manual entry, never to the cloud. |
 | Explain the policy rule | `PREFER_ON_DEVICE` (default) | The text is public, so the cloud is a safe fallback. Clerks on machines without Nano still get an answer. |
 | Explain the policy rule | `ONLY_IN_CLOUD` (option) | Forces the cloud path for comparison. |
+| Suggest the next step | `PREFER_ON_DEVICE` | The input is one of four fixed outcome codes plus a public checklist, so a cloud fallback cannot expose patient data. |
 
 Every result is labeled from `response.inferenceSource` (On-device or Cloud). If the SDK reports a route the call did not allow, the result is rejected. The **Runtime trace** panel logs each action, its route and its latency, without any document text.
 
