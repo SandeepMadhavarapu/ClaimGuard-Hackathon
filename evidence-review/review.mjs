@@ -5,6 +5,7 @@ import {
 } from "./evidence.mjs";
 import { compareBenchmarkRuns, shareableBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
 import { imageModelAvailability } from "./browser-readiness.mjs";
+import { DEMO_CLAIM, DEMO_CLAIM_WITH_ERRORS, checkClaim, operationOutcome } from "./claim-check.mjs";
 import { setupInference } from "./firebase-ai.mjs";
 import { prepareScan, scanPart } from "./scan.mjs";
 
@@ -37,7 +38,7 @@ const steps = [...el("review-steps").children];
 const scenarios = [...el("judge-panel").querySelectorAll("[data-scan]")];
 const trace = [];
 const routeNames = {
-  LOCAL_OCR: "This device · OCR", LOCAL_TEXT: "This device · text match", ON_DEVICE: "This device · Gemini Nano",
+  LOCAL_OCR: "This device · OCR", LOCAL_TEXT: "This device · text match", LOCAL_RULES: "This device · claim rules", ON_DEVICE: "This device · Gemini Nano",
   IN_CLOUD: "Cloud · Firebase AI Logic", HUMAN: "Human review", UNCONFIRMED: "Route unconfirmed",
 };
 
@@ -46,6 +47,7 @@ let inference;
 let inferenceUnavailable = false;
 let busy = false;
 let outcomeCode = null;
+let confirmedReference = null;
 let currentImage;
 let originalImage;
 let deviceAvailability;
@@ -98,7 +100,53 @@ function renderProgress() {
   });
 }
 
+const claimForm = el("claim-form");
+
+function readClaim() {
+  const data = Object.fromEntries(new FormData(claimForm));
+  return { ...data, requiresPreauth: claimForm.elements.requiresPreauth.checked };
+}
+
+function fillClaim(claim) {
+  for (const [name, value] of Object.entries(claim)) {
+    const field = claimForm.elements[name];
+    if (field?.type === "checkbox") field.checked = Boolean(value);
+    else if (field) field.value = value;
+  }
+  renderClaimCheck();
+}
+
+function renderClaimCheck() {
+  const result = checkClaim(readClaim(), confirmedReference);
+  const verdict = el("claim-verdict");
+  verdict.dataset.verdict = result.verdict;
+  verdict.textContent = result.summary;
+  el("claim-checks").replaceChildren(...result.checks.map(check => {
+    const row = document.createElement("li");
+    row.dataset.status = check.status;
+    const mark = document.createElement("span");
+    mark.className = "mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.textContent = { pass: "✓", fail: "✗", pending: "…" }[check.status];
+    const body = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = check.title;
+    const detail = document.createElement("span");
+    detail.className = "detail";
+    detail.textContent = check.detail;
+    const status = document.createElement("span");
+    status.className = "sr-only";
+    status.textContent = { pass: "Passed. ", fail: "Failed. ", pending: "Waiting. " }[check.status];
+    body.append(status, title, detail);
+    row.append(mark, body);
+    return row;
+  }));
+  return result;
+}
+
 function renderFinding(reference, method = "") {
+  confirmedReference = reference || null;
+  if (claimForm) renderClaimCheck();
   const finding = preauthorizationFinding(reference);
   const status = el("finding");
   status.dataset.pass = String(finding.pass);
@@ -615,6 +663,20 @@ async function explainPolicy(hybrid) {
     explainHybrid.disabled = false;
   }
 }
+
+claimForm.addEventListener("input", renderClaimCheck);
+claimForm.addEventListener("change", renderClaimCheck);
+el("claim-errors").addEventListener("click", () => {
+  fillClaim(DEMO_CLAIM_WITH_ERRORS);
+  recordTrace("Claim pre-check", "LOCAL_RULES", "Loaded claim with errors");
+});
+el("claim-reset").addEventListener("click", () => fillClaim(DEMO_CLAIM));
+el("claim-export").addEventListener("click", () => {
+  const result = renderClaimCheck();
+  downloadJson(operationOutcome(result), "claimguard-claim-check.json");
+  recordTrace("Claim pre-check", "LOCAL_RULES", result.verdict === "ready" ? "Ready to submit" : "Hold exported");
+});
+fillClaim(DEMO_CLAIM);
 
 el("next-step-run").addEventListener("click", async () => {
   const code = outcomeCode;
