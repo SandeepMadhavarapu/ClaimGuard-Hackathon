@@ -83,3 +83,7 @@ Firebase AI Logic (Gemini Nano in Chrome, plus Gemini in the cloud) · Firebase 
 ## License
 
 [Apache License 2.0](LICENSE). Third-party components and their licenses are listed in [NOTICE](NOTICE).
+
+## iOS
+
+The native ClaimGuard iPhone project is in [ios/ClaimGuard](ios/ClaimGuard). It includes VisionKit capture, local Vision OCR, and a Firebase AI Logic system-only Apple Foundation Models session for private extraction. The same 12 Web samples are bundled from their original paths. The public policy explanation uses a separate local-first hybrid session with App Check. Open the [iOS setup and device checklist](ios/ClaimGuard/README.md) for Xcode, Firebase registration, signing, and offline verification.
