@@ -55,6 +55,15 @@ enum FirebaseSetup {
     }
 
     static var configured: Bool { FirebaseApp.app() != nil }
+
+    #if DEBUG
+    /// The App Check debug token for this install, so a sideloaded debug build can be
+    /// registered in the Firebase console without reading the Xcode console.
+    static func debugToken() -> String? {
+        guard let app = FirebaseApp.app(), let provider = AppCheckDebugProvider(app: app) else { return nil }
+        return provider.localDebugToken()
+    }
+    #endif
 }
 
 @MainActor

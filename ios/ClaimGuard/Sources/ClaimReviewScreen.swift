@@ -264,6 +264,16 @@ struct ClaimReviewScreen: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(review.busy || !FirebaseSetup.configured)
+                    #if DEBUG
+                    if let token = FirebaseSetup.debugToken() {
+                        Button("Copy App Check debug token", systemImage: "key") {
+                            UIPasteboard.general.string = token
+                        }
+                        .buttonStyle(.bordered)
+                        Text("Debug build: register this token in Firebase App Check under Manage debug tokens. Keep it private.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                    #endif
                 }.padding()
             }
             .navigationTitle("Exact cloud request")
