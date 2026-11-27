@@ -28,7 +28,10 @@ test("Firebase adapter constrains what each inference model receives", async () 
     getSource: mode => sourceOverride ?? (mode === "only_on_device" ? "on_device" : "in_cloud"),
     localUnavailable: () => localUnavailable,
     deviceModeAvailable: () => deviceModeAvailable,
+    models: [],
+    constrainedFails: () => constrainedFails,
   });
+  let constrainedFails = false;
   const sdk = new Map([
     ["firebase-app.js", "export const initializeApp = config => config;"],
     ["firebase-app-check.js", `
@@ -41,14 +44,20 @@ test("Firebase adapter constrains what each inference model receives", async () 
       export const InferenceMode = { ONLY_ON_DEVICE: deviceModeAvailable() ? "only_on_device" : undefined, ONLY_IN_CLOUD: "only_in_cloud", PREFER_ON_DEVICE: "prefer_on_device" };
       export const InferenceSource = { ON_DEVICE: "on_device", IN_CLOUD: "in_cloud" };
       export const getAI = app => app;
-      export const getGenerativeModel = (ai, { mode }) => ({
-        initializeDeviceModel: () => prepare(),
-        generateContent: async prompt => {
-          log(mode, prompt);
-          if (mode === "only_on_device" && localUnavailable()) throw new Error("Nano is unavailable");
-          return { response: { inferenceSource: getSource(mode), text: () => "test" } };
-        },
-      });
+      export const getGenerativeModel = (ai, options) => {
+        const { mode } = options;
+        const constrained = Boolean(options.onDeviceParams?.promptOptions?.responseConstraint);
+        models.push(options);
+        return {
+          initializeDeviceModel: () => prepare(),
+          generateContent: async prompt => {
+            if (constrained && constrainedFails()) throw new Error("Unsupported response constraint");
+            log(mode, prompt);
+            if (mode === "only_on_device" && localUnavailable()) throw new Error("Nano is unavailable");
+            return { response: { inferenceSource: getSource(mode), text: () => "test" } };
+          },
+        };
+      };
     `],
   ]);
   const source = await readFile(new URL("./firebase-ai.mjs", import.meta.url), "utf8");
@@ -102,6 +111,12 @@ test("Firebase adapter constrains what each inference model receives", async () 
   await assert.rejects(adapter.explainHybrid(), /source could not be verified/);
   assert.deepEqual(calls.slice(6).map(call => call.mode), Array(3).fill("prefer_on_device"));
   assert.ok(calls.slice(6).every(call => call.prompt === PUBLIC_PROMPT));
+  const { EXTRACTION_SCHEMA } = await import("./firebase-ai.mjs");
+  const constrainedModel = context.models.find(options => options.onDeviceParams?.promptOptions?.responseConstraint);
+  assert.ok(constrainedModel, "the on-device read uses a schema-constrained session");
+  assert.equal(constrainedModel.mode, "only_on_device");
+  assert.equal(JSON.stringify(constrainedModel.onDeviceParams.promptOptions.responseConstraint), JSON.stringify(EXTRACTION_SCHEMA));
+  assert.equal(JSON.stringify(constrainedModel.onDeviceParams.createOptions.expectedOutputs), JSON.stringify([{ type: "text", languages: ["en"] }]));
   const { nextStepPrompt } = await import("./evidence.mjs");
   sourceOverride = "in_cloud";
   const nextStart = calls.length;
@@ -125,3 +140,54 @@ test("Firebase adapter constrains what each inference model receives", async () 
   recaptchaProvider = "invalid";
   await assert.rejects(mod.namespace.setupInference(), /Unsupported reCAPTCHA provider/);
 });
+
+test("the on-device read falls back to an unconstrained session if the schema is rejected", async () => {
+  const calls = [];
+  const models = [];
+  const context = createContext({
+    fetch: async () => ({ ok: true, json: async () => ({ firebase: { appId: "t", projectId: "t", apiKey: "t" }, recaptchaSiteKey: "t" }) }),
+    performance, LanguageModel: { create() {} },
+    log: (mode, prompt) => calls.push({ mode, prompt }), models,
+  });
+  const sdk = new Map([
+    ["firebase-app.js", "export const initializeApp = config => config;"],
+    ["firebase-app-check.js", "export class ReCaptchaV3Provider {} export class ReCaptchaEnterpriseProvider {} export const initializeAppCheck = () => {};"],
+    ["firebase-ai.js", `
+      export class GoogleAIBackend {}
+      export const InferenceMode = { ONLY_ON_DEVICE: "only_on_device", ONLY_IN_CLOUD: "only_in_cloud", PREFER_ON_DEVICE: "prefer_on_device" };
+      export const InferenceSource = { ON_DEVICE: "on_device", IN_CLOUD: "in_cloud" };
+      export const getAI = app => app;
+      export const getGenerativeModel = (ai, options) => {
+        models.push(options);
+        const constrained = Boolean(options.onDeviceParams?.promptOptions?.responseConstraint);
+        return {
+          initializeDeviceModel: async () => { if (constrained) throw new Error("Unsupported response constraint"); },
+          generateContent: async prompt => {
+            if (constrained) throw new Error("Unsupported response constraint");
+            log(options.mode, prompt);
+            return { response: { inferenceSource: "on_device", text: () => "{}" } };
+          },
+        };
+      };
+    `],
+  ]);
+  const source = await readFile(new URL("./firebase-ai.mjs", import.meta.url), "utf8");
+  const mod = new SourceTextModule(source, {
+    context,
+    importModuleDynamically: async specifier => {
+      const dependency = new SourceTextModule(sdk.get(specifier.split("/").at(-1)), { context });
+      await dependency.link(() => {});
+      await dependency.evaluate();
+      return dependency;
+    },
+  });
+  await mod.link(async path => new SourceTextModule(await readFile(new URL(path, import.meta.url), "utf8"), { context }));
+  await mod.evaluate();
+  const adapter = await mod.namespace.setupInference();
+  await adapter.prepareLocal(() => {});
+  const reply = await adapter.extractScan({ mimeType: "image/png", data: "eA==" });
+  assert.equal(reply.source, "ON_DEVICE");
+  assert.equal(reply.constrained, false);
+  assert.equal(JSON.stringify(calls.map(call => call.mode)), JSON.stringify(["only_on_device"]));
+});
+
