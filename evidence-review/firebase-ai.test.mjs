@@ -128,6 +128,21 @@ test("Firebase adapter constrains what each inference model receives", async () 
   assert.deepEqual(calls[nextStart + 1], { mode: "only_in_cloud", prompt: nextStepPrompt("CONFLICT", "sw") });
   await assert.rejects(adapter.nextStep("CONFLICT", "PRIVATE-LETTER-CANARY"), /Unknown language/);
   assert.equal(calls.length, nextStart + 2);
+  // Private layout read: hybrid, schema-constrained on both routes, and only the given prompt is sent.
+  const { SLOT_SCHEMA, layoutPrompt } = await import("./layout-read.mjs");
+  const layoutText = layoutPrompt("preauthorization reference: [ID-2]");
+  sourceOverride = "in_cloud";
+  assert.equal((await adapter.readLayout(layoutText)).source, "IN_CLOUD");
+  assert.deepEqual(calls.at(-1), { mode: "prefer_on_device", prompt: layoutText });
+  sourceOverride = "on_device";
+  assert.equal((await adapter.readLayout(layoutText)).source, "ON_DEVICE");
+  const layoutModel = context.models.find(options => options.inCloudParams?.generationConfig?.responseJsonSchema);
+  assert.equal(layoutModel.mode, "prefer_on_device");
+  assert.equal(JSON.stringify(layoutModel.inCloudParams.generationConfig.responseJsonSchema), JSON.stringify(SLOT_SCHEMA));
+  assert.equal(layoutModel.inCloudParams.generationConfig.responseMimeType, "application/json");
+  assert.equal(JSON.stringify(layoutModel.onDeviceParams.promptOptions.responseConstraint), JSON.stringify(SLOT_SCHEMA));
+  sourceOverride = "unknown";
+  await assert.rejects(adapter.readLayout(layoutText), /source could not be verified/);
   sourceOverride = undefined;
   recaptchaProvider = "enterprise";
   await mod.namespace.setupInference();

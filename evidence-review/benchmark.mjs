@@ -207,6 +207,8 @@ export function compareBenchmarkRuns(nano, ocr) {
 // This is the only shareable benchmark representation. Do not include model
 // prose, candidate text, images, or the current document from the review UI.
 export function shareableBenchmark(...runs) {
+  const layoutRun = runs.find(run => run?.mode === "PRIVATE_LAYOUT_PREFER_ON_DEVICE");
+  runs = runs.filter(run => run?.mode !== "PRIVATE_LAYOUT_PREFER_ON_DEVICE");
   const fixtureNames = new Set(BENCHMARK_CASES.map(fixture => fixture.file));
   return {
     schemaVersion: 2,
@@ -234,5 +236,104 @@ export function shareableBenchmark(...runs) {
       })),
     })),
     comparison: compareBenchmarkRuns(...runs),
+    // Slot names, routes and outcomes only. Layout text and identifier values are not exported.
+    privateLayout: layoutRun ? {
+      mode: layoutRun.mode, status: layoutRun.status, startedAt: layoutRun.startedAt, finishedAt: layoutRun.finishedAt,
+      summary: layoutRun.summary,
+      rows: layoutRun.rows.map(row => ({
+        sample: row.sample, sampleSha256: row.sampleSha256 ?? null, inferenceSource: row.inferenceSource ?? null,
+        milliseconds: row.inferenceMs ?? null, pick: row.pick ?? null, decision: row.decision ?? null,
+        outcome: row.outcome, lostAt: row.lostAt ?? null, wrongProposalBlocked: row.wrongProposalBlocked ?? false,
+        sweep: row.sweep ?? null,
+      })),
+    } : null,
+  };
+}
+
+// Private layout route: OCR on the device, slots to Gemini (on-device first, cloud fallback),
+// deterministic guard. Each row says where a miss happened, so judges can see which stage lost it.
+export function scoreLayoutCase(fixture, { evidence, layout, pick, decision, response }) {
+  const expected = fixture.expected;
+  const slot = layout.slots.find(entry => entry.id === pick);
+  const picked = slot?.value ?? null;
+  const shown = decision.candidate?.reference ?? null;
+  const ocrHasValue = expected === null || layout.slots.some(entry => entry.value === expected);
+  const outcome = shown === expected
+    ? shown ? "Correct extraction" : "Correct abstention"
+    : shown ? expected ? "Wrong suggestion" : "False suggestion" : "Missed reference";
+  let lostAt = null;
+  if (!["Correct extraction", "Correct abstention"].includes(outcome)) {
+    if (!ocrHasValue) lostAt = "OCR";
+    else if (picked !== expected) lostAt = shown ? "Model + guard" : "Model";
+    else lostAt = "Guard";
+  }
+  return {
+    ...baseRow(fixture),
+    outcome,
+    lostAt,
+    pick: pick ?? null,
+    pickedValueMatches: expected === null ? picked === null : picked === expected,
+    decision: decision.status,
+    wrongProposalBlocked: Boolean(picked && picked !== expected && !shown),
+    slots: layout.slots.length,
+    ocrReferences: evidence.references,
+    inferenceSource: response.source,
+    inferenceMs: Number.isFinite(response.duration) ? response.duration : null,
+  };
+}
+
+export async function runLayoutBenchmark({
+  readSample, readLayoutEvidence, readLayout, buildLayout, layoutPrompt, resolveLayoutSlot, guardSweep, onProgress,
+  fixtures = BENCHMARK_CASES,
+}) {
+  const startedAt = new Date().toISOString();
+  const rows = [];
+  for (const fixture of fixtures) {
+    onProgress?.(rows.length + 1, fixtures.length);
+    let image;
+    try { image = await readSample(fixture); }
+    catch { rows.push({ ...baseRow(fixture), outcome: "Sample unavailable", lostAt: "Sample" }); continue; }
+    const sampleSha256 = await fingerprint(image).catch(() => null);
+    let sweep = null;
+    try {
+      const evidence = await readLayoutEvidence(image);
+      const layout = buildLayout(evidence.lines);
+      sweep = guardSweep ? guardSweep(layout, evidence, fixture.expected) : null;
+      const response = await readLayout(layoutPrompt(layout.layout));
+      if (!["ON_DEVICE", "IN_CLOUD"].includes(response.source)) throw new Error("Unverified inference source");
+      const decision = resolveLayoutSlot(response.text, layout, evidence);
+      rows.push({ ...scoreLayoutCase(fixture, { evidence, layout, pick: decision.pick, decision, response }), sweep, sampleSha256 });
+    } catch {
+      rows.push({ ...baseRow(fixture), outcome: "Inference error", lostAt: "Inference", sweep, sampleSha256 });
+    }
+  }
+  const times = rows.map(row => row.inferenceMs).filter(Number.isFinite);
+  const count = key => rows.reduce((totals, row) => {
+    if (row[key]) totals[row[key]] = (totals[row[key]] ?? 0) + 1;
+    return totals;
+  }, {});
+  const correct = rows.filter(row => ["Correct extraction", "Correct abstention"].includes(row.outcome)).length;
+  return {
+    schemaVersion: 1,
+    dataset: "claimguard-synthetic-v3",
+    mode: "PRIVATE_LAYOUT_PREFER_ON_DEVICE",
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    status: rows.every(row => row.inferenceSource) ? "complete" : rows.some(row => row.inferenceSource) ? "partial" : "failed",
+    summary: {
+      planned: fixtures.length,
+      correctOutcomes: correct,
+      counts: count("outcome"),
+      lostAt: count("lostAt"),
+      routes: count("inferenceSource"),
+      wrongProposalsBlocked: rows.filter(row => row.wrongProposalBlocked).length,
+      guardSweep: {
+        scans: rows.filter(row => row.sweep).length,
+        picksTried: rows.reduce((sum, row) => sum + (row.sweep?.tried ?? 0), 0),
+        wrongShown: rows.reduce((sum, row) => sum + (row.sweep?.wrongShown ?? 0), 0),
+      },
+      latencyMs: { samples: times.length, p50: percentile(times, 50), p95: percentile(times, 95) },
+    },
+    rows,
   };
 }
