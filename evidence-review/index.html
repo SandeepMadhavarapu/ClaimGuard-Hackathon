@@ -24,6 +24,7 @@
       <div class="intro-copy">
         <h1 id="page-title">Claim review</h1>
         <p>Find the payer’s reference, compare it with the original, and record it for review.</p>
+        <p class="intro-context">Built for Kenyan hospital billing teams submitting Social Health Authority (SHA) claims, where a missing preauthorization reference can mean a rejected claim. All cases here are synthetic.</p>
       </div>
       <ol class="review-steps" id="review-steps" aria-label="Review progress">
         <li aria-current="step"><span class="step-number">1</span> Read</li>
@@ -139,14 +140,14 @@
         <details class="card rule-card">
           <summary>Policy and cloud request</summary>
           <p class="fine" id="policy-summary"></p>
-          <p class="fine">Only this synthetic policy goes to the cloud. The scan, reference, and pasted text stay on this device.</p>
+          <p class="fine">Hybrid mode answers with Gemini Nano on this device when it is ready and falls back to the cloud when it is not. Only this synthetic policy can reach the cloud. The scan, reference, and pasted text stay on this device.</p>
           <details>
             <summary>View the exact cloud request</summary>
             <pre id="payload"></pre>
           </details>
           <div class="read-actions">
-            <button id="explain-hybrid" type="button" class="secondary" disabled>Explain on device or cloud</button>
-            <button id="explain" type="button" class="secondary" disabled>Explain with cloud AI</button>
+            <button id="explain-hybrid" type="button" disabled>Explain policy · on-device first</button>
+            <button id="explain" type="button" class="secondary" disabled>Cloud only</button>
           </div>
           <p id="cloud-status" class="fine status" role="status"></p>
           <p id="explanation"></p>

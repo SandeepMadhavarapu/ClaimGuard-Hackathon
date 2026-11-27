@@ -43,6 +43,7 @@ h2 { font-size: clamp(1.15rem, 1.65vw, 1.42rem); letter-spacing: -.036em; line-h
     linear-gradient(115deg, #191e32, #343057);
 }
 .intro-copy { min-width: 0; }
+.intro p.intro-context { color: #c9c5ea; font-size: .88rem; }
 .intro p { margin-top: 9px; color: #e4e1fa; font-size: clamp(.93rem, 1.4vw, 1.07rem); max-width: 58ch; }
 .review-steps { display: flex; gap: 7px; padding: 0; margin: 0; list-style: none; flex-shrink: 0; }
 .review-steps li {

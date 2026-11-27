@@ -94,7 +94,7 @@ try {
   await send("Page.navigate", { url: appURL.href });
   await input.question("In the opened page, wait for readiness and select Specialist referral. Warm up Nano if needed, then press Enter. ");
   const local = await capture("device_only_scan", "Click Read scan on-device for Specialist referral.", "#local-status", "On-device ·");
-  const cloud = await capture("public_rule_explanation", "Click Explain rule with cloud AI.", "#cloud-status", "Cloud ·");
+  const cloud = await capture("public_rule_explanation", "Click Cloud only in Policy and cloud request.", "#cloud-status", "Cloud ·");
   const report = {
     schemaVersion: 1, scope: "Chrome page-target HTTP(S) requests, excluding loopback",
     browser: browser.product, capturedAt: new Date().toISOString(),

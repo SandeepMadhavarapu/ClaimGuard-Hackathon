@@ -24,9 +24,9 @@ Use [Judge walkthrough](http://127.0.0.1:8000/?judge=1) for the two sample cases
 
 ## Run the walkthrough
 
-1. Open **Specialist referral** and click **Read scan on-device**. Compare Nano's transcription with the scan, tick the confirmation, and click **Apply and rerun check**.
+1. Open **Specialist referral** and click **Read with Gemini Nano**. Compare Nano's transcription with the scan, tick the confirmation, and click **Record reference**.
 2. Switch to **Request pending** and rerun. The hospital tracking ID alone leaves the reference missing. **Conflicting references** exercises the case where the clerk must resolve which value applies.
-3. Open **Policy and cloud request**, then **View the exact cloud request**. **Explain rule with cloud AI** sends a fixed synthetic policy summary and excludes scans, case data, references, and patient text.
+3. Open **Policy and cloud request**, then **View the exact cloud request**. **Explain policy · on-device first** uses `PREFER_ON_DEVICE`: Gemini Nano answers when it is ready, and Firebase AI Logic falls back to the cloud when it is not. The status line names the route the SDK reported. **Cloud only** forces the cloud path. Both send only a fixed synthetic policy summary and exclude scans, case data, references, and patient text.
 4. Open **Benchmark 12 labeled scans** and run both Gemini Nano and the local OCR baseline. Six scans have a payer reference and six require abstention. The set includes faint print, low resolution, leading zeros, an O/0 confusion case, blank fields, and conflicting references.
 
 ### Source image tools
@@ -55,7 +55,7 @@ The local OCR baseline runs without Firebase. It applies the same reference pars
 
 ## Implementation boundaries
 
-- Both inference calls use Firebase AI Logic. Scan extraction uses `ONLY_ON_DEVICE`, and the rule explanation uses `ONLY_IN_CLOUD`. The display checks the SDK's `response.inferenceSource` before labeling results.
+- All inference uses Firebase AI Logic. Scan extraction uses `ONLY_ON_DEVICE` so patient documents never fall back to the cloud. The policy explanation uses `PREFER_ON_DEVICE` by default, with an `ONLY_IN_CLOUD` option. The display checks the SDK's `response.inferenceSource` before labeling results.
 - The suggested text and label must agree before the suggestion is shown. The clerk is responsible for comparing the transcription against the original pixels. The pasted-text path verifies the quote directly against the underlying text.
 - The synthetic `CG-AUTH-001` rule checks whether a preauthorization reference was recorded. Authorization requires verification with the payer.
 - Selected images are prepared in memory. Use bundled or synthetic scans for the contest recording and judging.
