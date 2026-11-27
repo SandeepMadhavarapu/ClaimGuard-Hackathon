@@ -1,0 +1,84 @@
+name: iOS build and tests
+
+on:
+  push:
+    branches:
+      - feature/claimguard-ios
+    paths:
+      - 'ios/ClaimGuard/**'
+      - 'evidence-review/samples/**'
+      - '.github/workflows/claimguard-ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select an available iPhone
+        run: |
+          xcodebuild -version
+          xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; devices=[x for key in sorted(d,reverse=True) if "SimRuntime.iOS-26" in key for x in d[key] if x.get("isAvailable") and x["name"].startswith("iPhone")]; print("IPHONE_UDID="+devices[0]["udid"])' >> "$GITHUB_ENV"
+      - name: Build the iOS app and test bundle
+        timeout-minutes: 9
+        run: |
+          xcodebuild build-for-testing \
+            -project ios/ClaimGuard/ClaimGuard.xcodeproj \
+            -scheme ClaimGuard \
+            -destination "platform=iOS Simulator,id=$IPHONE_UDID,arch=arm64" \
+            -derivedDataPath "$RUNNER_TEMP/ClaimGuardDerivedData" \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Start the iPhone simulator
+        timeout-minutes: 5
+        run: xcrun simctl bootstatus "$IPHONE_UDID" -b
+      - name: Run the parser, guard, and benchmark tests
+        timeout-minutes: 6
+        run: |
+          xcodebuild test-without-building \
+            -project ios/ClaimGuard/ClaimGuard.xcodeproj \
+            -scheme ClaimGuard \
+            -destination "platform=iOS Simulator,id=$IPHONE_UDID,arch=arm64" \
+            -derivedDataPath "$RUNNER_TEMP/ClaimGuardDerivedData" \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO
+
+  device-ipa:
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - name: Add the Firebase iOS configuration
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" > ios/ClaimGuard/GoogleService-Info.plist
+            plutil -lint ios/ClaimGuard/GoogleService-Info.plist
+          else
+            echo "::warning::GOOGLE_SERVICE_INFO_PLIST is not set. The app builds, but AI features stay off."
+          fi
+      - name: Build an unsigned debug app for iPhone
+        run: |
+          xcodebuild build \
+            -project ios/ClaimGuard/ClaimGuard.xcodeproj \
+            -scheme ClaimGuard \
+            -configuration Debug \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Package the IPA for sideloading
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP/dd/Build/Products/Debug-iphoneos/ClaimGuard.app" "$RUNNER_TEMP/ipa/Payload/"
+          rm -f "$RUNNER_TEMP/ipa/Payload/ClaimGuard.app/GoogleService-Info.example.plist"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry ClaimGuard-debug.ipa Payload)
+          ls -lh "$RUNNER_TEMP/ipa/ClaimGuard-debug.ipa"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ClaimGuard-debug-ipa
+          path: ${{ runner.temp }}/ipa/ClaimGuard-debug.ipa
+          retention-days: 7

@@ -2,7 +2,7 @@
 
 **Catch a missing preauthorization reference before a hospital claim goes out. Patient documents are read on the device, and only public policy text can reach the cloud.**
 
-Entry for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com/). Platform: **Web (Chrome) with Gemini Nano through Firebase AI Logic**.
+Entry for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com/). Platforms: **Web (Chrome) with Gemini Nano** and **iOS (iPhone) with Apple Foundation Models**, both through Firebase AI Logic.
 
 **Live demo:** https://claimguard-hackathon.vercel.app/?judge=1 (desktop Chrome)
 
@@ -78,8 +78,28 @@ The 27 tests cover evidence parsing and abstention, the benchmark scorer, scan t
 
 ## Built with
 
-Firebase AI Logic (Gemini Nano in Chrome, plus Gemini in the cloud) · Firebase App Check · Tesseract.js · plain JavaScript modules · Vercel
+Firebase AI Logic (Gemini Nano in Chrome, Apple Foundation Models on iPhone, Gemini in the cloud) · Firebase App Check · Tesseract.js · plain JavaScript modules · Vercel · SwiftUI, VisionKit and Vision on iOS
 
 ## License
 
 [Apache License 2.0](LICENSE). Third-party components and their licenses are listed in [NOTICE](NOTICE).
+
+## iOS
+
+The native iPhone app is in [ios/ClaimGuard](ios/ClaimGuard). It uses VisionKit capture, on-device Vision OCR, and a Firebase AI Logic session that runs only on Apple Foundation Models for extraction. The OCR text never falls back to the cloud. The public policy explanation uses a separate hybrid session (Apple Foundation Models first, then Gemini in the cloud) protected by App Check. The guard is the same as on Web, plus one iOS rule: the model's reference must match exactly one labeled payer line in the OCR text it read.
+
+**Measured on an iPhone 17 (iOS 26.6.1) in airplane mode, Nov 27, 2026, on the same 12 synthetic scans:**
+
+| Method | Correct outcomes | False suggestions | Wrong model proposals blocked | Median time |
+|---|---|---|---|---|
+| Apple Intelligence + guard | 11/12 (5 extractions, 6 abstentions) | 0 | 5 | 1.2 s |
+| Vision OCR only | 11/12 | 0 | n/a | 0.14 s |
+
+The one miss for both methods is the deliberate O-versus-0 case. Offline, the policy explanation answered on-device. Online, the cloud route was verified by Firebase App Check.
+
+### Install on an iPhone
+
+- **With a Mac:** follow the [iOS setup and device checklist](ios/ClaimGuard/README.md) (Xcode, Firebase registration, signing).
+- **Without a Mac:** the GitHub Actions workflow `iOS build and tests` builds an unsigned debug `.ipa` on a macOS runner when a `GOOGLE_SERVICE_INFO_PLIST` repository secret is set. Download the `ClaimGuard-debug-ipa` artifact and sign and install it with your own Apple ID using a sideloading tool such as Sideloadly. The debug build shows a **Copy App Check debug token** button. Register that token in Firebase App Check before testing the cloud route.
+
+Requirements: an Apple Intelligence-capable iPhone on iOS 26 with Apple Intelligence turned on.
