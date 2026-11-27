@@ -1,5 +1,5 @@
 import {
-  CASES, NEXT_STEPS, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
+  CASES, NEXT_STEPS, NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
   parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
@@ -159,6 +159,17 @@ function renderFinding(reference, method = "") {
   renderProgress();
 }
 
+function nextStepLanguage() {
+  return document.querySelector('input[name="next-step-language"]:checked')?.value ?? "en";
+}
+
+function renderNextStepLanguage() {
+  const language = nextStepLanguage();
+  el("next-step-run").textContent = NEXT_STEP_LANGUAGES[language].route === "cloud"
+    ? "Suggest next step in Kiswahili · cloud" : "Suggest next step · on-device first";
+  if (outcomeCode) el("next-step-payload").textContent = nextStepPrompt(outcomeCode, language);
+}
+
 function setOutcome(code) {
   outcomeCode = code;
   el("next-step").hidden = !code;
@@ -173,7 +184,7 @@ function setOutcome(code) {
     entry.textContent = item;
     return entry;
   }));
-  el("next-step-payload").textContent = nextStepPrompt(code);
+  renderNextStepLanguage();
   updateControls();
 }
 
@@ -678,8 +689,17 @@ el("claim-export").addEventListener("click", () => {
 });
 fillClaim(DEMO_CLAIM);
 
+for (const radio of document.querySelectorAll('input[name="next-step-language"]')) {
+  radio.addEventListener("change", () => {
+    el("next-step-status").textContent = "";
+    el("next-step-text").textContent = "";
+    renderNextStepLanguage();
+  });
+}
+
 el("next-step-run").addEventListener("click", async () => {
   const code = outcomeCode;
+  const language = nextStepLanguage();
   if (!code || !inference) return;
   const status = el("next-step-status");
   const text = el("next-step-text");
@@ -688,13 +708,14 @@ el("next-step-run").addEventListener("click", async () => {
   text.textContent = "";
   status.textContent = "Asking Firebase AI Logic for the next step.";
   try {
-    const response = await inference.nextStep(code);
+    const response = await inference.nextStep(code, language);
     const route = response.source === "ON_DEVICE" ? "Answered by Gemini Nano on this device"
-      : "Gemini Nano was not ready, so Firebase AI Logic fell back to the cloud";
+      : language === "sw" ? "Kiswahili is not a Gemini Nano output language, so this public request ran in the cloud"
+        : "Gemini Nano was not ready, so Firebase AI Logic fell back to the cloud";
     status.textContent = `${sourceAndTime(response)} · ${route}`;
     text.textContent = response.text;
-    recordTrace(`Next step (${NEXT_STEPS[code].label})`, response.source,
-      response.source === "IN_CLOUD" ? "Cloud fallback" : "Guidance returned", response.duration, true);
+    recordTrace(`Next step (${NEXT_STEPS[code].label}, ${NEXT_STEP_LANGUAGES[language].name})`, response.source,
+      language === "sw" ? "Cloud by language" : response.source === "IN_CLOUD" ? "Cloud fallback" : "Guidance returned", response.duration, true);
   } catch {
     recordTrace("Next step", "UNCONFIRMED", "Guidance unavailable", null, true);
     status.textContent = "AI guidance unavailable. Follow the checklist above.";

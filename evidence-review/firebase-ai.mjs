@@ -1,4 +1,4 @@
-import { PUBLIC_PROMPT, nextStepPrompt } from "./evidence.mjs";
+import { NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, nextStepPrompt } from "./evidence.mjs";
 
 const sdk = "https://www.gstatic.com/firebasejs/13.4.0/";
 const extractionInstructions = [
@@ -78,9 +78,12 @@ export async function setupInference() {
     explain: () => generate(cloud, PUBLIC_PROMPT, "IN_CLOUD"),
     explainHybrid: async () => generate(hybridModel(), PUBLIC_PROMPT, "ON_DEVICE", "IN_CLOUD"),
     // Only a fixed outcome code and its public checklist are sent; the code is validated first.
-    nextStep: async code => {
-      const prompt = nextStepPrompt(code);
-      return generate(hybridModel(), prompt, "ON_DEVICE", "IN_CLOUD");
+    // Kiswahili is not a Gemini Nano output language, so that public prompt goes to the cloud only.
+    nextStep: async (code, language = "en") => {
+      const prompt = nextStepPrompt(code, language);
+      return NEXT_STEP_LANGUAGES[language].route === "cloud"
+        ? generate(cloud, prompt, "IN_CLOUD")
+        : generate(hybridModel(), prompt, "ON_DEVICE", "IN_CLOUD");
     },
   };
 }
