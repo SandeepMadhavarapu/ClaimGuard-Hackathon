@@ -1,6 +1,6 @@
 # ClaimGuard Evidence Review
 
-**Catch a missing preauthorization reference before a hospital claim goes out. Patient documents are read on the device, and only public policy text can reach the cloud.**
+**Catch a missing preauthorization reference before a hospital claim goes out. Patient documents are read on the device. When the cloud helps, it sees the page's layout with every identifier replaced by a slot, never the values.**
 
 Entry for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com/). Platforms: **Web (Chrome) with Gemini Nano** and **iOS (iPhone) with Apple Foundation Models**, both through Firebase AI Logic.
 
@@ -17,17 +17,20 @@ The supporting documents are scanned referral letters and cover sheets that cont
 ## What ClaimGuard does
 
 1. **Read on-device.** Gemini Nano reads the scan in Chrome through Firebase AI Logic (`ONLY_ON_DEVICE`). It returns the labeled reference and an exact quote, or it abstains.
-2. **Cross-check.** Tesseract OCR runs on the same image in a browser worker. If Nano and OCR disagree, the suggestion is withheld and the case goes to manual review. If OCR cannot corroborate a proposal, it is also withheld. When the reads agree, the evidence line is highlighted on the scan.
-3. **The clerk confirms.** Nothing is recorded until the clerk compares the value with the original and ticks the confirmation. Payer verification stays pending; ClaimGuard never claims approval.
-4. **Explain the rule with hybrid inference.** The policy explanation uses `PREFER_ON_DEVICE`: Nano answers when it is ready, and Firebase AI Logic falls back to the cloud when it isn't. The UI shows which route the SDK actually reported. You can view the exact cloud request, which contains only a fixed, public policy summary.
-5. **Suggest the next step with hybrid inference.** After a read, ClaimGuard knows only the outcome type: reference recorded, no payer reference, conflicting references, or needs manual review. It sends just that code and a fixed public demo checklist to Firebase AI Logic (`PREFER_ON_DEVICE` on Web; Apple Foundation Models first, then Gemini, on iOS) and shows the clerk the most important next action. The exact request is visible in the app, and unknown codes are rejected before any call. No scan, reference, or document text can reach it.
-6. **Pre-check the whole claim, on the device.** A synthetic claim is checked against rules published in the Digital Health Agency's [SHA claims submission guide](https://afyalink.dha.go.ke/claim-integration): client registry, facility (FID), practitioner (PUID) and SHA intervention code formats; service dates inside the billable period; a total equal to the sum of item amounts; and a preauthorization reference that matches the one confirmed on the scan and is not another kind of ID. The verdict is **Ready to submit** or **Hold**, and it exports as a FHIR R4 `OperationOutcome`. Formats are checked, not looked up, and payer approval still needs verification.
+2. **Private layout read (hybrid, works in any Chrome).** Local OCR reads the page on the device. Before any model sees it, every identifier value becomes a slot (`[ID-2]`) and every word outside a fixed public form vocabulary is dropped. Gemini then answers with a slot name or `NONE` through Firebase AI Logic `PREFER_ON_DEVICE`: Gemini Nano when it is ready, the cloud otherwise, with a JSON schema on both routes. The slot is mapped back to the OCR value on the device, and a deterministic label check decides what the clerk sees. **The cloud picks the slot, it never sees the number.** The exact request is viewable in the app.
+3. **Cross-check.** Tesseract OCR runs on the same image in a browser worker. If Nano and OCR disagree, the suggestion is withheld and the case goes to manual review. If OCR cannot corroborate a proposal, it is also withheld. When the reads agree, the evidence line is highlighted on the scan.
+4. **The clerk confirms.** Nothing is recorded until the clerk compares the value with the original and ticks the confirmation. Payer verification stays pending; ClaimGuard never claims approval.
+5. **Explain the rule with hybrid inference.** The policy explanation uses `PREFER_ON_DEVICE`: Nano answers when it is ready, and Firebase AI Logic falls back to the cloud when it isn't. The UI shows which route the SDK actually reported. You can view the exact cloud request, which contains only a fixed, public policy summary.
+6. **Suggest the next step with hybrid inference.** After a read, ClaimGuard knows only the outcome type: reference recorded, no payer reference, conflicting references, or needs manual review. It sends just that code and a fixed public demo checklist to Firebase AI Logic (`PREFER_ON_DEVICE` on Web; Apple Foundation Models first, then Gemini, on iOS) and shows the clerk the most important next action. Generated text that adds an identifier, a long number or a link is discarded in favour of the fixed checklist. The exact request is visible in the app, and unknown codes are rejected before any call. No scan, reference, or document text can reach it.
+7. **Pre-check the whole claim, on the device.** A synthetic claim is checked against rules published in the Digital Health Agency's [SHA claims submission guide](https://afyalink.dha.go.ke/claim-integration): client registry, facility (FID), practitioner (PUID) and SHA intervention code formats; service dates inside the billable period; a total equal to the sum of item amounts; and a preauthorization reference that matches the one confirmed on the scan and is not another kind of ID. The verdict is **Ready to submit** or **Hold** (a scan with conflicting or missing references holds the claim with that reason), and it exports as a FHIR R4 `OperationOutcome`.
+8. **Works offline.** A service worker caches the app, samples and OCR data, so after one visit the Web app reads scans and pre-checks claims in airplane mode. Every export carries the deployed commit (`build.json`). Formats are checked, not looked up, and payer approval still needs verification.
 
 ## Why hybrid inference
 
 | Task | Mode | Why |
 |---|---|---|
-| Read a patient scan | `ONLY_ON_DEVICE` | Patient documents must never fall back to the cloud. If Nano isn't available, the app falls back to local OCR and manual entry, never to the cloud. |
+| Read a patient scan (image) | `ONLY_ON_DEVICE` | The image and its text never fall back to the cloud. |
+| Read a patient scan (private layout) | `PREFER_ON_DEVICE` | Only form words and slot names are sent, so a cloud fallback can't expose values. Both routes are schema-constrained to `{slot}`. Verified on the live site: 12 cloud requests, 0 containing an identifier value. |
 | Explain the policy rule | `PREFER_ON_DEVICE` (default) | The text is public, so the cloud is a safe fallback. Clerks on machines without Nano still get an answer. |
 | Explain the policy rule | `ONLY_IN_CLOUD` (option) | Forces the cloud path for comparison. |
 | Suggest the next step | `PREFER_ON_DEVICE` | The input is one of four fixed outcome codes plus a public checklist, so a cloud fallback cannot expose patient data. |
@@ -43,12 +46,12 @@ Firebase AI Logic is imported and called at runtime in [`evidence-review/firebas
 
 Open the [live demo](https://claimguard-hackathon.vercel.app/?judge=1) in desktop Chrome. Everything except Gemini Nano works in any Chrome. For Nano, follow the [Firebase Chrome setup](https://firebase.google.com/docs/ai-logic/hybrid/web/get-started) (Chrome 139+, the `prompt-api-for-gemini-nano-multimodal-input` flag, then let the model download).
 
-1. **Specialist referral.** Click **Read with Gemini Nano** (on-device) or **Read with local OCR** (no setup). Nano's answer is shown only when local OCR reads the same reference, with the line highlighted. Tick the confirmation, then click **Record reference**.
+1. **Specialist referral.** Click **Read with Gemini · private layout** (any Chrome; open **View the exact private-layout request** to see what was sent), **Read with Gemini Nano** (on-device) or **Read with local OCR** (no setup). Nano's answer is shown only when local OCR reads the same reference, with the line highlighted. Tick the confirmation, then click **Record reference**.
 2. **Pending referral.** The only ID on the page is a hospital tracking ID. ClaimGuard abstains instead of guessing.
-3. **Conflicting references.** Two references are printed, so the finding stays open. Under **Next step**, click **Suggest next step · on-device first**. Only the outcome code and a public checklist are sent (open **View the exact request**), and the status line shows whether Nano or the cloud answered.
+3. **Conflicting references.** Two references are printed, so the finding stays open and the claim pre-check says **Hold: conflicting payer references on the scan**. Under **Next step**, click **Suggest next step · on-device first**. Only the outcome code and a public checklist are sent (open **View the exact request**), and the status line shows whether Nano or the cloud answered.
 4. **Policy and cloud request.** Click **View the exact cloud request**, then **Explain policy · on-device first**.
 5. **Claim pre-check.** Record the Specialist referral reference and the synthetic claim turns **Ready to submit**. Click **Load a claim with errors** to see four rule failures, then **Export FHIR OperationOutcome**.
-6. **Benchmark 12 labeled scans.** Run Gemini Nano and the local OCR baseline on the same 12 synthetic scans. The report shows Nano alone and the Nano + OCR gate. Six scans contain a payer reference and six require abstention, including faint print, low resolution, leading zeros, an O/0 trap, blank fields and conflicting references.
+6. **Benchmark 12 labeled scans.** Run Gemini Nano, the local OCR baseline and the private layout read on the same 12 synthetic scans. The report shows Nano alone, the Nano + OCR gate, the route each private-layout read took, the stage where each miss happened (OCR, model or guard), and a guard sweep that tries every slot on every scan. Six scans contain a payer reference and six require abstention, including faint print, low resolution, leading zeros, an O/0 trap, blank fields and conflicting references.
 
 ### iOS (iPhone)
 
@@ -79,13 +82,26 @@ To deploy (Vercel), set the `CLAIMGUARD_FIREBASE_CONFIG` environment variable to
 
 Full details, the benchmark methodology and the network capture tool are in [`evidence-review/README.md`](evidence-review/README.md).
 
+## Measured results (Web)
+
+Live site, Nov 27–28, 2026, same 12 synthetic scans (6 with a payer reference, 6 that require abstention):
+
+| Method | Route | Correct outcomes | Notes |
+|---|---|---|---|
+| Private layout read + guard | Cloud (no Nano on the test machine) | 11/12 | p50 669 ms · 0 of 40 possible slot picks would show a wrong value · 12 requests, 0 with an identifier value |
+| Gemini Nano (image, JSON schema) alone | On-device | 9/12 | p50 1.6 s · up from 8/12 before structured output |
+| Gemini Nano + OCR gate | On-device | 11/12 | 3 wrong proposals blocked |
+| Local OCR only | On-device | 11/12 | |
+
+The one miss on every Web route is the deliberate O-versus-0 scan: OCR reads the zero as a letter O, and ClaimGuard withholds rather than shows it.
+
 ## Tests
 
 ```sh
 node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test.mjs"
 ```
 
-The tests cover evidence parsing and abstention, the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
+54 tests cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
 
 ## Built with
 
@@ -97,7 +113,7 @@ Firebase AI Logic (Gemini Nano in Chrome, Apple Foundation Models on iPhone, Gem
 
 ## iOS
 
-The native iPhone app is in [ios/ClaimGuard](ios/ClaimGuard). It uses VisionKit capture, on-device Vision OCR, and a Firebase AI Logic session that runs only on Apple Foundation Models for extraction. The OCR text never falls back to the cloud. The public policy explanation and the next-step guidance use a separate hybrid session (Apple Foundation Models first, then Gemini in the cloud) protected by App Check. Their only inputs are fixed public prompts. The guard is the same as on Web, plus one iOS rule: the model's reference must match exactly one labeled payer line in the OCR text it read.
+The native iPhone app is in [ios/ClaimGuard](ios/ClaimGuard). It uses VisionKit capture, on-device Vision OCR, and a Firebase AI Logic session that runs only on Apple Foundation Models for extraction. The OCR text never falls back to the cloud. The public policy explanation and the next-step guidance use a separate hybrid session (Apple Foundation Models first, then Gemini in the cloud) protected by App Check. Their only inputs are fixed public prompts. The private layout read is also on iOS (Apple Foundation Models first, Gemini fallback, slots only), along with the SHA claim pre-check and Kiswahili next steps. The guard is the same as on Web, plus one iOS rule: the model's reference must match exactly one labeled payer line in the OCR text it read.
 
 **Measured on an iPhone 17 (iOS 26.6.1) in airplane mode, Nov 27, 2026, on the same 12 synthetic scans:**
 
