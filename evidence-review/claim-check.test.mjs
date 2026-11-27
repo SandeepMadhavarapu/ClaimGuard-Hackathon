@@ -60,3 +60,18 @@ test("the error demo fails four checks and exports a FHIR OperationOutcome witho
   assert.equal(outcome.issue.length, 4);
   assert.ok(outcome.issue.every(issue => issue.severity === "error" && issue.expression[0].startsWith("Claim.")));
 });
+
+test("a scan with conflicting or missing references holds the claim and says why", () => {
+  const conflict = checkClaim(DEMO_CLAIM, null, "CONFLICT");
+  assert.equal(conflict.verdict, "hold");
+  assert.equal(conflict.summary, "Hold: conflicting payer references on the scan");
+  assert.equal(byId(conflict)["preauth-reference"], "fail");
+  assert.match(conflict.checks.at(-1).detail, /Ask the payer/);
+  const none = checkClaim(DEMO_CLAIM, null, "NO_REFERENCE");
+  assert.equal(none.summary, "Hold: no payer reference on the scan");
+  const both = checkClaim(DEMO_CLAIM_WITH_ERRORS, null, "CONFLICT");
+  assert.equal(both.summary, "Hold: conflicting payer references on the scan (+3 more issues)");
+  // Needs-review and recorded outcomes keep the normal flow.
+  assert.equal(checkClaim(DEMO_CLAIM, null, "NEEDS_REVIEW").verdict, "pending");
+  assert.equal(checkClaim(DEMO_CLAIM, "DEMO-PA-240817", "RECORDED").verdict, "ready");
+});

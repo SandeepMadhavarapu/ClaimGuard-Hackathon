@@ -1,4 +1,7 @@
 import { NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, nextStepPrompt } from "./evidence.mjs";
+import { SLOT_SCHEMA } from "./layout-read.mjs";
+
+export const CLOUD_MODEL = "gemini-3.5-flash-lite";
 
 const sdk = "https://www.gstatic.com/firebasejs/13.4.0/";
 const extractionInstructions = [
@@ -94,6 +97,28 @@ export async function setupInference() {
     return { ...await generate(localModel(), prompt, "ON_DEVICE"), constrained: false };
   }
 
+  let layout;
+
+  // The private layout read: on-device first, cloud fallback. Both routes are schema-constrained
+  // to {slot}. The prompt holds only form words and slot names, never identifier values.
+  function layoutModel() {
+    if (!InferenceMode.PREFER_ON_DEVICE) throw new Error("Hybrid inference unavailable");
+    return layout ??= getGenerativeModel(ai, {
+      mode: InferenceMode.PREFER_ON_DEVICE,
+      onDeviceParams: {
+        createOptions: {
+          expectedInputs: [{ type: "text", languages: ["en"] }],
+          expectedOutputs: [{ type: "text", languages: ["en"] }],
+        },
+        promptOptions: { responseConstraint: SLOT_SCHEMA },
+      },
+      inCloudParams: {
+        model: CLOUD_MODEL,
+        generationConfig: { responseMimeType: "application/json", responseJsonSchema: SLOT_SCHEMA, temperature: 0 },
+      },
+    });
+  }
+
   function hybridModel() {
     if (!InferenceMode.PREFER_ON_DEVICE) throw new Error("Hybrid inference unavailable");
     return hybrid ??= getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE });
@@ -126,6 +151,7 @@ export async function setupInference() {
     },
     extract: async letter => extractOnDevice(extractionInstructions + "\n" + JSON.stringify({ letter })),
     extractScan: async inlineData => extractOnDevice([extractionInstructions, { inlineData }]),
+    readLayout: prompt => generate(layoutModel(), prompt, "ON_DEVICE", "IN_CLOUD"),
     explain: () => generate(cloud, PUBLIC_PROMPT, "IN_CLOUD"),
     explainHybrid: async () => generate(hybridModel(), PUBLIC_PROMPT, "ON_DEVICE", "IN_CLOUD"),
     // Only a fixed outcome code and its public checklist are sent; the code is validated first.

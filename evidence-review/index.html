@@ -112,9 +112,15 @@
           <p class="fine authority">Payer verification is still required.</p>
           <div class="read-actions">
             <button type="button" id="extract-ocr" disabled>Read with local OCR <span aria-hidden="true">→</span></button>
+            <button type="button" class="secondary" id="extract-layout" hidden disabled>Read with Gemini · private layout</button>
             <button type="button" class="secondary" id="extract" hidden disabled>Read with Gemini Nano</button>
           </div>
           <p id="local-status" class="fine status" role="status"></p>
+          <details id="layout-request" class="layout-request" hidden>
+            <summary>View the exact private-layout request</summary>
+            <p class="fine">OCR ran on this device. Identifier values became slots and every word outside a fixed form vocabulary was removed before Gemini saw the page. The slot is mapped back here.</p>
+            <pre id="layout-request-text"></pre>
+          </details>
 
           <div id="candidate" class="evidence" hidden>
             <span id="candidate-label" class="fine"></span>
@@ -218,6 +224,7 @@
       <p class="fine">Compare both methods on the same scans. The JSON report includes a SHA-256 fingerprint for each input read by the benchmark.</p>
       <button id="evaluate" type="button" class="secondary" disabled>Run Gemini Nano</button>
       <button id="evaluate-ocr" type="button" class="secondary">Run local OCR baseline</button>
+      <button id="evaluate-layout" type="button" class="secondary" disabled>Run private layout · hybrid</button>
       <button id="export-evaluation" type="button" class="secondary" disabled>Export benchmark JSON</button>
       <p id="eval-status" class="fine status" role="status"></p>
       <p id="eval-metrics" class="fine"></p>
@@ -228,6 +235,15 @@
           <caption class="sr-only">Synthetic scan outcomes</caption>
           <thead><tr><th scope="col">Scan</th><th scope="col">Expected</th><th scope="col">Proposed</th><th scope="col">Outcome</th><th scope="col">Method</th><th id="eval-ocr-column" scope="col" hidden>OCR baseline</th></tr></thead>
           <tbody id="eval-results"></tbody>
+        </table>
+      </div>
+      <p id="eval-layout-status" class="fine status" role="status"></p>
+      <p id="eval-layout-metrics" class="fine"></p>
+      <div class="table-scroll" id="eval-layout-table" hidden>
+        <table>
+          <caption class="sr-only">Private layout outcomes, with the stage where each miss happened</caption>
+          <thead><tr><th scope="col">Scan</th><th scope="col">Expected</th><th scope="col">Gemini slot</th><th scope="col">Outcome</th><th scope="col">Lost at</th><th scope="col">Route</th></tr></thead>
+          <tbody id="eval-layout-results"></tbody>
         </table>
       </div>
     </details>

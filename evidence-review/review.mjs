@@ -3,7 +3,7 @@ import {
   parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
-import { compareBenchmarkRuns, shareableBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
+import { compareBenchmarkRuns, shareableBenchmark, runLayoutBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
 import { imageModelAvailability } from "./browser-readiness.mjs";
 import { DEMO_CLAIM, DEMO_CLAIM_WITH_ERRORS, checkClaim, operationOutcome } from "./claim-check.mjs";
 import { setupInference } from "./firebase-ai.mjs";
@@ -24,6 +24,7 @@ const detailFrame = el("detail-frame");
 const marker = el("evidence-marker");
 const extract = el("extract");
 const extractOcr = el("extract-ocr");
+const extractLayout = el("extract-layout");
 const evaluate = el("evaluate");
 const evaluateOcr = el("evaluate-ocr");
 const exportEvaluation = el("export-evaluation");
@@ -58,6 +59,7 @@ let scanError = "";
 let selection;
 let latestBenchmark;
 let latestOcrBenchmark;
+let latestLayoutBenchmark;
 let anchor;
 
 function recordTrace(action, source, outcome, elapsedMs = null, policyOnly = false) {
@@ -117,7 +119,7 @@ function fillClaim(claim) {
 }
 
 function renderClaimCheck() {
-  const result = checkClaim(readClaim(), confirmedReference);
+  const result = checkClaim(readClaim(), confirmedReference, outcomeCode);
   const verdict = el("claim-verdict");
   verdict.dataset.verdict = result.verdict;
   verdict.textContent = result.summary;
@@ -172,6 +174,7 @@ function renderNextStepLanguage() {
 
 function setOutcome(code) {
   outcomeCode = code;
+  if (claimForm) renderClaimCheck();
   el("next-step").hidden = !code;
   el("next-step-status").textContent = "";
   el("next-step-text").textContent = "";
@@ -219,10 +222,13 @@ function updateControls() {
   extract.hidden = !inference;
   extractOcr.hidden = mode !== "scan";
   extractOcr.disabled = busy || !currentImage;
+  extractLayout.hidden = mode !== "scan" || !inference;
+  extractLayout.disabled = busy || !inference || !currentImage;
   for (const id of ["judge-referral", "judge-pending", "judge-conflicting", "judge-benchmark"]) el(id).disabled = busy;
   evaluate.disabled = busy || !inference;
   evaluateOcr.disabled = busy;
-  exportEvaluation.disabled = busy || !(latestBenchmark || latestOcrBenchmark);
+  el("evaluate-layout").disabled = busy || !inference;
+  exportEvaluation.disabled = busy || !(latestBenchmark || latestOcrBenchmark || latestLayoutBenchmark);
   manual.inert = busy || !canReview;
   manual.hidden = !canReview;
   straighten.disabled = busy || scanLoading || !currentImage;
@@ -599,6 +605,50 @@ extractOcr.addEventListener("click", async () => {
   }
 });
 
+const layoutMessages = {
+  review: ["The OCR value in that slot is shown for confirmation.", "Candidate for review"],
+  empty: ["Gemini found no payer reference slot.", "Abstained"],
+  unsupported: ["That slot is not labeled as a payer reference, so it was blocked.", "Suggestion blocked"],
+  conflict: ["More than one payer reference is labeled on this page. Resolve the conflict manually.", "Conflict blocked"],
+  disagreement: ["Gemini's slot and the OCR rule disagree. Review the scan before manual entry.", "Disagreement blocked"],
+  uncorroborated: ["OCR is not confident in that value. Review the scan before manual entry.", "Uncorroborated proposal blocked"],
+};
+
+extractLayout.addEventListener("click", async () => {
+  const image = currentImage;
+  present(null);
+  setOutcome(null);
+  busy = true;
+  updateControls();
+  el("layout-request").hidden = true;
+  localStatus.textContent = "Reading the scan with local OCR, then removing identifier values.";
+  try {
+    const [{ readScanLayoutEvidence }, { buildLayout, layoutPrompt, resolveLayoutSlot }] = await Promise.all([
+      import("./ocr-evidence.mjs"), import("./layout-read.mjs"),
+    ]);
+    const evidence = await readScanLayoutEvidence(image);
+    const layout = buildLayout(evidence.lines);
+    const prompt = layoutPrompt(layout.layout);
+    el("layout-request-text").textContent = prompt;
+    el("layout-request").hidden = false;
+    localStatus.textContent = "Asking Gemini for the slot · on-device first, cloud fallback.";
+    const response = await inference.readLayout(prompt);
+    const decision = resolveLayoutSlot(response.text, layout, evidence);
+    const [message, outcome] = layoutMessages[decision.status];
+    const route = response.source === "ON_DEVICE" ? "Gemini Nano on this device" : "Cloud fallback · values stayed on this device";
+    localStatus.textContent = `${sourceAndTime(response)} · ${route} · Picked ${decision.pick ?? "nothing usable"} · ${message}`;
+    recordTrace("Read private layout", response.source, outcome, response.duration);
+    present(decision.candidate, "Confirmed after private layout read", `Gemini slot ${decision.pick} + local OCR`, decision.box);
+    setOutcome(nextStepCode(decision.status));
+  } catch {
+    recordTrace("Read private layout", "UNCONFIRMED", "Inference unavailable");
+    localStatus.textContent = "The private layout read is unavailable. Use local OCR or enter the reference manually.";
+  } finally {
+    busy = false;
+    updateControls();
+  }
+});
+
 extract.addEventListener("click", async () => {
   const scanning = mode === "scan";
   const image = currentImage;
@@ -838,8 +888,55 @@ evaluateOcr.addEventListener("click", async () => {
 });
 
 exportEvaluation.addEventListener("click", () => {
-  if (!latestBenchmark && !latestOcrBenchmark) return;
-  downloadJson(shareableBenchmark(latestBenchmark, latestOcrBenchmark), "claimguard-web-benchmark.json");
+  if (!latestBenchmark && !latestOcrBenchmark && !latestLayoutBenchmark) return;
+  downloadJson(shareableBenchmark(latestBenchmark, latestOcrBenchmark, latestLayoutBenchmark), "claimguard-web-benchmark.json");
+});
+
+el("evaluate-layout").addEventListener("click", async () => {
+  const status = el("eval-layout-status");
+  latestLayoutBenchmark = null;
+  el("eval-layout-table").hidden = true;
+  el("eval-layout-metrics").textContent = "";
+  busy = true;
+  updateControls();
+  status.textContent = "Preparing local OCR for the private layout run.";
+  try {
+    const [ocr, layoutRead] = await Promise.all([import("./ocr-evidence.mjs"), import("./layout-read.mjs")]);
+    await ocr.prepareOcr();
+    latestLayoutBenchmark = await runLayoutBenchmark({
+      readSample: bundledScan,
+      readLayoutEvidence: ocr.readScanLayoutEvidence,
+      readLayout: prompt => inference.readLayout(prompt),
+      ...layoutRead,
+      onProgress: (current, total) => { status.textContent = `Private layout · scan ${current} of ${total}.`; },
+    });
+    const { summary } = latestLayoutBenchmark;
+    const routes = Object.entries(summary.routes).map(([route, n]) => `${n} ${route === "ON_DEVICE" ? "on-device" : "cloud"}`).join(" · ");
+    const lost = Object.entries(summary.lostAt).map(([stage, n]) => `${n} at ${stage}`).join(" · ");
+    status.textContent = `Private layout · ${summary.correctOutcomes}/${summary.planned} correct · routes: ${routes || "none"}`;
+    const sweep = summary.guardSweep;
+    el("eval-layout-metrics").textContent = [
+      sweep.scans ? `Guard sweep: every slot tried on ${sweep.scans} scans (${sweep.picksTried} picks) · ${sweep.wrongShown} wrong values shown` : "",
+      summary.wrongProposalsBlocked ? `Wrong slot picks blocked: ${summary.wrongProposalsBlocked}` : "",
+      lost ? `Misses: ${lost}` : "No misses",
+      summary.latencyMs.samples ? `p50 ${summary.latencyMs.p50} ms · p95 ${summary.latencyMs.p95} ms` : "",
+    ].filter(Boolean).join(" · ");
+    const body = el("eval-layout-results");
+    body.replaceChildren();
+    for (const row of latestLayoutBenchmark.rows) {
+      const line = body.insertRow();
+      for (const value of [
+        row.label, row.expectedReference ?? "Abstain", row.pick ?? "—", row.outcome, row.lostAt ?? "—",
+        row.inferenceSource ? `${routeNames[row.inferenceSource]}${row.inferenceMs != null ? ` · ${row.inferenceMs} ms` : ""}` : "-",
+      ]) line.insertCell().textContent = value;
+    }
+    el("eval-layout-table").hidden = false;
+  } catch {
+    status.textContent = "The private layout benchmark could not run.";
+  } finally {
+    busy = false;
+    updateControls();
+  }
 });
 
 setupInference().then(client => {

@@ -39,8 +39,20 @@ function formatCheck(id, field, value, expression) {
  * claim: { memberId, facilityId, practitionerId, serviceCode, requiresPreauth,
  *          billableStart, billableEnd, serviceStart, serviceEnd, itemAmounts, total, preauthReference }
  * confirmedReference: the reference the clerk recorded after comparing it with the scan, or null.
+ * scanOutcome: the scan review's outcome code (CONFLICT, NO_REFERENCE, NEEDS_REVIEW, RECORDED) or null.
  */
-export function checkClaim(claim, confirmedReference = null) {
+const SCAN_HOLDS = Object.freeze({
+  CONFLICT: {
+    summary: "Hold: conflicting payer references on the scan",
+    detail: "The scan has more than one payer reference. Ask the payer which one applies before submitting.",
+  },
+  NO_REFERENCE: {
+    summary: "Hold: no payer reference on the scan",
+    detail: "The scan shows no usable payer reference. Get the preauthorization from the payer before submitting.",
+  },
+});
+
+export function checkClaim(claim, confirmedReference = null, scanOutcome = null) {
   const checks = [
     formatCheck("member-id", "member", claim.memberId, "Claim.patient"),
     formatCheck("facility-id", "facility", claim.facilityId, "Claim.provider"),
@@ -89,7 +101,9 @@ export function checkClaim(claim, confirmedReference = null) {
       .find(([, format]) => format.pattern.test(onClaim))?.[1];
     let status = "fail";
     let detail;
-    if (!onClaim) detail = "This service requires preauthorization, but the claim has no reference.";
+    const scanHold = !confirmedReference && SCAN_HOLDS[scanOutcome];
+    if (scanHold) detail = scanHold.detail;
+    else if (!onClaim) detail = "This service requires preauthorization, but the claim has no reference.";
     else if (wrongKind) detail = `${onClaim} looks like a ${wrongKind.name}, not a payer preauthorization reference.`;
     else if (!confirmedReference) {
       status = "pending";
@@ -108,10 +122,13 @@ export function checkClaim(claim, confirmedReference = null) {
 
   const failed = checks.filter(check => check.status === "fail").length;
   const pending = checks.filter(check => check.status === "pending").length;
+  const scanHold = claim.requiresPreauth && !confirmedReference && SCAN_HOLDS[scanOutcome];
+  const others = failed - (scanHold ? 1 : 0);
   return {
     checks,
     verdict: failed ? "hold" : pending ? "pending" : "ready",
-    summary: failed ? `Hold: ${failed} issue${failed === 1 ? "" : "s"} to fix before submitting`
+    summary: scanHold ? `${scanHold.summary}${others ? ` (+${others} more issue${others === 1 ? "" : "s"})` : ""}`
+      : failed ? `Hold: ${failed} issue${failed === 1 ? "" : "s"} to fix before submitting`
       : pending ? "Almost ready: confirm the preauthorization reference on the scan"
         : "Ready to submit. Payer approval still needs verification.",
   };

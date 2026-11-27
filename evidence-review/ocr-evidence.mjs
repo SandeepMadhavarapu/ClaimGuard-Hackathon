@@ -88,3 +88,9 @@ export async function readScanEvidence(image) {
 export async function locateOnScan(image, reference) {
   return locateReference(await readScanLines(image), reference);
 }
+
+// Lines plus the OCR rule's own reading, for the private layout read.
+export async function readScanLayoutEvidence(image) {
+  const lines = await readScanLines(image);
+  return { lines, candidate: readOcrCandidate(lines), references: countOcrReferences(lines) };
+}

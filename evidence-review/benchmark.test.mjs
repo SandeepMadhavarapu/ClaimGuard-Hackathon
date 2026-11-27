@@ -169,3 +169,38 @@ test("a paired report requires case fingerprints on both sides", () => {
     { dataset: "fixture", rows: [{ ...row, inferenceSource: "LOCAL_OCR" }] },
   ), null);
 });
+
+test("the private layout benchmark attributes each miss to a stage and keeps failures in the denominator", async () => {
+  const { runLayoutBenchmark, BENCHMARK_CASES } = await import("./benchmark.mjs");
+  const layoutRead = await import("./layout-read.mjs");
+  const word = text => ({ text, bbox: { x0: 0, y0: 0, x1: 10, y1: 10 }, confidence: 90 });
+  const pages = {
+    "referral.png": [["Preauthorization", "reference:", "DEMO-PA-240817"], ["Hospital", "tracking", "ID:", "FAC-01328"]],
+    "pending.png": [["Hospital", "tracking", "ID:", "DEMO-PA-427091"]],
+    "cover-sheet.png": [["Preauthorization", "number:", "DEMO-PA-928331"]],
+  };
+  const fixtures = BENCHMARK_CASES.slice(0, 4);
+  const report = await runLayoutBenchmark({
+    fixtures,
+    readSample: async fixture => fixture.file,
+    readLayoutEvidence: async file => {
+      if (!pages[file]) throw new Error("no OCR");
+      return { lines: pages[file].map(row => row.map(word)), candidate: null, references: 1 };
+    },
+    // Picks the first slot every time: right for referral, wrong (and blocked) for pending.
+    readLayout: async prompt => ({ text: /\[ID-1\]/.test(prompt) ? '{"slot":"ID-1"}' : '{"slot":"NONE"}', source: "IN_CLOUD", duration: 5 }),
+    ...layoutRead,
+  });
+  const rows = Object.fromEntries(report.rows.map(row => [row.sample, row]));
+  assert.equal(rows["referral.png"].outcome, "Correct extraction");
+  assert.equal(rows["pending.png"].outcome, "Correct abstention");
+  assert.equal(rows["pending.png"].wrongProposalBlocked, true);
+  assert.equal(rows["cover-sheet.png"].outcome, "Correct extraction");
+  assert.equal(rows["conflicting.png"].outcome, "Inference error");
+  assert.equal(rows["conflicting.png"].lostAt, "Inference");
+  assert.equal(report.summary.planned, 4);
+  assert.equal(report.summary.correctOutcomes, 3);
+  assert.equal(report.summary.routes.IN_CLOUD, 3);
+  assert.equal(report.summary.guardSweep.wrongShown, 0);
+  assert.equal(report.status, "partial");
+});
