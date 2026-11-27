@@ -107,3 +107,29 @@ test("all labeled scans are bundled PNGs and image detection rejects unrelated f
   assert.equal(imageMimeType([255, 216, 255, 224]), "image/jpeg");
   assert.equal(imageMimeType(Buffer.from("%PDF-1.6")), null);
 });
+
+test("explicit no-reference answers count as abstentions, not unsupported output", () => {
+  for (const output of [
+    '{"reference":null,"quote":"Preauthorization is pending and no payer reference has been issued."}',
+    '{"reference":"NOT ISSUED","quote":"Preauthorization reference: NOT ISSUED"}',
+    '{"reference":"PREAUTHORIZATION REFERENCE:","quote":"Preauthorization reference:"}',
+    '{"reference":"","quote":null}',
+  ]) {
+    assert.equal(reviewScanSuggestion(output).status, "empty", output);
+  }
+  assert.equal(scoreScanFixture(SCAN_CASES[1], reviewScanSuggestion('{"reference":"NOT ISSUED","quote":"x"}')), "Correct abstention");
+  assert.equal(reviewScanSuggestion('{"quote":"Preauthorization reference: DEMO-PA-240817"}').status, "unsupported");
+});
+
+test("a loosely transcribed payer label is accepted only with a single matching identifier", () => {
+  const ok = reviewScanSuggestion('{"reference":"PA-000741","quote":"Pre-auth no. PA-000741"}');
+  assert.deepEqual(ok, { status: "review", candidate: { reference: "PA-000741", quote: "Pre-auth no. PA-000741" } });
+  for (const quote of [
+    "Pre-auth no. PA-000741 Hospital tracking ID: FAC-01328",
+    "Pre-auth no. PA-000742",
+    "Hospital tracking ID PA-000741",
+    "Preauthorization number: PA-000741 Preauthorization number: PA-000742",
+  ]) {
+    assert.equal(reviewScanSuggestion(JSON.stringify({ reference: "PA-000741", quote })).status, "unsupported", quote);
+  }
+});

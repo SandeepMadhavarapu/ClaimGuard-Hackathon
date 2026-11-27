@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { imageModelAvailability } from "./browser-readiness.mjs";
-import { locateReference } from "./ocr-evidence.mjs";
+import { countOcrReferences, locateReference } from "./ocr-evidence.mjs";
 import { straightenPixels } from "./scan-cleanup.mjs";
 
 function line(...parts) {
@@ -40,4 +40,12 @@ test("Chrome readiness probes image capability and handles missing support", asy
   } }), "downloadable");
   assert.equal(await imageModelAvailability({}), "unsupported");
   assert.equal(await imageModelAvailability({ availability: async () => { throw new Error(); } }), "unknown");
+});
+
+test("OCR counts distinct payer references so conflicting pages can be blocked", () => {
+  const first = line("Preauthorization", "number:", "DEMO-PA-134220");
+  const second = line("Preauthorization", "number:", "DEMO-PA-134221");
+  assert.equal(countOcrReferences([first, line("Hospital", "ID:", "FAC-01328")]), 1);
+  assert.equal(countOcrReferences([first, first]), 1);
+  assert.equal(countOcrReferences([first, second]), 2);
 });

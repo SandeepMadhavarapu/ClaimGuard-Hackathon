@@ -1,12 +1,22 @@
 import { labeledReferences } from "./evidence.mjs";
 import { joinOcrWords, wordsOverlappingFindings } from "./vendor/plainsight/ocr-map.mjs";
 
-export function readOcrCandidate(lines) {
+function labeledLines(lines) {
   const labels = [];
   for (const words of lines) {
     const { text, spans } = joinOcrWords(words);
     for (const match of labeledReferences(text)) labels.push({ match, text, spans });
   }
+  return labels;
+}
+
+// Number of distinct payer references OCR can read on the page.
+export function countOcrReferences(lines) {
+  return new Set(labeledLines(lines).map(label => label.match.reference)).size;
+}
+
+export function readOcrCandidate(lines) {
+  const labels = labeledLines(lines);
   if (labels.length !== 1) return null;
   const { text, spans, match } = labels[0];
   const start = text.indexOf(match.quote);
@@ -68,6 +78,11 @@ async function readScanLines(image) {
 
 export async function readScanReference(image) {
   return readOcrCandidate(await readScanLines(image));
+}
+
+export async function readScanEvidence(image) {
+  const lines = await readScanLines(image);
+  return { candidate: readOcrCandidate(lines), references: countOcrReferences(lines) };
 }
 
 export async function locateOnScan(image, reference) {
