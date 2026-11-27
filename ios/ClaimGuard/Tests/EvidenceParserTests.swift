@@ -60,6 +60,19 @@ final class EvidenceParserTests: XCTestCase {
         XCTAssertEqual(EvidenceParser.reviewScanSuggestion("{"), .unsupported)
     }
 
+    func testWrappedJSONAndSourceGrounding() throws {
+        let expected = SuggestionReview.review(ReferenceQuote(reference: id, quote: quote))
+        XCTAssertEqual(EvidenceParser.reviewScanSuggestion("Here is the result: " + (try json(id, quote)) + " Done."), expected)
+        let source = "Case number: DRAFT-5071\n\(quote)\nHospital tracking ID: FAC-01328"
+        // The model's own quote is unusable, but the reference is the single labeled payer line.
+        XCTAssertEqual(EvidenceParser.reviewScanSuggestion(try json(id, "DEMO PA 240817"), source: source), expected)
+        XCTAssertEqual(EvidenceParser.reviewScanSuggestion(try json(id, "DEMO PA 240817")), .unsupported)
+        // Grounding never adopts a value the source does not label, or a page with two references.
+        XCTAssertEqual(EvidenceParser.reviewScanSuggestion(try json("FAC-01328", "x"), source: source), .unsupported)
+        let conflicting = source + "\nPreauthorization number: DEMO-PA-134221"
+        XCTAssertEqual(EvidenceParser.reviewScanSuggestion(try json(id, "x"), source: conflicting), .unsupported)
+    }
+
     func testExplicitAndNonIdentifierAbstentions() {
         for output in [
             #"{"reference":null,"quote":null}"#,

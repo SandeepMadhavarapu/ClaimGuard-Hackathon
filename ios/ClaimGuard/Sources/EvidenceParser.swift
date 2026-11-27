@@ -91,8 +91,18 @@ enum EvidenceParser {
 
     private static func jsonObject(_ output: String) -> [String: Any]? {
         let text = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\u{201C}", with: "\"")
+            .replacingOccurrences(of: "\u{201D}", with: "\"")
         let unwrapped = fences.stringByReplacingMatches(in: text, range: range(text), withTemplate: "")
-        return (try? JSONSerialization.jsonObject(with: Data(unwrapped.utf8))) as? [String: Any]
+        if let object = (try? JSONSerialization.jsonObject(with: Data(unwrapped.utf8))) as? [String: Any] {
+            return object
+        }
+        // Some on-device replies wrap the object in a sentence. Use the outermost braces only.
+        guard let open = unwrapped.firstIndex(of: "{"), let close = unwrapped.lastIndex(of: "}"), open < close else {
+            return nil
+        }
+        let inner = String(unwrapped[open...close])
+        return (try? JSONSerialization.jsonObject(with: Data(inner.utf8))) as? [String: Any]
     }
 
     static func proposedReference(in output: String) -> String? {
@@ -101,7 +111,21 @@ enum EvidenceParser {
         return value.isEmpty ? nil : value
     }
 
-    static func reviewScanSuggestion(_ output: String) -> SuggestionReview {
+    /// `source` is the OCR text the model read. When the model's own quote is unusable, the
+    /// reference is still supported if it is the value of exactly one labeled payer line in that
+    /// text, and that line becomes the quote. The OCR cross-check in `decide` still applies.
+    static func reviewScanSuggestion(_ output: String, source: String? = nil) -> SuggestionReview {
+        let direct = reviewModelQuote(output)
+        guard direct == .unsupported, let source,
+              let raw = jsonObject(output)?["reference"] as? String,
+              let reference = parseReference(raw) else { return direct }
+        let grounded = labeledReferences(in: source)
+        guard Set(grounded.map(\.reference)).count == 1, let line = grounded.first,
+              line.reference == reference else { return direct }
+        return .review(line)
+    }
+
+    private static func reviewModelQuote(_ output: String) -> SuggestionReview {
         guard let candidate = jsonObject(output), let rawReference = candidate["reference"] else {
             return .unsupported
         }

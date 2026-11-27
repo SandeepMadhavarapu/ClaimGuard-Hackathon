@@ -114,7 +114,7 @@ final class ClaimReview {
         do {
             let reply = try await ClaimInference.extract(from: read.text)
             trace("Check payer reference", reply.route, reply.milliseconds)
-            switch EvidenceParser.decide(EvidenceParser.reviewScanSuggestion(reply.text), against: read.evidence) {
+            switch EvidenceParser.decide(EvidenceParser.reviewScanSuggestion(reply.text, source: read.text), against: read.evidence) {
             case .conflict:
                 status = "Conflict: resolve manually."
             case .disagreement:
@@ -125,6 +125,9 @@ final class ClaimReview {
                 status = "No clearly labeled payer reference was suggested."
             case .unsupported:
                 status = "The model’s quote did not support a payer reference. The suggestion was withheld."
+                #if DEBUG
+                status += "\n\nDebug build, model output: " + String(reply.text.prefix(300))
+                #endif
             case .ready(let candidate, let evidence):
                 show(candidate, at: evidence)
                 status = "On-device model and local OCR agree. Compare the highlighted line with the original."

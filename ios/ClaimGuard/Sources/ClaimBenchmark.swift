@@ -75,7 +75,7 @@ enum ClaimBenchmark {
         guard !Task.isCancelled, let reply = try? await ClaimInference.extract(from: read.text) else {
             return BenchmarkRow(sample: sample, ocr: baseline, model: .failed)
         }
-        let review = EvidenceParser.reviewScanSuggestion(reply.text)
+        let review = EvidenceParser.reviewScanSuggestion(reply.text, source: read.text)
         let decision = EvidenceParser.decide(review, against: read.evidence)
         let displayed: String?
         if case let .ready(quote, _) = decision { displayed = quote.reference } else { displayed = nil }
