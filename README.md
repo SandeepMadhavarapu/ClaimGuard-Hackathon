@@ -10,14 +10,14 @@ Entry for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com/).
 
 ## The problem
 
-In Kenya, the Social Health Authority (SHA) replaced NHIF in October 2024. Hospitals now carry the financial risk when a claim is rejected, and they have a short window to submit each claim. One of the most common avoidable failures is simple: the claim needs a payer preauthorization reference, and the billing clerk either can't find it in the supporting paperwork or records the wrong number. Typical mistakes are a hospital tracking ID, a referral number, or an O typed as a 0.
+Kenya’s [Social Health Insurance Regulations](https://www.refworld.org/sites/default/files/2026-09/kenya_the_social_health_insurance_regulations.pdf) describe preauthorization for specified specialized services. ClaimGuard tests one practical billing scenario: a clerk needs to locate the payer’s reference in a supporting scan. A hospital tracking ID, a referral number, or an O read as a 0 can look plausible in that field.
 
 The supporting documents are scanned referral letters and cover sheets that contain patient information. Uploading them to a general-purpose cloud chatbot is not an option.
 
 ## What ClaimGuard does
 
 1. **Read on-device.** Gemini Nano reads the scan in Chrome through Firebase AI Logic (`ONLY_ON_DEVICE`). It returns the labeled reference and an exact quote, or it abstains.
-2. **Cross-check.** Tesseract OCR runs on the same image in a browser worker. If Nano and OCR disagree, the suggestion is withheld and the case goes to manual review. When they agree, the evidence line is highlighted on the scan.
+2. **Cross-check.** Tesseract OCR runs on the same image in a browser worker. If Nano and OCR disagree, the suggestion is withheld and the case goes to manual review. If OCR cannot corroborate a proposal, it is also withheld. When the reads agree, the evidence line is highlighted on the scan.
 3. **The clerk confirms.** Nothing is recorded until the clerk compares the value with the original and ticks the confirmation. Payer verification stays pending; ClaimGuard never claims approval.
 4. **Explain the rule with hybrid inference.** The policy explanation uses `PREFER_ON_DEVICE`: Nano answers when it is ready, and Firebase AI Logic falls back to the cloud when it isn't. The UI shows which route the SDK actually reported. You can view the exact cloud request, which contains only a fixed, public policy summary.
 
@@ -74,7 +74,7 @@ Full details, the benchmark methodology and the network capture tool are in [`ev
 node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test.mjs"
 ```
 
-The 27 tests cover evidence parsing and abstention, the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
+The tests cover evidence parsing and abstention, the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
 
 ## Built with
 
@@ -102,4 +102,4 @@ The one miss for both methods is the deliberate O-versus-0 case. Offline, the po
 - **With a Mac:** follow the [iOS setup and device checklist](ios/ClaimGuard/README.md) (Xcode, Firebase registration, signing).
 - **Without a Mac:** the GitHub Actions workflow `iOS build and tests` builds an unsigned debug `.ipa` on a macOS runner when a `GOOGLE_SERVICE_INFO_PLIST` repository secret is set. Download the `ClaimGuard-debug-ipa` artifact and sign and install it with your own Apple ID using a sideloading tool such as Sideloadly. The debug build shows a **Copy App Check debug token** button. Register that token in Firebase App Check before testing the cloud route.
 
-Requirements: an Apple Intelligence-capable iPhone on iOS 26 with Apple Intelligence turned on.
+Requirements: an Apple Intelligence-capable iPhone on iOS 26 with Apple Intelligence turned on. The unsigned IPA and per-install Firebase Debug enrollment are a developer reproduction path. The repository does not currently publish a general iOS judge install link.
