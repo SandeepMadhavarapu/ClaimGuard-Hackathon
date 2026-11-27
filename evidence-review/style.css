@@ -183,3 +183,10 @@ a { color: #225843; }
   .document-frame { height: clamp(224px, 66vw, 330px); padding: 7px; }
   .judge-actions { grid-template-columns: 1fr; }
 }
+
+.next-step { margin-top: 14px; padding: 12px 14px; border: 1px solid #d9d5f0; border-radius: 10px; background: #faf9ff; }
+.next-step-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.next-step-head h3 { margin: 0; font-size: 1rem; }
+.next-step-code { font-size: .78rem; font-weight: 650; color: #4a3fb3; background: #ece9ff; border-radius: 999px; padding: 2px 10px; }
+.next-step-checklist { margin: 8px 0 10px 1.2em; padding: 0; font-size: .88rem; color: var(--muted); }
+.next-step-text { white-space: pre-line; margin-top: 6px; }

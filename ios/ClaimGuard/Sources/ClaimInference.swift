@@ -115,6 +115,15 @@ enum ClaimInference {
     }
 
     static func explainPublicPolicy(cloudOnly: Bool = false) async throws -> VerifiedReply {
+        try await respondPublic(publicPrompt, cloudOnly: cloudOnly)
+    }
+
+    /// Sends only the fixed public prompt for one outcome code, on-device first with a cloud fallback.
+    static func nextStep(_ code: NextStepCode) async throws -> VerifiedReply {
+        try await respondPublic(code.prompt, cloudOnly: false)
+    }
+
+    private static func respondPublic(_ prompt: String, cloudOnly: Bool) async throws -> VerifiedReply {
         guard FirebaseSetup.configured else { throw LocalModelError.missingFirebase }
         let ai = FirebaseAI.firebaseAI(backend: .googleAI())
         let cloudModel = ai.geminiModel(name: cloudModelName)
@@ -127,8 +136,8 @@ enum ClaimInference {
         }
         let clock = ContinuousClock()
         let started = clock.now
-        // The mode switch does not affect the model input, which is always the fixed public string.
-        let response = try await session.respond(to: publicPrompt)
+        // The mode switch does not affect the model input, which is always a fixed public string.
+        let response = try await session.respond(to: prompt)
         guard let route = InferenceRoute.verifiedFirebaseRoute(
             modelVersion: response.rawResponse.modelVersion, expectedCloud: cloudModelName
         ), !cloudOnly || route == .cloud else { throw LocalModelError.unverifiedSource }

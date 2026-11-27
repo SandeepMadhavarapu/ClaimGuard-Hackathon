@@ -18,6 +18,7 @@ struct ClaimReviewScreen: View {
                     captureCard
                     if let document = review.document { scanCard(document) }
                     verificationCard
+                    if let code = review.outcome { nextStepCard(code) }
                     policyCard
                 }
                 .frame(maxWidth: 660)
@@ -230,6 +231,38 @@ struct ClaimReviewScreen: View {
     private var checkWarning: some View {
         Label("Check O versus 0, I versus 1, and every leading zero.", systemImage: "exclamationmark.circle")
             .font(.footnote.weight(.medium)).foregroundStyle(.secondary)
+    }
+
+    private func nextStepCard(_ code: NextStepCode) -> some View {
+        ClaimCard {
+            HStack {
+                Text("Next step").font(.title3.bold()).accessibilityAddTraits(.isHeader)
+                Spacer()
+                Text(code.label).font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(Color.claimPurple.opacity(0.15), in: Capsule())
+            }
+            Text("Only this outcome type and a public demo checklist are sent. On-device first, cloud if needed. No scan, reference, or document text.")
+                .font(.footnote).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(code.checklist.enumerated()), id: \.offset) { item in
+                    Text("\(item.offset + 1). \(item.element)").font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+            Button("Suggest next step", systemImage: "arrow.forward.circle") { Task { await review.suggestNextStep() } }
+                .buttonStyle(.bordered)
+                .disabled(review.busy || !FirebaseSetup.configured)
+            DisclosureGroup("View the exact request") {
+                Text(code.prompt).font(.footnote.monospaced()).textSelection(.enabled)
+            }
+            if let reply = review.nextStep {
+                Label(reply.route == .onDevice ? "On-device" : "Cloud fallback",
+                      systemImage: reply.route == .onDevice ? "iphone" : "cloud")
+                    .font(.subheadline.weight(.semibold))
+                Text(reply.text)
+            }
+            if let error = review.nextStepError { Text(error).font(.footnote).foregroundStyle(.secondary) }
+        }
     }
 
     private var policyCard: some View {

@@ -125,6 +125,21 @@
             <label class="confirm"><input id="confirm" type="checkbox"> I compared the reference and label with the original.</label>
             <button id="apply" type="button" disabled>Record reference</button>
           </div>
+          <section id="next-step" class="next-step" aria-labelledby="next-step-title" hidden>
+            <div class="next-step-head">
+              <h3 id="next-step-title">Next step</h3>
+              <span id="next-step-code" class="next-step-code"></span>
+            </div>
+            <p class="fine">Only this outcome type and a public demo checklist are sent. On-device first, cloud if Nano is not ready. No scan, reference, or document text.</p>
+            <ol id="next-step-checklist" class="next-step-checklist"></ol>
+            <button type="button" class="secondary" id="next-step-run" disabled>Suggest next step · on-device first</button>
+            <details>
+              <summary>View the exact request</summary>
+              <pre id="next-step-payload"></pre>
+            </details>
+            <p id="next-step-status" class="fine status" role="status"></p>
+            <p id="next-step-text" class="next-step-text"></p>
+          </section>
           <details id="manual" class="manual">
             <summary>Enter reference manually</summary>
             <form id="manual-form">

@@ -157,4 +157,20 @@ final class EvidenceParserTests: XCTestCase {
         XCTAssertFalse(text.contains("proposed"))
     }
 
+
+    func testNextStepPromptsAreFixedPublicText() {
+        XCTAssertEqual(NextStepCode.allCases.map(\.rawValue), ["RECORDED", "NO_REFERENCE", "CONFLICT", "NEEDS_REVIEW"])
+        for code in NextStepCode.allCases {
+            XCTAssertTrue(code.prompt.contains("Outcome: \(code.rawValue) |"))
+            XCTAssertTrue(code.prompt.contains("synthetic, not official payer guidance"))
+            for leaked in ["DEMO-PA", "DRAFT-", "FAC-", "PA-0"] { XCTAssertFalse(code.prompt.contains(leaked), leaked) }
+        }
+        XCTAssertNil(NextStepCode(code: "DEMO-PA-240817"))
+        XCTAssertEqual(NextStepCode(.conflict), .conflict)
+        XCTAssertEqual(NextStepCode(.abstained), .noReference)
+        XCTAssertEqual(NextStepCode(.disagreement), .needsReview)
+        XCTAssertEqual(NextStepCode(.corroborationMissing), .needsReview)
+        XCTAssertEqual(NextStepCode(.unsupported), .needsReview)
+        XCTAssertNil(NextStepCode(.ready(ReferenceQuote(reference: "X-1", quote: "x"), EvidenceLocation(page: 0, bounds: .zero))))
+    }
 }
