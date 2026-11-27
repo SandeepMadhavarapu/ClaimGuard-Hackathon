@@ -42,7 +42,7 @@ struct BenchmarkScreen: View {
             .toolbar { Button("Done") { dismiss() } }
             .onDisappear { runTask?.cancel() }
         }
-        .tint(.claimPurple)
+        .tint(.claimAccent)
     }
 
     private func totals(_ title: String, _ attempts: [BenchmarkAttempt]) -> some View {

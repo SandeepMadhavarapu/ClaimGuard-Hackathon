@@ -45,7 +45,7 @@ final class EvidenceParserTests: XCTestCase {
     func testStrictAndLoosePayerQuotes() throws {
         let expected = SuggestionReview.review(ReferenceQuote(reference: id, quote: quote))
         XCTAssertEqual(EvidenceParser.reviewScanSuggestion(try json(id, quote)), expected)
-        let fence = String(repeating: Character(UnicodeScalar(96)!), count: 3)
+        let fence = String(repeating: "\u{60}", count: 3)
         XCTAssertEqual(EvidenceParser.reviewScanSuggestion(fence + "json\n" + (try json(id, quote)) + "\n" + fence), expected)
         XCTAssertEqual(EvidenceParser.reviewScanSuggestion(try json("PA-000741", "Pre-auth no. PA-000741")),
                        .review(ReferenceQuote(reference: "PA-000741", quote: "Pre-auth no. PA-000741")))
@@ -119,13 +119,13 @@ final class EvidenceParserTests: XCTestCase {
         XCTAssertEqual(BenchmarkOutcome.score(expected: id, displayed: "WRONG-1"), .wrongSuggestion)
     }
 
-    @MainActor
-    func testPublicPromptMatchesWebAndContainsNoFixture() {
-        XCTAssertEqual(ClaimInference.publicPrompt, [
+    func testPublicPromptMatchesWebAndContainsNoFixture() async {
+        let prompt = await MainActor.run { ClaimInference.publicPrompt }
+        XCTAssertEqual(prompt, [
             "Explain this synthetic payer policy for a hospital billing clerk in two short sentences.",
             "Use only the supplied summary. Do not add requirements or decide whether a claim is approved.",
             "CG-AUTH-001 | Synthetic payer policy | In this demo, claims flagged for preauthorization require one clearly labeled payer reference. Approval must be verified separately with the payer.",
         ].joined(separator: "\n"))
-        XCTAssertFalse(ClaimInference.publicPrompt.contains(id))
+        XCTAssertFalse(prompt.contains(id))
     }
 }

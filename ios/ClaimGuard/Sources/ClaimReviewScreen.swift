@@ -47,7 +47,7 @@ struct ClaimReviewScreen: View {
                 if phase == .active { modelStatus = ClaimInference.availability }
             }
         }
-        .tint(.claimPurple)
+        .tint(.claimAccent)
     }
 
     private var header: some View {
@@ -186,6 +186,7 @@ struct ClaimReviewScreen: View {
                     Task { await review.read(useModel: true) }
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(.claimPurple)
                 .disabled(review.busy || !FirebaseSetup.configured)
                 Button("Read with local OCR", systemImage: "text.viewfinder") {
                     Task { await review.read(useModel: false) }
@@ -203,6 +204,7 @@ struct ClaimReviewScreen: View {
                     Toggle("I compared the reference and label with the original", isOn: $state.isCompared)
                     Button("Record reference", action: review.recordSuggestion)
                         .buttonStyle(.borderedProminent)
+                        .tint(.claimPurple)
                         .disabled(!review.isCompared || review.busy)
                 } else if !review.busy {
                     DisclosureGroup("Enter reference manually") {
@@ -216,6 +218,7 @@ struct ClaimReviewScreen: View {
                             Toggle("I compared the reference and label with the original", isOn: $state.manualCompared)
                             Button("Record reference", action: review.recordManual)
                                 .buttonStyle(.borderedProminent)
+                                .tint(.claimPurple)
                                 .disabled(!review.manualCompared || EvidenceParser.parseReference(review.manualReference) == nil)
                         }.padding(.top, 8)
                     }
@@ -238,7 +241,7 @@ struct ClaimReviewScreen: View {
                 .disabled(review.busy || !FirebaseSetup.configured)
             Button("View exact cloud request", systemImage: "doc.text") { showPrompt = true }
             if let reply = review.policy {
-                Label(reply.route == .onDevice ? "On-device" : "Cloud fallback",
+                Label(reply.route == .onDevice ? "On-device" : review.policyWasCloudTest ? "Cloud test" : "Cloud fallback",
                       systemImage: reply.route == .onDevice ? "iphone" : "cloud")
                     .font(.subheadline.weight(.semibold))
                 Text(reply.text)

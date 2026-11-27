@@ -13,6 +13,7 @@ ClaimGuard for iPhone captures a referral, runs Vision OCR locally, and checks a
     ├── ClaimGuard.xcodeproj/
     │   ├── project.pbxproj
     │   └── xcshareddata/xcschemes/ClaimGuard.xcscheme
+    ├── Assets.xcassets/AppIcon.appiconset/
     ├── ClaimGuard.entitlements
     ├── Info.plist
     ├── GoogleService-Info.example.plist

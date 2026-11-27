@@ -118,7 +118,7 @@ enum ClaimInference {
         }
         let clock = ContinuousClock()
         let started = clock.now
-        // This function takes no argument. Its only model input is the fixed public string.
+        // The mode switch does not affect the model input, which is always the fixed public string.
         let response = try await session.respond(to: publicPrompt)
         guard let route = InferenceRoute.verifiedFirebaseRoute(
             modelVersion: response.rawResponse.modelVersion, expectedCloud: cloudModelName

@@ -20,6 +20,15 @@ extension Color {
         })
     }
 
+    static var claimAccent: Color {
+        Color(uiColor: UIColor { traits in
+            if traits.userInterfaceStyle == .dark {
+                return UIColor(red: 0.75, green: 0.69, blue: 1, alpha: 1)
+            }
+            return UIColor(red: 0.29, green: 0.20, blue: 0.65, alpha: 1)
+        })
+    }
+
     static var privacyGreen: Color {
         Color(uiColor: UIColor { traits in
             if traits.userInterfaceStyle == .dark {

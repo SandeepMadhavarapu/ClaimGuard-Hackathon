@@ -25,6 +25,7 @@ final class ClaimReview {
     var showingCamera = false
     var traces: [TraceEntry] = []
     var policy: VerifiedReply?
+    var policyWasCloudTest = false
     var policyError: String?
 
     func select(_ sample: ScanSample) {
@@ -160,6 +161,7 @@ final class ClaimReview {
         busy = true
         defer { busy = false }
         policy = nil
+        policyWasCloudTest = cloudOnly
         policyError = nil
         do {
             let result = try await ClaimInference.explainPublicPolicy(cloudOnly: cloudOnly)
