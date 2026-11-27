@@ -38,6 +38,7 @@ export async function setupInference() {
   const ai = getAI(app, { backend: new GoogleAIBackend() });
   const cloud = getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD });
   let local;
+  let hybrid;
 
   function localModel() {
     // Firebase can construct a cloud-only model when Chrome's Prompt API is absent.
@@ -47,17 +48,17 @@ export async function setupInference() {
     return local ??= getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE });
   }
 
-  async function generate(model, prompt, route) {
-    const expectedSource = InferenceSource?.[route];
-    if (!expectedSource) throw new Error("Inference source could not be verified");
+  async function generate(model, prompt, ...routes) {
+    if (routes.some(route => !InferenceSource?.[route])) throw new Error("Inference source could not be verified");
     const start = performance.now();
     const { response } = await model.generateContent(prompt);
-    if (response.inferenceSource !== expectedSource) {
+    const source = routes.find(route => InferenceSource[route] === response.inferenceSource);
+    if (!source) {
       throw new Error("Inference source could not be verified");
     }
     return {
       text: response.text(),
-      source: route,
+      source,
       duration: Math.round(performance.now() - start),
     };
   }
@@ -67,5 +68,10 @@ export async function setupInference() {
     extract: async letter => generate(localModel(), extractionInstructions + "\n" + JSON.stringify({ letter }), "ON_DEVICE"),
     extractScan: async inlineData => generate(localModel(), [extractionInstructions, { inlineData }], "ON_DEVICE"),
     explain: () => generate(cloud, PUBLIC_PROMPT, "IN_CLOUD"),
+    explainHybrid: async () => {
+      if (!InferenceMode.PREFER_ON_DEVICE) throw new Error("Hybrid inference unavailable");
+      hybrid ??= getGenerativeModel(ai, { mode: InferenceMode.PREFER_ON_DEVICE });
+      return generate(hybrid, PUBLIC_PROMPT, "ON_DEVICE", "IN_CLOUD");
+    },
   };
 }

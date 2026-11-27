@@ -111,3 +111,18 @@ test("paired comparison uses shared scored cases and does not favor either metho
   assert.equal(compareBenchmarkRuns(nano, { ...ocr, dataset: "other" }), null);
   assert.equal(compareBenchmarkRuns(nano, { ...ocr, rows: [] }), null);
 });
+
+test("different scan bytes cannot be paired as the same benchmark input", async () => {
+  const fixtures = [positive];
+  const common = { fixtures, prepare: async () => {} };
+  const nano = await runScanBenchmark({ ...common, readSample: async () => new Blob(["scan a"]),
+    infer: async () => onDevice(positive.expected, positive.quote, 5) });
+  const runOcr = bytes => runOcrBenchmark({ ...common, readSample: async () => new Blob([bytes]),
+    readReference: async () => ({ reference: positive.expected, quote: positive.quote }) });
+  const matching = await runOcr("scan a");
+  const different = await runOcr("scan b");
+  assert.match(nano.rows[0].sampleSha256, /^[0-9a-f]{64}$/);
+  assert.equal(nano.rows[0].sampleSha256, matching.rows[0].sampleSha256);
+  assert.equal(compareBenchmarkRuns(nano, matching)?.bothCorrect, 1);
+  assert.equal(compareBenchmarkRuns(nano, different), null);
+});

@@ -26,12 +26,18 @@ const evaluate = el("evaluate");
 const evaluateOcr = el("evaluate-ocr");
 const exportEvaluation = el("export-evaluation");
 const explain = el("explain");
+const explainHybrid = el("explain-hybrid");
 const confirm = el("confirm");
 const apply = el("apply");
 const localStatus = el("local-status");
 const manual = el("manual");
 const manualForm = el("manual-form");
 const steps = [...el("review-steps").children];
+const trace = [];
+const routeNames = {
+  LOCAL_OCR: "This device · OCR", LOCAL_TEXT: "This device · text match", ON_DEVICE: "This device · Gemini Nano",
+  IN_CLOUD: "Cloud · Firebase AI Logic", HUMAN: "Human review", UNCONFIRMED: "Route unconfirmed",
+};
 
 let mode = "scan";
 let inference;
@@ -48,6 +54,36 @@ let selection;
 let latestBenchmark;
 let latestOcrBenchmark;
 let anchor;
+
+function recordTrace(action, source, outcome, elapsedMs = null, policyOnly = false) {
+  trace.push({ action, source, outcome, elapsedMs, inputScope: policyOnly ? "synthetic-policy" : "local-review" });
+  if (trace.length > 16) trace.shift();
+  const list = el("trace-entries");
+  const row = document.createElement("li");
+  const title = document.createElement("strong");
+  const data = document.createElement("span");
+  title.textContent = `${action} · ${outcome}`;
+  data.textContent = elapsedMs === null ? routeNames[source] : `${routeNames[source]} · ${elapsedMs} ms`;
+  row.append(title, data);
+  list.append(row);
+  if (list.children.length > 16) list.firstElementChild.remove();
+  el("trace-empty").hidden = true;
+  el("export-trace").disabled = false;
+}
+
+function downloadJson(value, filename) {
+  const file = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+el("export-trace").addEventListener("click", () => {
+  if (trace.length) downloadJson({ schemaVersion: 1, scope: "In-app actions and SDK response routes", events: trace }, "claimguard-runtime-trace.json");
+});
 
 function renderProgress() {
   const recorded = el("finding").dataset.pass === "true";
@@ -78,6 +114,7 @@ function present(candidate, method = "", label = "", box = null) {
   el("candidate-label").textContent = label;
   el("number").textContent = candidate?.reference ?? "";
   el("quote").textContent = candidate?.quote ?? "";
+  el("character-check").hidden = !/[O0I1]/i.test(candidate?.reference ?? "");
   locateEvidence.hidden = !candidate || mode !== "scan";
   anchor = mode === "scan" ? boxAnchor(box, preview.naturalWidth, preview.naturalHeight) : null;
   paintAnchor();
@@ -101,7 +138,7 @@ function updateControls() {
   extract.hidden = !inference;
   extractOcr.hidden = mode !== "scan";
   extractOcr.disabled = busy || !currentImage;
-  for (const id of ["judge-referral", "judge-pending", "judge-benchmark"]) el(id).disabled = busy;
+  for (const id of ["judge-referral", "judge-pending", "judge-conflicting", "judge-benchmark"]) el(id).disabled = busy;
   evaluate.disabled = busy || !inference;
   evaluateOcr.disabled = busy;
   exportEvaluation.disabled = busy || !(latestBenchmark || latestOcrBenchmark);
@@ -258,6 +295,7 @@ function openJudgeSample(file) {
 
 el("judge-referral").addEventListener("click", () => openJudgeSample("referral.png"));
 el("judge-pending").addEventListener("click", () => openJudgeSample("pending.png"));
+el("judge-conflicting").addEventListener("click", () => openJudgeSample("conflicting.png"));
 el("judge-benchmark").addEventListener("click", () => {
   const benchmark = el("benchmark");
   benchmark.open = true;
@@ -411,6 +449,7 @@ confirm.addEventListener("change", () => { apply.disabled = !confirm.checked; })
 apply.addEventListener("click", () => {
   if (confirm.checked && selection) {
     renderFinding(selection.reference, selection.method);
+    recordTrace("Record reference", "HUMAN", "Confirmed against source");
     const confirmedAnchor = anchor;
     present(null);
     anchor = confirmedAnchor;
@@ -429,6 +468,7 @@ manualForm.addEventListener("submit", event => {
   }
   resetReview();
   renderFinding(reference, "Manually confirmed");
+  recordTrace("Record reference", "HUMAN", "Entered and confirmed manually");
   el("manual").querySelector("summary").focus();
 });
 
@@ -436,6 +476,7 @@ el("match-text").addEventListener("click", () => {
   const result = matchLetter(letter.value);
   localStatus.textContent = result ? "Text matching found one labeled reference."
     : "Text matching found no single labeled reference.";
+  recordTrace("Read pasted text", "LOCAL_TEXT", result ? "Candidate for review" : "No single reference");
   present(result, "Confirmed from pasted text", "Text match");
 });
 
@@ -445,6 +486,7 @@ extractOcr.addEventListener("click", async () => {
   busy = true;
   updateControls();
   localStatus.textContent = "Reading the scan with local OCR.";
+  const start = performance.now();
   try {
     const { readScanReference } = await import("./ocr-evidence.mjs");
     const candidate = await readScanReference(image);
@@ -452,7 +494,9 @@ extractOcr.addEventListener("click", async () => {
       ? "Local OCR · Compare the proposed reference with the scan."
       : "Local OCR · No single payer reference was found.";
     present(candidate, "Confirmed after local OCR", "Local OCR", candidate?.box);
+    recordTrace("Read scan", "LOCAL_OCR", candidate ? "Candidate for review" : "No single reference", Math.round(performance.now() - start));
   } catch {
+    recordTrace("Read scan", "LOCAL_OCR", "OCR unavailable");
     localStatus.textContent = "Local OCR is unavailable. Review the scan and enter the reference manually.";
   } finally {
     busy = false;
@@ -487,6 +531,7 @@ extract.addEventListener("click", async () => {
       const check = compareReferenceEvidence(result.candidate, independent);
       if (check === "conflict") {
         localStatus.textContent = `${sourceAndTime(response)} · Nano and local OCR read different references. Review the scan and enter the reference manually.`;
+        recordTrace("Read with Nano", response.source, "Disagreement blocked", response.duration);
         return;
       }
     }
@@ -498,9 +543,12 @@ extract.addEventListener("click", async () => {
       unsupported: "The output could not be used. Review the original document.",
     }[result.status];
     localStatus.textContent = `${sourceAndTime(response)} · ${message}`;
+    const outcome = { review: "Candidate for review", verified: "Quote matched", empty: "Abstained", unsupported: "Suggestion blocked" }[result.status];
+    recordTrace("Read with Nano", response.source, outcome, response.duration);
     present(result.candidate, "Confirmed after on-device review", scanning ? "Nano transcription" : "Matched quote",
       independent?.box);
   } catch {
+    recordTrace("Read with Nano", "UNCONFIRMED", "Inference unavailable");
     localStatus.textContent = "On-device inference unavailable. Review the original and enter the reference manually.";
   } finally {
     busy = false;
@@ -508,25 +556,32 @@ extract.addEventListener("click", async () => {
   }
 });
 
-explain.addEventListener("click", async () => {
+async function explainPolicy(hybrid) {
   const status = el("cloud-status");
   const explanation = el("explanation");
   explain.disabled = true;
+  explainHybrid.disabled = true;
   explanation.textContent = "";
-  status.textContent = "Sending the public rule to Firebase AI Logic.";
+  status.textContent = "Explaining the synthetic policy with Firebase AI Logic.";
   try {
-    const response = await inference.explain();
+    const response = await (hybrid ? inference.explainHybrid() : inference.explain());
     status.textContent = `${sourceAndTime(response)} · AI explanation`;
     explanation.textContent = response.text;
+    recordTrace("Explain policy", response.source, "Explanation returned", response.duration, true);
   } catch {
-    status.textContent = "Cloud explanation unavailable. Review the synthetic policy above.";
+    recordTrace("Explain policy", "UNCONFIRMED", "Explanation unavailable", null, true);
+    status.textContent = "AI explanation unavailable. Review the synthetic policy above.";
   } finally {
     explain.disabled = false;
+    explainHybrid.disabled = false;
   }
-});
+}
+
+explain.addEventListener("click", () => explainPolicy(false));
+explainHybrid.addEventListener("click", () => explainPolicy(true));
 
 function renderBenchmark(report) {
-  const { status, summary, rows } = report;
+  const { status, summary } = report;
   const { correctOutcomes, planned, counts, wrongProposalsBlocked, latencyMs, quoteCharacters } = summary;
   const prefix = { partial: "Partial run · ", failed: "Benchmark failed · " }[status] ?? "";
   el("eval-status").textContent = status === "not_run"
@@ -537,14 +592,30 @@ function renderBenchmark(report) {
   if (latencyMs.samples) notes.push(`Inference p50 ${latencyMs.p50} ms · p95 ${latencyMs.p95} ms (${latencyMs.samples} responses)`);
   if (quoteCharacters.quotesScored) notes.push(`Quote character error ${(quoteCharacters.errorRate * 100).toFixed(1)}% (${quoteCharacters.quotesScored} lines)`);
   el("eval-metrics").textContent = notes.join(" · ");
+}
+
+function renderBenchmarkRows() {
+  const nanoRows = latestBenchmark?.rows ?? [];
+  const ocrRows = latestOcrBenchmark?.rows ?? [];
+  const rows = nanoRows.length ? nanoRows : ocrRows;
+  const paired = nanoRows.length > 0 && ocrRows.length > 0;
+  const baseline = new Map(ocrRows.map(row => [row.sample, row]));
   el("eval-table").hidden = !rows.length;
+  el("eval-ocr-column").hidden = !paired;
   const body = el("eval-results");
+  body.replaceChildren();
   for (const row of rows) {
     const line = body.insertRow();
+    const method = routeNames[row.inferenceSource];
     const values = [
       row.label, row.expectedReference ?? "Abstain", row.modelSuggestion || "—", row.outcome,
-      row.inferenceMs != null ? `${row.inferenceMs} ms · on-device` : "—",
+      row.inferenceMs != null ? `${method} · ${row.inferenceMs} ms` : method ?? "-",
     ];
+    if (paired) {
+      const result = baseline.get(row.sample);
+      const sameScan = result && row.sampleSha256 && row.sampleSha256 === result.sampleSha256;
+      values.push(sameScan ? `${result.outcome}${result.modelSuggestion ? ` · ${result.modelSuggestion}` : ""}` : "No matching scan");
+    }
     for (const value of values) line.insertCell().textContent = value;
   }
 }
@@ -558,22 +629,22 @@ function renderComparison() {
 
 evaluate.addEventListener("click", async () => {
   const status = el("eval-status");
-  el("eval-results").replaceChildren();
   el("eval-metrics").textContent = "";
-  el("eval-table").hidden = true;
   latestBenchmark = null;
   renderComparison();
+  renderBenchmarkRows();
   busy = true;
   updateControls();
   status.textContent = "Preparing Gemini Nano.";
   try {
     latestBenchmark = await runScanBenchmark({
       prepare: () => inference.prepareLocal(progressFor(status)),
-      readSample: async fixture => scanPart(await bundledScan(fixture)),
-      infer: data => inference.extractScan(data),
+      readSample: bundledScan,
+      infer: async image => inference.extractScan(await scanPart(image)),
       onProgress: (current, total) => { status.textContent = `Reading scan ${current} of ${total} on-device.`; },
     });
     renderBenchmark(latestBenchmark);
+    renderBenchmarkRows();
     renderComparison();
   } finally {
     busy = false;
@@ -586,6 +657,7 @@ evaluateOcr.addEventListener("click", async () => {
   const status = el("eval-ocr-status");
   latestOcrBenchmark = null;
   renderComparison();
+  renderBenchmarkRows();
   busy = true;
   updateControls();
   status.textContent = "Preparing the local OCR engine.";
@@ -604,6 +676,7 @@ evaluateOcr.addEventListener("click", async () => {
       const timings = summary.latencyMs.samples ? ` · p50 ${summary.latencyMs.p50} ms · p95 ${summary.latencyMs.p95} ms` : "";
       status.textContent = `OCR baseline · ${summary.correctOutcomes}/${summary.planned} correct outcomes${timings}`;
     }
+    renderBenchmarkRows();
     renderComparison();
   } catch {
     status.textContent = "The local OCR benchmark could not be loaded.";
@@ -618,18 +691,13 @@ exportEvaluation.addEventListener("click", () => {
   const report = latestBenchmark && latestOcrBenchmark
     ? { ...latestBenchmark, ocrBaseline: latestOcrBenchmark, comparison: compareBenchmarkRuns(latestBenchmark, latestOcrBenchmark) }
     : latestBenchmark ?? latestOcrBenchmark;
-  const file = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(file);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "claimguard-scan-benchmark.json";
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadJson(report, "claimguard-scan-benchmark.json");
 });
 
 setupInference().then(client => {
   inference = client;
   explain.disabled = false;
+  explainHybrid.disabled = false;
   void imageModelAvailability().then(availability => {
     deviceAvailability = availability;
     if (!busy && localStatus.textContent.startsWith("Chrome checks")) showIdleStatus();

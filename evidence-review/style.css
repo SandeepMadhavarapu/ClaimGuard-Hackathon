@@ -112,6 +112,7 @@ button:disabled { cursor: default; opacity: .56; }
 #candidate-label { color: #3e6652; font-size: .81rem; }
 .evidence strong { display: block; font: 700 clamp(.97rem, 2vw, 1.19rem) var(--mono); margin-top: 3px; }
 .evidence blockquote { margin: 8px 0 10px; padding: 7px 9px; background: #fbfdf6; border-radius: 5px; white-space: pre-wrap; font-size: .89rem; }
+.character-check { margin-bottom: 10px; color: #62470e; background: #fff1d5; border-radius: 5px; padding: 5px 8px; font-size: .81rem; }
 #locate-evidence { margin-bottom: 10px; font-size: .84rem; }
 .confirm { display: flex; align-items: baseline; gap: 7px; font-weight: 550; margin-bottom: 9px; }
 .confirm input { flex: none; }
@@ -123,6 +124,9 @@ summary { color: #285642; cursor: pointer; }
 .rule-card details { margin: 10px 0; }
 .rule-card #explanation { margin-top: 6px; font-size: .92rem; }
 .rule-card #explanation:empty { display: none; }
+.trace-list { margin: 9px 0; padding: 0; list-style: none; font-size: .83rem; }
+.trace-list li { display: grid; gap: 2px; border-bottom: 1px solid var(--line); padding: 7px 0; }
+.trace-list span { color: var(--muted); }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #edf1f8; border-radius: 7px; padding: 8px; font-size: .77rem; margin-block: 8px; }
 .judge-panel { margin-bottom: 18px; }
 .judge-panel ol { margin-block: 8px 12px; padding-inline-start: 20px; color: var(--muted); font-size: .9rem; }

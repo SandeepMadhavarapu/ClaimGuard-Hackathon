@@ -36,6 +36,12 @@ function baseRow(fixture) {
   return { sample: fixture.file, label: fixture.label, expectedReference: fixture.expected };
 }
 
+async function fingerprint(image) {
+  if (typeof image?.arrayBuffer !== "function" || !globalThis.crypto?.subtle) return null;
+  const digest = await crypto.subtle.digest("SHA-256", await image.arrayBuffer());
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export function scoreBenchmarkCase(fixture, response) {
   const raw = readSuggestion(response.text);
   const reviewed = reviewScanSuggestion(response.text);
@@ -114,13 +120,14 @@ async function runBenchmark({
       rows.push({ ...baseRow(fixture), outcome: "Sample unavailable" });
       continue;
     }
+    const sampleSha256 = await fingerprint(image).catch(() => null);
     try {
       const response = await infer(image);
       if (response.source !== source) throw new Error("Unverified inference source");
-      rows.push(scoreBenchmarkCase(fixture, response));
+      rows.push({ ...scoreBenchmarkCase(fixture, response), sampleSha256 });
       responses++;
     } catch {
-      rows.push({ ...baseRow(fixture), outcome: "Inference error" });
+      rows.push({ ...baseRow(fixture), outcome: "Inference error", sampleSha256 });
     }
   }
   return report(!responses ? "failed" : responses < fixtures.length ? "partial" : "complete");
@@ -153,7 +160,8 @@ export function compareBenchmarkRuns(nano, ocr) {
   for (const row of nano.rows) {
     const baseline = cases.get(row.sample);
     if (row.inferenceSource !== "ON_DEVICE" || baseline?.inferenceSource !== "LOCAL_OCR"
-      || row.expectedReference !== baseline.expectedReference) continue;
+      || row.expectedReference !== baseline.expectedReference || row.sampleSha256 === null
+      || row.sampleSha256 !== baseline.sampleSha256) continue;
     const nanoCorrect = isCorrect(row);
     const ocrCorrect = isCorrect(baseline);
     counts.paired++;

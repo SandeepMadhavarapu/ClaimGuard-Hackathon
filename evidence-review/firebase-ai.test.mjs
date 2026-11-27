@@ -36,7 +36,7 @@ test("Firebase adapter constrains what each inference model receives", async () 
     `],
     ["firebase-ai.js", `
       export class GoogleAIBackend {}
-      export const InferenceMode = { ONLY_ON_DEVICE: "only_on_device", ONLY_IN_CLOUD: "only_in_cloud" };
+      export const InferenceMode = { ONLY_ON_DEVICE: "only_on_device", ONLY_IN_CLOUD: "only_in_cloud", PREFER_ON_DEVICE: "prefer_on_device" };
       export const InferenceSource = { ON_DEVICE: "on_device", IN_CLOUD: "in_cloud" };
       export const getAI = app => app;
       export const getGenerativeModel = (ai, { mode }) => ({
@@ -93,6 +93,13 @@ test("Firebase adapter constrains what each inference model receives", async () 
   assert.equal(calls[4].mode, "only_on_device");
   assert.equal(calls[5].prompt, PUBLIC_PROMPT);
   assert.equal(calls.filter(call => call.mode === "only_in_cloud").length, 2);
+  assert.equal((await adapter.explainHybrid()).source, "IN_CLOUD");
+  sourceOverride = "on_device";
+  assert.equal((await adapter.explainHybrid()).source, "ON_DEVICE");
+  sourceOverride = "unknown";
+  await assert.rejects(adapter.explainHybrid(), /source could not be verified/);
+  assert.deepEqual(calls.slice(6).map(call => call.mode), Array(3).fill("prefer_on_device"));
+  assert.ok(calls.slice(6).every(call => call.prompt === PUBLIC_PROMPT));
   recaptchaProvider = "enterprise";
   await mod.namespace.setupInference();
   assert.equal(appCheckProvider, "enterprise");

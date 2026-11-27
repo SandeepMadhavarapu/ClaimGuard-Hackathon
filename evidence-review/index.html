@@ -36,12 +36,13 @@
       <h2 id="judge-title">Judge walkthrough</h2>
       <ol>
         <li>Read the specialist referral with local OCR. Locate the source line, compare the reference, and record it.</li>
-        <li>Open the pending referral and check that the hospital tracking ID leaves the finding open.</li>
-        <li>Run the 12-scan benchmark or inspect the exact cloud request under Policy and cloud request.</li>
+        <li>Try the pending and conflicting referrals. Both should leave the finding open.</li>
+        <li>Inspect the runtime trace or run the same 12 scans through local OCR and Gemini Nano.</li>
       </ol>
       <div class="judge-actions">
         <button type="button" class="secondary" id="judge-referral">Open specialist referral</button>
         <button type="button" class="secondary" id="judge-pending">Open pending referral</button>
+        <button type="button" class="secondary" id="judge-conflicting">Open conflicting references</button>
         <button type="button" class="secondary" id="judge-benchmark">Open benchmark</button>
       </div>
     </section>
@@ -111,6 +112,7 @@
             <span id="candidate-label" class="fine"></span>
             <strong id="number"></strong>
             <blockquote id="quote"></blockquote>
+            <p id="character-check" class="character-check" hidden>Check each O, 0, I, and 1 against the document. Keep any leading zeros.</p>
             <button id="locate-evidence" type="button" class="secondary" hidden>Locate evidence on scan</button>
             <label class="confirm"><input id="confirm" type="checkbox"> I compared the reference and label with the original.</label>
             <button id="apply" type="button" disabled>Record reference</button>
@@ -130,20 +132,31 @@
         <details class="card rule-card">
           <summary>Policy and cloud request</summary>
           <p class="fine" id="policy-summary"></p>
+          <p class="fine">Only this synthetic policy goes to the cloud. The scan, reference, and pasted text stay on this device.</p>
           <details>
             <summary>View the exact cloud request</summary>
             <pre id="payload"></pre>
           </details>
-          <button id="explain" type="button" class="secondary" disabled>Explain rule with cloud AI</button>
+          <div class="read-actions">
+            <button id="explain-hybrid" type="button" class="secondary" disabled>Explain on device or cloud</button>
+            <button id="explain" type="button" class="secondary" disabled>Explain with cloud AI</button>
+          </div>
           <p id="cloud-status" class="fine status" role="status"></p>
           <p id="explanation"></p>
+        </details>
+        <details class="card rule-card" id="runtime-trace">
+          <summary>Runtime trace</summary>
+          <p class="fine">Session actions, reported inference routes, and timing. The trace contains no document text or references.</p>
+          <p id="trace-empty" class="fine">Read a scan or explain the policy to start.</p>
+          <ol class="trace-list" id="trace-entries" aria-label="Recent actions"></ol>
+          <button id="export-trace" type="button" class="secondary" disabled>Export trace JSON</button>
         </details>
       </div>
     </div>
 
     <details class="card evaluation" id="benchmark">
       <summary>Benchmark 12 labeled scans</summary>
-      <p class="fine">Run Gemini Nano and local OCR on the same synthetic scans. Compare how each handles look-alike characters, missing fields, and conflicting references.</p>
+      <p class="fine">Compare both methods on the same scans. The JSON report includes a SHA-256 fingerprint for each input read by the benchmark.</p>
       <button id="evaluate" type="button" class="secondary" disabled>Run Gemini Nano</button>
       <button id="evaluate-ocr" type="button" class="secondary">Run local OCR baseline</button>
       <button id="export-evaluation" type="button" class="secondary" disabled>Export benchmark JSON</button>
@@ -154,7 +167,7 @@
       <div class="table-scroll" id="eval-table" hidden>
         <table>
           <caption class="sr-only">Synthetic scan outcomes</caption>
-          <thead><tr><th scope="col">Scan</th><th scope="col">Expected</th><th scope="col">Model proposed</th><th scope="col">Outcome</th><th scope="col">Inference</th></tr></thead>
+          <thead><tr><th scope="col">Scan</th><th scope="col">Expected</th><th scope="col">Proposed</th><th scope="col">Outcome</th><th scope="col">Method</th><th id="eval-ocr-column" scope="col" hidden>OCR baseline</th></tr></thead>
           <tbody id="eval-results"></tbody>
         </table>
       </div>
