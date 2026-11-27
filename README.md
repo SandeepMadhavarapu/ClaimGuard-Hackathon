@@ -1,10 +1,22 @@
 # ClaimGuard Evidence Review
 
+[![Web tests](https://github.com/SandeepMadhavarapu/ClaimGuard-Hackathon/actions/workflows/web-tests.yml/badge.svg)](https://github.com/SandeepMadhavarapu/ClaimGuard-Hackathon/actions/workflows/web-tests.yml) [![iOS build and tests](https://github.com/SandeepMadhavarapu/ClaimGuard-Hackathon/actions/workflows/claimguard-ios.yml/badge.svg)](https://github.com/SandeepMadhavarapu/ClaimGuard-Hackathon/actions/workflows/claimguard-ios.yml)
+
 **Catch a missing preauthorization reference before a hospital claim goes out. Patient documents are read on the device. When the cloud helps, it sees the page's layout with every identifier replaced by a slot, never the values.**
 
 Entry for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com/). Platforms: **Web (Chrome) with Gemini Nano** and **iOS (iPhone) with Apple Foundation Models**, both through Firebase AI Logic.
 
-**Live demo:** https://claimguard-hackathon.vercel.app/?judge=1 (desktop Chrome)
+**Live demo:** https://claimguard-hackathon.vercel.app/?judge=1 (desktop Chrome) · **Measured results, including misses:** https://claimguard-hackathon.vercel.app/evaluation.html
+
+## Judge quickstart (90 seconds, any desktop Chrome, no flags)
+
+| Time | Do this | What to look for |
+|---|---|---|
+| 0–15 s | Open the [live demo](https://claimguard-hackathon.vercel.app/?judge=1), keep **Specialist referral** selected, click **Read with Gemini · private layout** | The status shows where Firebase AI Logic ran (on-device or cloud) and which slot Gemini picked. The reference is highlighted on the scan. |
+| 15–30 s | Open **View the exact private-layout request** | The leak gate line (`0 identifiers in N outbound bytes · SHA-256 …`) and the exact text sent: form words and slots like `[ID-2]`, never the values. |
+| 30–45 s | Click **Conflicting references**, then read it the same way | The finding stays open and the claim pre-check says **Hold: conflicting payer references on the scan**. |
+| 45–60 s | Under **Next step**, pick Kiswahili and click **Suggest next step** | Kiswahili runs in the cloud by design (Gemini Nano can't write it); English is on-device first. |
+| 60–90 s | Open **Benchmark** and click **Run held-out set B** (or open [measured results](https://claimguard-hackathon.vercel.app/evaluation.html)) | 50 documents never seen during development: readable versus held, and anything wrongly offered as ready, with the stage where each miss happened. |
 
 ---
 
@@ -82,6 +94,12 @@ To deploy (Vercel), set the `CLAIMGUARD_FIREBASE_CONFIG` environment variable to
 
 Full details, the benchmark methodology and the network capture tool are in [`evidence-review/README.md`](evidence-review/README.md).
 
+## Held-out evaluation (50 new documents)
+
+Two held-out sets of 50 distinct synthetic documents each (6 layouts, 5 fonts, familiar and unfamiliar label wordings, O/0 and I/1 look-alikes, conflicts, two-document pages, pending and blank fields), plus 30 degraded variants per set, reported separately. Set A was run against frozen code and exposed a real bug: the OCR label rule offered one of two references when the second used an unfamiliar label. It became the development set. Set B was generated after the fixes, with a new seed and four never-seen label wordings, and scored once.
+
+**Set B:** of 32 readable documents, the private layout read extracted **20** correctly and held 7. On 5, all look-alikes, OCR misread one character on the correctly labeled line. Of 18 documents that must be held, it held **18** and wrongly offered **0**. The leak gate found 0 identifier values in 80 outbound requests. Full tables, method and misses: [evaluation.html](https://claimguard-hackathon.vercel.app/evaluation.html) · code: [`evaluation/heldout`](evaluation/heldout).
+
 ## Measured results (Web)
 
 Live site, Nov 27–28, 2026, same 12 synthetic scans (6 with a payer reference, 6 that require abstention):
@@ -101,7 +119,7 @@ The one miss on every Web route is the deliberate O-versus-0 scan: OCR reads the
 node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test.mjs"
 ```
 
-54 tests cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
+57 tests cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
 
 ## Built with
 

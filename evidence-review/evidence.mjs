@@ -218,3 +218,17 @@ export function scoreFixture(fixture, result) {
   if ((result.candidate?.reference ?? null) === fixture.expected) return "Exact match";
   return result.candidate ? "Incorrect reference" : "Missed reference";
 }
+
+// Characters OCR and people confuse. Returned with 1-based positions so the clerk can check each one.
+const LOOKALIKE_NAMES = { "0": "zero", "O": "letter O", "o": "letter o", "1": "one", "I": "letter I", "l": "letter l" };
+export function lookalikeCharacters(value) {
+  return Array.from(String(value ?? "")).flatMap((character, index) =>
+    LOOKALIKE_NAMES[character] ? [{ position: index + 1, character, name: LOOKALIKE_NAMES[character] }] : []);
+}
+
+export function lookalikeNote(value) {
+  const found = lookalikeCharacters(value);
+  if (!found.length) return "";
+  const listed = found.slice(0, 6).map(entry => `${entry.name} at position ${entry.position}`).join(", ");
+  return `Check these characters against the scan: ${listed}${found.length > 6 ? `, and ${found.length - 6} more` : ""}. OCR cannot reliably tell O from 0 or I from 1.`;
+}

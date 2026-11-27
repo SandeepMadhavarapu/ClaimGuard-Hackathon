@@ -39,7 +39,10 @@
           <h2 id="judge-title">Judge walkthrough</h2>
           <p class="fine">Choose a case, then read it with local OCR or <strong>Read with Gemini · private layout</strong> (hybrid: values stay on this device). <span id="build-stamp"></span></p>
         </div>
-        <button type="button" class="secondary" id="judge-benchmark">Open 12-scan benchmark <span aria-hidden="true">↗</span></button>
+        <div class="judge-links">
+          <button type="button" class="secondary" id="judge-benchmark">Open 12-scan benchmark <span aria-hidden="true">↗</span></button>
+          <a class="secondary-link" href="./evaluation.html">Measured results, including misses <span aria-hidden="true">↗</span></a>
+        </div>
       </div>
       <div class="judge-actions">
         <button type="button" class="scenario" id="judge-referral" data-scan="referral.png" aria-pressed="true">
@@ -119,6 +122,7 @@
           <details id="layout-request" class="layout-request" hidden>
             <summary>View the exact private-layout request</summary>
             <p class="fine">OCR ran on this device. Identifier values became slots and every word outside a fixed form vocabulary was removed before Gemini saw the page. The slot is mapped back here.</p>
+            <p id="layout-receipt" class="fine layout-receipt" role="status"></p>
             <pre id="layout-request-text"></pre>
           </details>
 
@@ -225,6 +229,7 @@
       <button id="evaluate" type="button" class="secondary" disabled>Run Gemini Nano</button>
       <button id="evaluate-ocr" type="button" class="secondary">Run local OCR baseline</button>
       <button id="evaluate-layout" type="button" class="secondary" disabled>Run private layout · hybrid</button>
+      <button id="evaluate-heldout" type="button" class="secondary" disabled>Run held-out set B · 50 new documents</button>
       <button id="export-evaluation" type="button" class="secondary" disabled>Export benchmark JSON</button>
       <p id="eval-status" class="fine status" role="status"></p>
       <p id="eval-metrics" class="fine"></p>

@@ -283,7 +283,7 @@ export function scoreLayoutCase(fixture, { evidence, layout, pick, decision, res
 }
 
 export async function runLayoutBenchmark({
-  readSample, readLayoutEvidence, readLayout, buildLayout, layoutPrompt, resolveLayoutSlot, guardSweep, onProgress,
+  readSample, readLayoutEvidence, readLayout, buildLayout, layoutPrompt, resolveLayoutSlot, guardSweep, leakGate, onProgress,
   fixtures = BENCHMARK_CASES,
 }) {
   const startedAt = new Date().toISOString();
@@ -299,7 +299,9 @@ export async function runLayoutBenchmark({
       const evidence = await readLayoutEvidence(image);
       const layout = buildLayout(evidence.lines);
       sweep = guardSweep ? guardSweep(layout, evidence, fixture.expected) : null;
-      const response = await readLayout(layoutPrompt(layout.layout));
+      const prompt = layoutPrompt(layout.layout);
+      if (leakGate && !leakGate(prompt, layout).ok) throw new Error("Leak gate blocked the call");
+      const response = await readLayout(prompt);
       if (!["ON_DEVICE", "IN_CLOUD"].includes(response.source)) throw new Error("Unverified inference source");
       const decision = resolveLayoutSlot(response.text, layout, evidence);
       rows.push({ ...scoreLayoutCase(fixture, { evidence, layout, pick: decision.pick, decision, response }), sweep, sampleSha256 });

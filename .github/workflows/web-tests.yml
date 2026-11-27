@@ -1,0 +1,24 @@
+name: Web tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Unit, routing and privacy tests
+        run: node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test.mjs"
+      - name: Build the deployable site
+        run: node tools/build-vercel.mjs && test -f dist/sw.js && test -f dist/evaluation.html

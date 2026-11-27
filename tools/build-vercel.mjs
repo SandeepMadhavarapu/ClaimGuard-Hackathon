@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 const source = new URL("../evidence-review/", import.meta.url);
 const output = new URL("../dist/", import.meta.url);
 const runtime = [
-  "index.html", "style.css", "review.mjs", "benchmark.mjs", "browser-readiness.mjs",
+  "index.html", "evaluation.html", "style.css", "review.mjs", "benchmark.mjs", "browser-readiness.mjs",
   "evidence.mjs", "claim-check.mjs", "firebase-ai.mjs", "layout-read.mjs", "ocr-evidence.mjs", "scan-cleanup.mjs", "scan.mjs",
-  "ocr-runtime", "samples", "vendor",
+  "ocr-runtime", "samples", "heldout", "vendor",
 ];
 
 let firebaseConfig;
@@ -37,7 +37,7 @@ if (firebaseConfig) {
 const files = (await readdir(output, { recursive: true, withFileTypes: true }))
   .filter(entry => entry.isFile())
   .map(entry => relative(fileURLToPath(output), join(entry.parentPath ?? entry.path, entry.name)).split(sep).join("/"))
-  .filter(name => !/^ocr-runtime\/core\/|LICENSE|licenses\/|package-sources|firebase-config|build\.json|^sw\.js$/.test(name))
+  .filter(name => !/^ocr-runtime\/core\/|LICENSE|licenses\/|package-sources|firebase-config|build\.json|^sw\.js$|^heldout\//.test(name))
   .sort();
 const worker = await readFile(new URL("../evidence-review/sw.template.js", import.meta.url), "utf8");
 await writeFile(new URL("sw.js", output), worker

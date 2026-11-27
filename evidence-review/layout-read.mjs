@@ -12,7 +12,7 @@ export const LAYOUT_VOCABULARY = Object.freeze(new Set(`
 a an and or of the to for from by on in at is are was were be been has have had not no yet any this that
 which with without one only each per all both other another
 payer insurer scheme sha nhif shif fund provider
-preauthorization pre-authorization preauthorisation pre-authorisation preauth pre-auth authorization authorisation
+preauthorization pre-authorization preauthorisation pre-authorisation preauth pre-auth authorization authorisation pa prior
 auth approval approved approve denied declined rejected pending issued requested request requests awaiting await
 reference references ref refs number numbers no. no id ids code codes identifier
 hospital facility clinic tracking case referral referrals referred claim claims member patient practitioner
@@ -23,7 +23,7 @@ letter note summary page sheet cover document supporting evidence form attached
 
 const ID_TOKEN = /^[A-Za-z0-9][A-Za-z0-9-]{2,39}$/;
 const LETTER_TAG = /^\([A-Za-z]\):?$/;
-const AUTH_LABEL = /\b(pre-?auth\w*|authori[sz]ation|auth|approval)\b/;
+const AUTH_LABEL = /\b(pre-?auth\w*|authori[sz]ation|auth|approval|pa)\b/;
 const OTHER_LABEL = /\b(tracking|case|referral|referred|claim|hospital|facility|member|patient|practitioner|service|date)\b/;
 const MAX_SLOTS = 40;
 
@@ -55,6 +55,7 @@ export function buildLayout(lines) {
   for (const [lineIndex, words] of lines.entries()) {
     const out = [];
     const labelWords = [];
+    let segment = [];
     for (const word of words) {
       const raw = String(word.text ?? "").trim();
       if (!raw) continue;
@@ -64,16 +65,21 @@ export function buildLayout(lines) {
         let slot = byValue.get(core);
         if (!slot) {
           if (slots.length >= MAX_SLOTS) { out.push("…"); continue; }
-          slot = { id: `ID-${slots.length + 1}`, value: core, lines: [], words: [] };
+          slot = { id: `ID-${slots.length + 1}`, value: core, lines: [], words: [], segments: [] };
           slots.push(slot);
           byValue.set(core, slot);
         }
         slot.lines.push(lineIndex);
         slot.words.push(word);
+        // The label for this value is the form words since the previous value on the same line,
+        // so a card or grid row with two fields doesn't mix their labels.
+        slot.segments.push(segment.join(" "));
+        segment = [];
         out.push(`[${slot.id}]${trailing}`);
       } else if (LAYOUT_VOCABULARY.has(lower)) {
         out.push(lower + trailing);
         labelWords.push(lower);
+        segment.push(lower);
       } else if (LETTER_TAG.test(raw)) {
         out.push(`(${raw.replace(/[^A-Za-z]/g, "").toUpperCase()})${trailing}`);
       } else if (out.at(-1) !== "…") {
@@ -107,10 +113,12 @@ function parseSlot(output) {
 }
 
 function authorizationLabeled(layoutResult, slot) {
-  return slot.lines.some(index => {
-    const labels = layoutResult.lineLabels[index];
-    return AUTH_LABEL.test(labels) && !OTHER_LABEL.test(labels);
-  });
+  return (slot.segments ?? []).some(labels => AUTH_LABEL.test(labels) && !OTHER_LABEL.test(labels));
+}
+
+// Distinct values whose own label says payer authorization. Used to detect conflicts on any route.
+export function labeledValues(layoutResult) {
+  return layoutResult.slots.filter(slot => authorizationLabeled(layoutResult, slot)).map(slot => slot.value);
 }
 
 // Deterministic guard for the model's pick. Returns a status compatible with nextStepCode.
@@ -153,4 +161,21 @@ export function guardSweep(layoutResult, ocrEvidence, expected) {
     if (shown && shown !== expected) wrongShown += 1;
   }
   return { tried, wrongShown };
+}
+
+// Leak gate: re-scan the exact outbound text before any model call. Any OCR identifier value, or any
+// token shaped like an identifier (letters and digits, not a slot name), blocks the call.
+export function leakGate(prompt, layoutResult) {
+  const text = String(prompt);
+  const lower = text.toLowerCase();
+  const values = layoutResult.slots.map(slot => slot.value).filter(value => lower.includes(value.toLowerCase()));
+  const shaped = (text.match(/[A-Za-z0-9][A-Za-z0-9-]{2,39}/g) ?? [])
+    .filter(token => /\d/.test(token) && !/^ID-\d+$/.test(token));
+  const hits = [...new Set([...values, ...shaped])];
+  return { ok: hits.length === 0, identifiers: hits.length, bytes: new TextEncoder().encode(text).length };
+}
+
+export async function sha256Hex(text) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(text)));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
 }
