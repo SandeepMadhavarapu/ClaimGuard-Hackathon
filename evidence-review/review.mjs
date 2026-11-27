@@ -33,6 +33,7 @@ const localStatus = el("local-status");
 const manual = el("manual");
 const manualForm = el("manual-form");
 const steps = [...el("review-steps").children];
+const scenarios = [...el("judge-panel").querySelectorAll("[data-scan]")];
 const trace = [];
 const routeNames = {
   LOCAL_OCR: "This device · OCR", LOCAL_TEXT: "This device · text match", ON_DEVICE: "This device · Gemini Nano",
@@ -228,8 +229,9 @@ async function loadScan(getImage, label) {
 }
 
 function loadSample() {
-  const fixture = (mode === "scan" ? SCAN_CASES : CASES)[Number(sample.value)];
-  if (!fixture || sample.value === "") return;
+  const fixture = sample.value === "" ? null : (mode === "scan" ? SCAN_CASES : CASES)[Number(sample.value)];
+  showSelectedScenario(mode === "scan" ? fixture?.file : null);
+  if (!fixture) return;
   resetReview();
   if (mode === "scan") {
     fileInput.value = "";
@@ -240,6 +242,10 @@ function loadSample() {
     updateControls();
     showIdleStatus();
   }
+}
+
+function showSelectedScenario(file) {
+  for (const scenario of scenarios) scenario.setAttribute("aria-pressed", String(scenario.dataset.scan === file));
 }
 
 function setMode(nextMode, firstSample = 0) {
@@ -421,6 +427,7 @@ letter.addEventListener("input", () => {
 });
 function selectFile(file) {
   if (!file) return;
+  showSelectedScenario(null);
   sample.querySelector('option[value=""]')?.remove();
   const selected = new Option("Selected scan", "", false, true);
   selected.disabled = true;

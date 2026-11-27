@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="theme-color" content="#102a27">
+  <meta name="theme-color" content="#1c2034">
   <title>Claim review | ClaimGuard</title>
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./review.mjs"></script>
@@ -23,7 +23,7 @@
     <section class="intro" aria-labelledby="page-title">
       <div class="intro-copy">
         <h1 id="page-title">Claim review</h1>
-        <p>Find the payer’s preauthorization reference. Verify it against the document before recording it.</p>
+        <p>Find the payer’s reference, compare it with the original, and record it for review.</p>
       </div>
       <ol class="review-steps" id="review-steps" aria-label="Review progress">
         <li aria-current="step"><span class="step-number">1</span> Read</li>
@@ -33,17 +33,23 @@
     </section>
 
     <section id="judge-panel" class="card judge-panel" aria-labelledby="judge-title" hidden>
-      <h2 id="judge-title">Judge walkthrough</h2>
-      <ol>
-        <li>Read the specialist referral with local OCR. Locate the source line, compare the reference, and record it.</li>
-        <li>Try the pending and conflicting referrals. Both should leave the finding open.</li>
-        <li>Inspect the runtime trace or run the same 12 scans through local OCR and Gemini Nano.</li>
-      </ol>
+      <div class="judge-heading">
+        <div>
+          <h2 id="judge-title">Judge walkthrough</h2>
+          <p class="fine">Choose a case, then read it with local OCR.</p>
+        </div>
+        <button type="button" class="secondary" id="judge-benchmark">Open 12-scan benchmark <span aria-hidden="true">↗</span></button>
+      </div>
       <div class="judge-actions">
-        <button type="button" class="secondary" id="judge-referral">Open specialist referral</button>
-        <button type="button" class="secondary" id="judge-pending">Open pending referral</button>
-        <button type="button" class="secondary" id="judge-conflicting">Open conflicting references</button>
-        <button type="button" class="secondary" id="judge-benchmark">Open benchmark</button>
+        <button type="button" class="scenario" id="judge-referral" data-scan="referral.png" aria-pressed="true">
+          <strong>Specialist referral</strong><span>Find and record the reference</span>
+        </button>
+        <button type="button" class="scenario" id="judge-pending" data-scan="pending.png" aria-pressed="false">
+          <strong>Pending referral</strong><span>Recognize a tracking ID and abstain</span>
+        </button>
+        <button type="button" class="scenario" id="judge-conflicting" data-scan="conflicting.png" aria-pressed="false">
+          <strong>Conflicting references</strong><span>Leave the finding open for review</span>
+        </button>
       </div>
     </section>
 
@@ -53,6 +59,7 @@
           <h2 id="support-title">Supporting document</h2>
           <span class="privacy-note">Read on this device</span>
         </div>
+        <a class="mobile-review-link" href="#check-title">Jump to review <span aria-hidden="true">↓</span></a>
         <fieldset id="document-controls">
           <legend class="sr-only">Supporting document controls</legend>
           <div class="document-controls-row">
