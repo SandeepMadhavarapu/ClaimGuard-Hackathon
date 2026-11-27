@@ -529,11 +529,17 @@ extract.addEventListener("click", async () => {
     let independent = null;
     if (scanning && result.candidate) {
       localStatus.textContent = "Cross-checking the proposed reference against local OCR.";
+      let ocrReferences = 0;
       try {
-        const { readScanReference } = await import("./ocr-evidence.mjs");
-        independent = await readScanReference(image);
+        const { readScanEvidence } = await import("./ocr-evidence.mjs");
+        ({ candidate: independent, references: ocrReferences } = await readScanEvidence(image));
       } catch {
         // The clerk can verify the source directly when the OCR worker is unavailable.
+      }
+      if (ocrReferences > 1) {
+        localStatus.textContent = `${sourceAndTime(response)} · Local OCR found more than one payer reference on this page. Nano's suggestion was withheld. Resolve which reference applies and enter it manually.`;
+        recordTrace("Read with Nano", response.source, "Conflict blocked", response.duration);
+        return;
       }
       const check = compareReferenceEvidence(result.candidate, independent);
       if (check === "conflict") {

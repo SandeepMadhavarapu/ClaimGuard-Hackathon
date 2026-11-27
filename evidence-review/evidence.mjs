@@ -63,9 +63,24 @@ export function parseReference(value) {
     ? reference : null;
 }
 
+const ID_TOKEN = /[A-Za-z0-9][A-Za-z0-9-]{2,39}/g;
+const OTHER_ID_LABEL = /\b(?:hospital|tracking|referral|claim|case|facility|member|patient)\b/i;
+
+// A quote whose payer label was transcribed loosely ("Pre-auth no.") still has to contain the
+// reference as its only ID-shaped token and must not carry another kind of identifier label.
+function looselyLabeled(quote, reference) {
+  if (!/\bpre[- ]?auth/i.test(quote) || OTHER_ID_LABEL.test(quote)) return false;
+  const ids = (quote.match(ID_TOKEN) ?? []).filter(token => /\d/.test(token));
+  return ids.length === 1 && ids[0] === reference;
+}
+
 export function reviewScanSuggestion(output) {
   const candidate = readSuggestion(output);
-  if (candidate?.reference === null && candidate?.quote === null) {
+  // An explicit "no reference" answer is an abstention, even when the model adds a quote
+  // or writes a non-identifier such as "NOT ISSUED" in the reference field.
+  if (candidate && "reference" in candidate
+      && (candidate.reference === null
+        || (typeof candidate.reference === "string" && !parseReference(candidate.reference)))) {
     return { status: "empty", candidate: null };
   }
   if (typeof candidate?.reference !== "string" || typeof candidate.quote !== "string"
@@ -73,8 +88,10 @@ export function reviewScanSuggestion(output) {
     return { status: "unsupported", candidate: null };
   }
   const reference = parseReference(candidate.reference);
-  const quoted = matchLetter(candidate.quote);
-  if (!reference || quoted?.reference !== reference) {
+  const labeled = labeledReferences(candidate.quote);
+  const supported = labeled.length === 1 ? labeled[0].reference === reference
+    : labeled.length === 0 && looselyLabeled(candidate.quote, reference);
+  if (!reference || !supported) {
     return { status: "unsupported", candidate: null };
   }
   // The quoted text is a transcription from the model. The clerk verifies it against the scan.
