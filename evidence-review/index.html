@@ -37,7 +37,7 @@
       <div class="judge-heading">
         <div>
           <h2 id="judge-title">Judge walkthrough</h2>
-          <p class="fine">Choose a case, then read it with local OCR.</p>
+          <p class="fine">Choose a case, then read it with local OCR or <strong>Read with Gemini · private layout</strong> (hybrid: values stay on this device). <span id="build-stamp"></span></p>
         </div>
         <button type="button" class="secondary" id="judge-benchmark">Open 12-scan benchmark <span aria-hidden="true">↗</span></button>
       </div>
@@ -214,7 +214,7 @@
           <p class="fine">Session actions, reported inference routes, and timing. The trace contains no document text or references.</p>
           <p id="trace-empty" class="fine">Read a scan or explain the policy to start.</p>
           <ol class="trace-list" id="trace-entries" aria-label="Recent actions"></ol>
-          <button id="export-trace" type="button" class="secondary" disabled>Export trace JSON</button>
+          <button id="export-trace" type="button" class="secondary" disabled>Export run receipt</button>
         </details>
       </div>
     </div>

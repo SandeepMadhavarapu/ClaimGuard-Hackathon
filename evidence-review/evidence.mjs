@@ -80,6 +80,19 @@ export function nextStepPrompt(code, language = "en") {
   ].join("\n");
 }
 
+// Grounding check for generated guidance: the prompt forbids new numbers, IDs, names and links, so an
+// answer that contains an identifier-like token, a long number, a URL, an email or a phone number is
+// discarded and the fixed checklist is shown instead.
+export function groundNextStep(text) {
+  const answer = String(text ?? "").trim();
+  if (!answer) return { ok: false, reason: "empty" };
+  if (answer.length > 1500) return { ok: false, reason: "too long" };
+  if (/https?:\/\/|www\.|@[A-Za-z0-9-]+\./i.test(answer)) return { ok: false, reason: "link or email" };
+  if (/\b(?=[A-Za-z0-9-]*\d)(?=[A-Za-z0-9-]*[A-Za-z])[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+\b/.test(answer)) return { ok: false, reason: "identifier" };
+  if (/\d{3,}|\+\d/.test(answer)) return { ok: false, reason: "number" };
+  return { ok: true };
+}
+
 // Maps a review decision to an outcome code. A candidate still awaiting the clerk has no code yet.
 export function nextStepCode(status) {
   return {
