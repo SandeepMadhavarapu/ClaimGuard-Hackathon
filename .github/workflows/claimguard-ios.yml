@@ -16,19 +16,32 @@ permissions:
 jobs:
   simulator:
     runs-on: macos-26
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - name: Select Xcode and an available iPhone
+      - uses: actions/checkout@v5
+      - name: Select an available iPhone
         run: |
           xcodebuild -version
-          xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; devices=[x for key in sorted(d,reverse=True) if "SimRuntime.iOS" in key for x in d[key] if x.get("isAvailable") and x["name"].startswith("iPhone")]; print("IPHONE_UDID="+devices[0]["udid"])' >> "$GITHUB_ENV"
-      - name: Build and test
+          xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; devices=[x for key in sorted(d,reverse=True) if "SimRuntime.iOS-26" in key for x in d[key] if x.get("isAvailable") and x["name"].startswith("iPhone")]; print("IPHONE_UDID="+devices[0]["udid"])' >> "$GITHUB_ENV"
+      - name: Build the iOS app and test bundle
+        timeout-minutes: 9
         run: |
-          set -o pipefail
-          xcodebuild test \
+          xcodebuild build-for-testing \
             -project ios/ClaimGuard/ClaimGuard.xcodeproj \
             -scheme ClaimGuard \
-            -destination "platform=iOS Simulator,id=$IPHONE_UDID" \
+            -destination "platform=iOS Simulator,id=$IPHONE_UDID,arch=arm64" \
+            -derivedDataPath "$RUNNER_TEMP/ClaimGuardDerivedData" \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Start the iPhone simulator
+        timeout-minutes: 5
+        run: xcrun simctl bootstatus "$IPHONE_UDID" -b
+      - name: Run the parser, guard, and benchmark tests
+        timeout-minutes: 6
+        run: |
+          xcodebuild test-without-building \
+            -project ios/ClaimGuard/ClaimGuard.xcodeproj \
+            -scheme ClaimGuard \
+            -destination "platform=iOS Simulator,id=$IPHONE_UDID,arch=arm64" \
+            -derivedDataPath "$RUNNER_TEMP/ClaimGuardDerivedData" \
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO
