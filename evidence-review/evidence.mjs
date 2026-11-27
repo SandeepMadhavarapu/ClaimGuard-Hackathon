@@ -58,10 +58,19 @@ export const NEXT_STEPS = Object.freeze({
 
 export const NEXT_STEP_CODES = Object.freeze(Object.keys(NEXT_STEPS));
 
-export function nextStepPrompt(code) {
+// Gemini Nano's supported output languages exclude Kiswahili, so Kiswahili guidance is routed to the cloud.
+export const NEXT_STEP_LANGUAGES = Object.freeze({
+  en: Object.freeze({ name: "English", instruction: null, route: "hybrid" }),
+  sw: Object.freeze({ name: "Kiswahili", instruction: "Write the whole answer in Kiswahili.", route: "cloud" }),
+});
+
+export function nextStepPrompt(code, language = "en") {
   const step = NEXT_STEPS[code];
   if (!Object.hasOwn(NEXT_STEPS, code) || !step) throw new Error("Unknown outcome code");
+  const lang = Object.hasOwn(NEXT_STEP_LANGUAGES, language) ? NEXT_STEP_LANGUAGES[language] : null;
+  if (!lang) throw new Error("Unknown language");
   return [
+    ...(lang.instruction ? [lang.instruction] : []),
     "You help a hospital billing clerk decide what to do next on a claim.",
     "Use only the demo checklist below. In the first sentence, state the single most important next action.",
     "Then list the remaining steps in short bullets. Do not add steps, numbers, names, or approval decisions.",

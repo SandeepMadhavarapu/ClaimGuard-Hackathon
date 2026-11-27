@@ -31,6 +31,7 @@ The supporting documents are scanned referral letters and cover sheets that cont
 | Explain the policy rule | `PREFER_ON_DEVICE` (default) | The text is public, so the cloud is a safe fallback. Clerks on machines without Nano still get an answer. |
 | Explain the policy rule | `ONLY_IN_CLOUD` (option) | Forces the cloud path for comparison. |
 | Suggest the next step | `PREFER_ON_DEVICE` | The input is one of four fixed outcome codes plus a public checklist, so a cloud fallback cannot expose patient data. |
+| Next step in Kiswahili | `ONLY_IN_CLOUD` | Kiswahili is not a Gemini Nano output language (Chrome lists de, en, es, fr, ja), so this fixed public request is routed to Gemini in the cloud by design. |
 
 Every result is labeled from `response.inferenceSource` (On-device or Cloud). If the SDK reports a route the call did not allow, the result is rejected. The **Runtime trace** panel logs each action, its route and its latency, without any document text.
 

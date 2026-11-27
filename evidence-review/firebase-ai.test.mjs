@@ -109,6 +109,10 @@ test("Firebase adapter constrains what each inference model receives", async () 
   assert.deepEqual(calls[nextStart], { mode: "prefer_on_device", prompt: nextStepPrompt("CONFLICT") });
   await assert.rejects(adapter.nextStep("DEMO-PA-240817"), /Unknown outcome code/);
   assert.equal(calls.length, nextStart + 1);
+  assert.equal((await adapter.nextStep("CONFLICT", "sw")).source, "IN_CLOUD");
+  assert.deepEqual(calls[nextStart + 1], { mode: "only_in_cloud", prompt: nextStepPrompt("CONFLICT", "sw") });
+  await assert.rejects(adapter.nextStep("CONFLICT", "PRIVATE-LETTER-CANARY"), /Unknown language/);
+  assert.equal(calls.length, nextStart + 2);
   sourceOverride = undefined;
   recaptchaProvider = "enterprise";
   await mod.namespace.setupInference();

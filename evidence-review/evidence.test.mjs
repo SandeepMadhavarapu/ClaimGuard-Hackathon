@@ -155,3 +155,16 @@ test("next-step prompts are fixed public text for known outcome codes only", asy
   assert.equal(nextStepCode("conflict"), "CONFLICT");
   for (const status of ["unsupported", "uncorroborated", "disagreement"]) assert.equal(nextStepCode(status), "NEEDS_REVIEW");
 });
+
+test("Kiswahili next-step prompts add only a fixed language instruction", async () => {
+  const { NEXT_STEP_CODES, NEXT_STEP_LANGUAGES, nextStepPrompt } = await import("./evidence.mjs");
+  assert.deepEqual(Object.keys(NEXT_STEP_LANGUAGES), ["en", "sw"]);
+  assert.equal(NEXT_STEP_LANGUAGES.sw.route, "cloud");
+  for (const code of NEXT_STEP_CODES) {
+    assert.equal(nextStepPrompt(code, "sw"), `Write the whole answer in Kiswahili.\n${nextStepPrompt(code, "en")}`);
+    assert.equal(nextStepPrompt(code), nextStepPrompt(code, "en"));
+  }
+  for (const bad of ["fr", "", "constructor", "__proto__", "SW"]) {
+    assert.throws(() => nextStepPrompt("CONFLICT", bad), /Unknown language/);
+  }
+});
