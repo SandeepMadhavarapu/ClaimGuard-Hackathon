@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const source = new URL("../evidence-review/", import.meta.url);
 const output = new URL("../dist/", import.meta.url);
 const runtime = [
-  "index.html", "style.css", "review.mjs", "benchmark.mjs", "browser-readiness.mjs",
+  "index.html", "evaluation.html", "style.css", "review.mjs", "benchmark.mjs", "browser-readiness.mjs",
   "evidence.mjs", "claim-check.mjs", "firebase-ai.mjs", "layout-read.mjs", "ocr-evidence.mjs", "scan-cleanup.mjs", "scan.mjs",
   "ocr-runtime", "samples", "heldout", "vendor",
 ];

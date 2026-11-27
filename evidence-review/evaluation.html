@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Measured results | ClaimGuard</title>
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    .results { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
+    .results h1 { margin-bottom: 4px; }
+    .results h2 { margin-top: 34px; }
+    .results table { width: 100%; border-collapse: collapse; margin: 10px 0 6px; font-size: .95rem; }
+    .results th, .results td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #dfe2ea; vertical-align: top; }
+    .results th { background: #f1f3f8; }
+    .headline { font-size: 1.15rem; line-height: 1.55; background: #f3f8f4; border: 1px solid #cfe5d6; border-radius: 10px; padding: 16px 18px; }
+    .miss { background: #fff7ec; border: 1px solid #f0dcc0; border-radius: 10px; padding: 12px 16px; }
+    .results code { font-size: .9em; }
+  </style>
+</head>
+<body>
+  <main class="results">
+    <p class="fine"><a href="./?judge=1">← Back to the app</a></p>
+    <h1>Measured results</h1>
+    <p class="fine">Every number below was measured, and the misses are published on purpose. All documents are synthetic.</p>
+
+    <p class="headline"><strong>Held-out set B (50 new documents, never seen during development):</strong> of 32 readable documents, ClaimGuard's private layout read extracted <strong>20</strong> correctly and held 7 for review. On 5, all O/0 or I/1 look-alikes, OCR misread one character on the correctly labeled line, so the value offered would be off by one character. The confirmation step names those characters by position. Of 18 documents that must be held (conflicting references, pending, blank, denied or no payer reference), it held <strong>18</strong> and offered <strong>0</strong> as ready. The leak gate found <strong>0</strong> identifier values in 80 outbound requests.</p>
+
+    <h2>How the held-out sets were built</h2>
+    <ul>
+      <li><strong>50 distinct documents per set</strong>, generated from a fixed seed (<code>evaluation/heldout/generate.py</code>) across 6 layouts (letter, table, fax, memo, card, plain) and 5 fonts. Each set has 32 readable documents (familiar and unfamiliar label wordings, references in prose, the same reference printed twice, O/0 and I/1 look-alikes) and 18 that must be held (two different references on one page, two documents with different references, original and amended references, pending, blank, denied, not applicable, and hospital identifiers only).</li>
+      <li><strong>Variants are reported separately.</strong> Ten documents per set also get a blurred, a low-resolution and a skewed, compressed copy: 30 variants, not 30 new documents.</li>
+      <li><strong>Set A</strong> was generated and run against frozen code (<code>e017a83</code>) before any results existed. It exposed a real bug, so it became the development set. <strong>Set B</strong> was generated after the fixes with a new seed and four label wordings that never appeared during development, then scored once at <code>e737968</code>.</li>
+      <li><strong>What runs here:</strong> the app's own modules in Chrome: on-device Tesseract OCR, the OCR label rule, the private-layout builder, the leak gate and the slot guard (<code>evaluation/heldout/run.py</code>). The model step needs Firebase App Check in a real browser, so this run reports it as a realistic model (it picks the one value whose own label says payer authorization) and as a best case. The real-model run is the <strong>Run held-out set B</strong> button in the app's benchmark panel.</li>
+    </ul>
+
+    <h2>Set B: the decision a claims reviewer sees</h2>
+    <table>
+      <caption class="sr-only">Held-out set B results by route</caption>
+      <thead><tr><th scope="col">Route (50 documents)</th><th scope="col">Readable: extracted</th><th scope="col">Readable: held</th><th scope="col">Readable: wrong value offered</th><th scope="col">Must hold: held</th><th scope="col">Must hold: wrongly offered</th></tr></thead>
+      <tbody>
+        <tr><td>Private layout + guard, realistic model</td><td>20 / 32</td><td>7</td><td>5 (look-alike misreads)</td><td>18 / 18</td><td>0</td></tr>
+        <tr><td>Private layout + guard, best case</td><td>20 / 32</td><td>12</td><td>0</td><td>18 / 18</td><td>0</td></tr>
+        <tr><td>OCR label rule only</td><td>7 / 32</td><td>24</td><td>1</td><td>18 / 18</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <caption class="sr-only">Held-out set B variants</caption>
+      <thead><tr><th scope="col">Route (30 variants of 10 documents)</th><th scope="col">Readable: extracted</th><th scope="col">Readable: held</th><th scope="col">Readable: wrong value offered</th><th scope="col">Must hold: held</th><th scope="col">Must hold: wrongly offered</th></tr></thead>
+      <tbody>
+        <tr><td>Private layout + guard, realistic model</td><td>18 / 24</td><td>2</td><td>4 (look-alike misreads)</td><td>6 / 6</td><td>0</td></tr>
+        <tr><td>OCR label rule only</td><td>4 / 24</td><td>19</td><td>1</td><td>6 / 6</td><td>0</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Set A: what the first held-out run exposed</h2>
+    <p>Run against frozen code <code>e017a83</code>. The OCR label rule offered one of two payer references on <strong>2</strong> pages where the second reference used an unfamiliar label. Grid rows with two fields on one line, and references stated in a sentence, were held when they could have been read. The fixes in <code>a59d037</code>: each value's label is the form words just before it, every route counts every value whose own label says payer authorization, and the confirmation step names look-alike characters by position.</p>
+    <table>
+      <caption class="sr-only">Held-out set A, frozen code</caption>
+      <thead><tr><th scope="col">Set A, frozen code (50 documents)</th><th scope="col">Readable: extracted</th><th scope="col">Must hold: held</th><th scope="col">Must hold: wrongly offered</th></tr></thead>
+      <tbody>
+        <tr><td>OCR label rule only</td><td>7 / 32</td><td>16 / 18</td><td><strong>2</strong></td></tr>
+        <tr><td>Private layout + guard, best case</td><td>17 / 32</td><td>18 / 18</td><td>0</td></tr>
+      </tbody>
+    </table>
+
+    <h2>The original 12-scan benchmark</h2>
+    <table>
+      <caption class="sr-only">Twelve-scan benchmark</caption>
+      <thead><tr><th scope="col">Route</th><th scope="col">Where</th><th scope="col">Correct outcomes</th><th scope="col">Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Private layout + guard</td><td>Live site, cloud route (Nov 28)</td><td>11 / 12</td><td>p50 669 ms. 12 requests captured, 0 with an identifier value.</td></tr>
+        <tr><td>Gemini Nano (image, JSON schema) alone</td><td>Chrome, on-device</td><td>9 / 12</td><td>Up from 8 / 12 before structured output.</td></tr>
+        <tr><td>Gemini Nano + OCR gate</td><td>Chrome, on-device</td><td>11 / 12</td><td>3 wrong proposals blocked.</td></tr>
+        <tr><td>Apple Intelligence + guard</td><td>iPhone 17, airplane mode</td><td>11 / 12</td><td>0 false suggestions, 5 wrong proposals blocked.</td></tr>
+        <tr><td>Local OCR only</td><td>Chrome / iPhone</td><td>11 / 12</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Published misses</h2>
+    <div class="miss">
+      <p><strong>O versus 0, I versus 1.</strong> On held-out look-alikes, Tesseract read the correctly labeled value with one character wrong, at the same confidence (89–93) as correct reads, so confidence can't catch it. The guard holds the case when nothing confirms the value; otherwise the clerk's character check is the safeguard, and the app names each look-alike character's position. On the iPhone 12-scan run, Apple Intelligence and Vision OCR both read the trap's zero as a letter O.</p>
+      <p><strong>Unseen label wording.</strong> "Pre-approval no.", one of set B's four new wordings, wasn't recognized as a payer label, so that document was held, not misread.</p>
+      <p><strong>OCR misreads.</strong> On a few readable documents, OCR misread a digit of the value, and those were held.</p>
+    </div>
+
+    <h2>Reproduce</h2>
+    <pre>node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test.mjs"
+node tools/build-vercel.mjs
+python3 evaluation/heldout/run.py cases      # set A
+python3 evaluation/heldout/run.py cases-b    # set B</pre>
+    <p class="fine">Raw results: <code>evaluation/heldout/results-A-e017a83.json</code>, <code>evaluation/heldout/results-B-e737968.json</code>.</p>
+  </main>
+</body>
+</html>

@@ -246,6 +246,7 @@ function updateControls() {
   evaluate.disabled = busy || !inference;
   evaluateOcr.disabled = busy;
   el("evaluate-layout").disabled = busy || !inference;
+  el("evaluate-heldout").disabled = busy || !inference;
   exportEvaluation.disabled = busy || !(latestBenchmark || latestOcrBenchmark || latestLayoutBenchmark);
   manual.inert = busy || !canReview;
   manual.hidden = !canReview;
@@ -922,6 +923,69 @@ evaluateOcr.addEventListener("click", async () => {
 exportEvaluation.addEventListener("click", () => {
   if (!latestBenchmark && !latestOcrBenchmark && !latestLayoutBenchmark) return;
   downloadJson({ ...shareableBenchmark(latestBenchmark, latestOcrBenchmark, latestLayoutBenchmark), build }, "claimguard-web-benchmark.json");
+});
+
+async function runLayout(fixtures, readSample, label) {
+  const status = el("eval-layout-status");
+  latestLayoutBenchmark = null;
+  el("eval-layout-table").hidden = true;
+  el("eval-layout-metrics").textContent = "";
+  busy = true;
+  updateControls();
+  status.textContent = "Preparing local OCR for the private layout run.";
+  try {
+    const [ocr, layoutRead] = await Promise.all([import("./ocr-evidence.mjs"), import("./layout-read.mjs")]);
+    await ocr.prepareOcr();
+    latestLayoutBenchmark = await runLayoutBenchmark({
+      fixtures, readSample,
+      readLayoutEvidence: ocr.readScanLayoutEvidence,
+      readLayout: prompt => inference.readLayout(prompt),
+      ...layoutRead,
+      onProgress: (current, total) => { status.textContent = `${label} · document ${current} of ${total}.`; },
+    });
+    const { summary, rows } = latestLayoutBenchmark;
+    const readable = rows.filter(row => row.expectedReference !== null);
+    const hold = rows.filter(row => row.expectedReference === null);
+    const shown = row => ["Correct extraction", "Wrong suggestion", "False suggestion"].includes(row.outcome);
+    const routes = Object.entries(summary.routes).map(([route, n]) => `${n} ${route === "ON_DEVICE" ? "on-device" : "cloud"}`).join(" · ");
+    status.textContent = `${label} · Of ${readable.length} readable documents, ${readable.filter(row => row.outcome === "Correct extraction").length} extracted correctly, `
+      + `${readable.filter(row => !shown(row)).length} held, ${readable.filter(row => row.outcome === "Wrong suggestion").length} shown with a wrong value. `
+      + `Of ${hold.length} that must be held, ${hold.filter(row => !shown(row)).length} held and ${hold.filter(shown).length} wrongly offered. Routes: ${routes || "none"}.`;
+    const sweep = summary.guardSweep;
+    const lost = Object.entries(summary.lostAt).map(([stage, n]) => `${n} at ${stage}`).join(" · ");
+    el("eval-layout-metrics").textContent = [
+      `Guard sweep: ${sweep.picksTried} possible picks · ${sweep.wrongShown} would show a wrong value`,
+      lost ? `Misses: ${lost}` : "No misses",
+      summary.latencyMs.samples ? `p50 ${summary.latencyMs.p50} ms · p95 ${summary.latencyMs.p95} ms` : "",
+    ].filter(Boolean).join(" · ");
+    const body = el("eval-layout-results");
+    body.replaceChildren();
+    for (const row of rows) {
+      const line = body.insertRow();
+      for (const value of [
+        row.label, row.expectedReference ?? "Hold", row.pick ?? "—", row.outcome, row.lostAt ?? "—",
+        row.inferenceSource ? `${routeNames[row.inferenceSource]}${row.inferenceMs != null ? ` · ${row.inferenceMs} ms` : ""}` : "-",
+      ]) line.insertCell().textContent = value;
+    }
+    el("eval-layout-table").hidden = false;
+  } catch {
+    status.textContent = `${label} could not run.`;
+  } finally {
+    busy = false;
+    updateControls();
+  }
+}
+
+el("evaluate-heldout").addEventListener("click", async () => {
+  const response = await fetch("./heldout/cases-b.json");
+  if (!response.ok) { el("eval-layout-status").textContent = "The held-out set could not be loaded."; return; }
+  const { documents } = await response.json();
+  const fixtures = documents.map(doc => ({ file: doc.file, label: `${doc.file} · ${doc.note}`, expected: doc.expected }));
+  await runLayout(fixtures, async fixture => {
+    const image = await fetch(`./heldout/${fixture.file}`);
+    if (!image.ok) throw new Error("missing");
+    return image.blob();
+  }, "Held-out set B");
 });
 
 el("evaluate-layout").addEventListener("click", async () => {

@@ -213,3 +213,6 @@ a { color: #225843; }
 
 .layout-receipt { font-weight: 600; color: #1f6b46; }
 .layout-receipt[data-ok="false"] { color: #a42121; }
+
+.judge-links { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.secondary-link { font-weight: 600; color: #4b3fa8; }
