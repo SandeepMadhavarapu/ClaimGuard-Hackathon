@@ -152,6 +152,38 @@
           </details>
         </section>
 
+        <section class="card claim-card" aria-labelledby="claim-title">
+          <div class="rubric">
+            <h2 id="claim-title">Claim pre-check</h2>
+            <span class="fine">On this device</span>
+          </div>
+          <p id="claim-verdict" class="claim-verdict" data-verdict="pending" role="status"></p>
+          <ul id="claim-checks" class="claim-checks"></ul>
+          <details class="claim-form-wrap">
+            <summary>Edit the synthetic claim</summary>
+            <form id="claim-form" class="claim-form">
+              <label>Member (client registry ID)<input name="memberId" autocomplete="off" spellcheck="false"></label>
+              <label>Facility ID (FID)<input name="facilityId" autocomplete="off" spellcheck="false"></label>
+              <label>Practitioner ID (PUID)<input name="practitionerId" autocomplete="off" spellcheck="false"></label>
+              <label>SHA intervention code<input name="serviceCode" autocomplete="off" spellcheck="false"></label>
+              <label class="confirm"><input type="checkbox" name="requiresPreauth"> Service requires preauthorization</label>
+              <label>Preauthorization reference on the claim<input name="preauthReference" autocomplete="off" spellcheck="false"></label>
+              <label>Billable period start<input type="date" name="billableStart"></label>
+              <label>Billable period end<input type="date" name="billableEnd"></label>
+              <label>Service start<input type="date" name="serviceStart"></label>
+              <label>Service end<input type="date" name="serviceEnd"></label>
+              <label>Item net amounts (KES, comma separated)<input name="itemAmounts" autocomplete="off"></label>
+              <label>Claim total (KES)<input name="total" autocomplete="off"></label>
+            </form>
+          </details>
+          <div class="read-actions">
+            <button type="button" class="secondary" id="claim-errors">Load a claim with errors</button>
+            <button type="button" class="secondary" id="claim-reset">Reset claim</button>
+            <button type="button" class="secondary" id="claim-export">Export FHIR OperationOutcome</button>
+          </div>
+          <p class="fine">Rules from the Digital Health Agency's <a href="https://afyalink.dha.go.ke/claim-integration" target="_blank" rel="noopener">SHA claims submission guide</a>: ID formats, service dates inside the billable period, and totals that add up. Formats are checked here; registry lookups and payer approval still happen at submission. Synthetic data only.</p>
+        </section>
+
         <details class="card rule-card">
           <summary>Policy and cloud request</summary>
           <p class="fine" id="policy-summary"></p>

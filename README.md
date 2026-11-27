@@ -21,6 +21,7 @@ The supporting documents are scanned referral letters and cover sheets that cont
 3. **The clerk confirms.** Nothing is recorded until the clerk compares the value with the original and ticks the confirmation. Payer verification stays pending; ClaimGuard never claims approval.
 4. **Explain the rule with hybrid inference.** The policy explanation uses `PREFER_ON_DEVICE`: Nano answers when it is ready, and Firebase AI Logic falls back to the cloud when it isn't. The UI shows which route the SDK actually reported. You can view the exact cloud request, which contains only a fixed, public policy summary.
 5. **Suggest the next step with hybrid inference.** After a read, ClaimGuard knows only the outcome type: reference recorded, no payer reference, conflicting references, or needs manual review. It sends just that code and a fixed public demo checklist to Firebase AI Logic (`PREFER_ON_DEVICE` on Web; Apple Foundation Models first, then Gemini, on iOS) and shows the clerk the most important next action. The exact request is visible in the app, and unknown codes are rejected before any call. No scan, reference, or document text can reach it.
+6. **Pre-check the whole claim, on the device.** A synthetic claim is checked against rules published in the Digital Health Agency's [SHA claims submission guide](https://afyalink.dha.go.ke/claim-integration): client registry, facility (FID), practitioner (PUID) and SHA intervention code formats; service dates inside the billable period; a total equal to the sum of item amounts; and a preauthorization reference that matches the one confirmed on the scan and is not another kind of ID. The verdict is **Ready to submit** or **Hold**, and it exports as a FHIR R4 `OperationOutcome`. Formats are checked, not looked up, and payer approval still needs verification.
 
 ## Why hybrid inference
 
@@ -45,7 +46,8 @@ Open the [live demo](https://claimguard-hackathon.vercel.app/?judge=1) in deskto
 2. **Pending referral.** The only ID on the page is a hospital tracking ID. ClaimGuard abstains instead of guessing.
 3. **Conflicting references.** Two references are printed, so the finding stays open. Under **Next step**, click **Suggest next step · on-device first**. Only the outcome code and a public checklist are sent (open **View the exact request**), and the status line shows whether Nano or the cloud answered.
 4. **Policy and cloud request.** Click **View the exact cloud request**, then **Explain policy · on-device first**.
-5. **Benchmark 12 labeled scans.** Run Gemini Nano and the local OCR baseline on the same 12 synthetic scans. The report shows Nano alone and the Nano + OCR gate. Six scans contain a payer reference and six require abstention, including faint print, low resolution, leading zeros, an O/0 trap, blank fields and conflicting references.
+5. **Claim pre-check.** Record the Specialist referral reference and the synthetic claim turns **Ready to submit**. Click **Load a claim with errors** to see four rule failures, then **Export FHIR OperationOutcome**.
+6. **Benchmark 12 labeled scans.** Run Gemini Nano and the local OCR baseline on the same 12 synthetic scans. The report shows Nano alone and the Nano + OCR gate. Six scans contain a payer reference and six require abstention, including faint print, low resolution, leading zeros, an O/0 trap, blank fields and conflicting references.
 
 ### iOS (iPhone)
 
