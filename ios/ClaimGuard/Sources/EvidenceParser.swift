@@ -31,7 +31,9 @@ struct OCREvidence: Equatable, Sendable {
                 OCRCandidate(value: match, location: EvidenceLocation(page: line.page, bounds: line.bounds))
             }
         }
-        references = Set(matches.map(\.value.reference))
+        // Count every value whose own label says payer authorization, in any wording, so a second
+        // reference under an unfamiliar label still makes the page a conflict.
+        references = Set(matches.map(\.value.reference)).union(LayoutRead.labeledValues(LayoutRead.build(lines)))
         candidate = references.count == 1 ? matches.first : nil
     }
 }
@@ -274,5 +276,18 @@ enum NextStepGrounding {
         if has(#"\b(?=[A-Za-z0-9-]*\d)(?=[A-Za-z0-9-]*[A-Za-z])[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+\b"#) { return "identifier" }
         if has(#"\d{3,}|\+\d"#) { return "number" }
         return nil
+    }
+}
+
+
+/// Characters OCR and people confuse, named with 1-based positions. Matches lookalikeNote on Web.
+enum Lookalikes {
+    private static let names: [Character: String] = ["0": "zero", "O": "letter O", "o": "letter o", "1": "one", "I": "letter I", "l": "letter l"]
+
+    static func note(_ value: String) -> String? {
+        let found = value.enumerated().compactMap { index, character in names[character].map { "\($0) at position \(index + 1)" } }
+        guard !found.isEmpty else { return nil }
+        let listed = found.prefix(6).joined(separator: ", ") + (found.count > 6 ? ", and \(found.count - 6) more" : "")
+        return "Check these characters against the scan: \(listed). OCR cannot reliably tell O from 0 or I from 1."
     }
 }

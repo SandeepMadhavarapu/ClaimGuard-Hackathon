@@ -221,7 +221,12 @@ struct ClaimReviewScreen: View {
                     Divider()
                     Text(suggestion.reference).font(.headline.monospaced()).textSelection(.enabled)
                     Text(suggestion.quote).font(.subheadline).foregroundStyle(.secondary)
-                    checkWarning
+                    if let note = Lookalikes.note(suggestion.reference) {
+                        Label(note, systemImage: "exclamationmark.triangle")
+                            .font(.footnote.weight(.semibold)).foregroundStyle(.orange)
+                    } else {
+                        checkWarning
+                    }
                     Toggle("I compared the reference and label with the original", isOn: $state.isCompared)
                     Button("Record reference", action: review.recordSuggestion)
                         .buttonStyle(.borderedProminent)
