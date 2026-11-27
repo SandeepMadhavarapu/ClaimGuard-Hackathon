@@ -1,10 +1,14 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct BenchmarkScreen: View {
     @Environment(\.dismiss) private var dismiss
     @State private var rows: [BenchmarkRow] = []
     @State private var running = false
     @State private var runTask: Task<Void, Never>?
+    @State private var export: BenchmarkJSONDocument?
+    @State private var showingExport = false
+    @State private var exportFailed = false
 
     var body: some View {
         NavigationStack {
@@ -22,6 +26,15 @@ struct BenchmarkScreen: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 if !rows.isEmpty {
+                    Button("Save synthetic benchmark report", systemImage: "square.and.arrow.up") {
+                        do {
+                            export = BenchmarkJSONDocument(bytes: try BenchmarkEvidence.encode(rows))
+                            showingExport = true
+                        } catch {
+                            exportFailed = true
+                        }
+                    }
+                    .disabled(running)
                     totals("Vision OCR", rows.map(\.ocr))
                     totals("Apple Intelligence + guard", rows.map(\.model))
                     Section("Per-scan results") {
@@ -43,6 +56,13 @@ struct BenchmarkScreen: View {
             .onDisappear { runTask?.cancel() }
         }
         .tint(.claimAccent)
+        .fileExporter(isPresented: $showingExport, document: export, contentType: .json,
+                      defaultFilename: "claimguard-ios-benchmark") { result in
+            if case .failure = result { exportFailed = true }
+        }
+        .alert("Could not export the benchmark", isPresented: $exportFailed) {
+            Button("OK", role: .cancel) {}
+        }
     }
 
     private func totals(_ title: String, _ attempts: [BenchmarkAttempt]) -> some View {
@@ -83,5 +103,23 @@ struct BenchmarkScreen: View {
                 rows.append(row)
             }
         }
+    }
+}
+
+private struct BenchmarkJSONDocument: FileDocument {
+    static let readableContentTypes: [UTType] = [.json]
+    let bytes: Data
+
+    init(bytes: Data) { self.bytes = bytes }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        bytes = data
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: bytes)
     }
 }

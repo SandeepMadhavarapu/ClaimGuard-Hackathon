@@ -11,6 +11,7 @@ test("Firebase adapter constrains what each inference model receives", async () 
   let deviceInitialized = false;
   let sourceOverride;
   let localUnavailable = false;
+  let deviceModeAvailable = true;
   const context = createContext({
     fetch: async () => ({
       ok: true,
@@ -26,6 +27,7 @@ test("Firebase adapter constrains what each inference model receives", async () 
     prepare: () => { deviceInitialized = true; },
     getSource: mode => sourceOverride ?? (mode === "only_on_device" ? "on_device" : "in_cloud"),
     localUnavailable: () => localUnavailable,
+    deviceModeAvailable: () => deviceModeAvailable,
   });
   const sdk = new Map([
     ["firebase-app.js", "export const initializeApp = config => config;"],
@@ -36,7 +38,7 @@ test("Firebase adapter constrains what each inference model receives", async () 
     `],
     ["firebase-ai.js", `
       export class GoogleAIBackend {}
-      export const InferenceMode = { ONLY_ON_DEVICE: "only_on_device", ONLY_IN_CLOUD: "only_in_cloud", PREFER_ON_DEVICE: "prefer_on_device" };
+      export const InferenceMode = { ONLY_ON_DEVICE: deviceModeAvailable() ? "only_on_device" : undefined, ONLY_IN_CLOUD: "only_in_cloud", PREFER_ON_DEVICE: "prefer_on_device" };
       export const InferenceSource = { ON_DEVICE: "on_device", IN_CLOUD: "in_cloud" };
       export const getAI = app => app;
       export const getGenerativeModel = (ai, { mode }) => ({
@@ -103,6 +105,11 @@ test("Firebase adapter constrains what each inference model receives", async () 
   recaptchaProvider = "enterprise";
   await mod.namespace.setupInference();
   assert.equal(appCheckProvider, "enterprise");
+  deviceModeAvailable = false;
+  const withoutDeviceMode = await mod.namespace.setupInference();
+  const before = calls.length;
+  await assert.rejects(withoutDeviceMode.extractScan(inlineData), /cannot enforce/);
+  assert.equal(calls.length, before);
   recaptchaProvider = "invalid";
   await assert.rejects(mod.namespace.setupInference(), /Unsupported reCAPTCHA provider/);
 });

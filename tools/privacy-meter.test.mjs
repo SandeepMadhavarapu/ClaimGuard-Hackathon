@@ -36,3 +36,19 @@ test("an unreadable body makes the result inconclusive", async () => {
   assert.equal(local.unknownBodies, 1);
   assert.equal(evaluateCapture(local, startPhase("cloud")), "inconclusive");
 });
+
+test("a public prompt mixed with a second input or system instruction is not public-only", async () => {
+  const publicPart = { text: PUBLIC_PROMPT };
+  const unrelated = "A second text value, unrelated to the fixture canary";
+  for (const body of [
+    { contents: [{ parts: [publicPart, { text: unrelated }] }] },
+    { contents: [{ parts: [{ ...publicPart, inlineData: { data: "example" } }] }] },
+    { contents: [{ parts: [publicPart] }, { parts: [{ text: unrelated }] }] },
+    { contents: [{ parts: [publicPart] }], systemInstruction: { parts: [{ text: unrelated }] } },
+  ]) {
+    const phase = startPhase("cloud");
+    await recordPageRequest(phase, { url: endpoint, method: "POST", postData: JSON.stringify(body) });
+    assert.equal(phase.exactPublicPromptRequests, 0);
+    assert.equal(phase.unexpectedInferencePayloads, 1);
+  }
+});

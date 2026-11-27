@@ -141,4 +141,20 @@ final class EvidenceParserTests: XCTestCase {
         ].joined(separator: "\n"))
         XCTAssertFalse(prompt.contains(id))
     }
+    func testSyntheticBenchmarkExportHasFingerprintsAndOmitsModelText() throws {
+        let sample = try XCTUnwrap(ScanSample.all.first)
+        let hash = BenchmarkEvidence.fingerprint(try sample.data())
+        XCTAssertEqual(hash.count, 64)
+        let measured = BenchmarkAttempt.measured(expected: sample.expected, proposed: "PRIVATE-CANARY-17",
+                                                 displayed: nil, durationMs: 22)
+        let row = BenchmarkRow(sample: sample, sampleSha256: hash, ocr: measured, model: .failed)
+        let json = try BenchmarkEvidence.encode([row])
+        let text = String(decoding: json, as: UTF8.self)
+        XCTAssertTrue(text.contains(hash))
+        XCTAssertTrue(text.contains("LOCAL_OCR"))
+        XCTAssertFalse(text.contains("ON_DEVICE"))
+        XCTAssertFalse(text.contains("PRIVATE-CANARY"))
+        XCTAssertFalse(text.contains("proposed"))
+    }
+
 }

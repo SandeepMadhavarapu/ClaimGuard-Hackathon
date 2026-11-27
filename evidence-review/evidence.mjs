@@ -109,6 +109,15 @@ export function compareReferenceEvidence(candidate, independent) {
   return candidate.reference === independent.reference ? "matched" : "conflict";
 }
 
+export function decideScanReview(review, evidence) {
+  if (evidence.references > 1) return { status: "conflict", candidate: null };
+  if (!review.candidate) return review;
+  const decision = compareReferenceEvidence(review.candidate, evidence.candidate);
+  if (decision === "manual") return { status: "uncorroborated", candidate: null };
+  if (decision === "conflict") return { status: "disagreement", candidate: null };
+  return { status: "review", candidate: review.candidate, box: evidence.candidate.box };
+}
+
 export function preauthorizationFinding(confirmedReference) {
   // Mirrors the reference-presence check for a claim that requires preauthorization.
   return { rule: PUBLIC_RULE.id, pass: Boolean(confirmedReference), approval: "pending" };
