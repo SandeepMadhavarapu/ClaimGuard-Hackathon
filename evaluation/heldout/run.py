@@ -31,8 +31,13 @@ async () => {
     const right = layout.slots.find(s => s.value === item.expected);
     const best = L.resolveLayoutSlot(JSON.stringify({ slot: right && item.expected ? right.id : 'NONE' }), layout, ev);
     const sweep = L.guardSweep(layout, ev, item.expected);
+    // Realistic model: picks the one value labeled as a payer authorization, else NONE.
+    const labeled = L.labeledValues ? L.labeledValues(layout) : [];
+    const faithfulSlot = labeled.length === 1 ? layout.slots.find(s => s.value === labeled[0]).id : 'NONE';
+    const faithful = L.resolveLayoutSlot(JSON.stringify({ slot: faithfulSlot }), layout, ev);
     return { ...item, ocrReferences: ev.references, ocrShown, valueRead: Boolean(right), gateOk: gate.ok, gateBytes: gate.bytes,
-             bestShown: best.candidate?.reference ?? null, bestStatus: best.status, sweep };
+             bestShown: best.candidate?.reference ?? null, bestStatus: best.status, sweep,
+             faithfulShown: faithful.candidate?.reference ?? null };
   };
   const out = { documents: [], variants: [] };
   for (const d of documents) out.documents.push(await run(d));
@@ -80,8 +85,10 @@ async def main():
         "documents": len(docs), "variants": len(var),
         "ocr_rule": {"documents": tally(docs, "ocrShown"), "variants": tally(var, "ocrShown")},
         "private_layout_best_case": {"documents": tally(docs, "bestShown"), "variants": tally(var, "bestShown")},
+        "private_layout_label_faithful_model": {"documents": tally(docs, "faithfulShown"), "variants": tally(var, "faithfulShown")},
         "private_layout_any_model": {
             "documents_with_a_wrong_value_possible": sum(r["sweep"]["wrongShown"] > 0 for r in docs),
+            "documents_list": [r["file"] for r in docs if r["sweep"]["wrongShown"] > 0],
             "variants_with_a_wrong_value_possible": sum(r["sweep"]["wrongShown"] > 0 for r in var),
             "picks_tried": sum(r["sweep"]["tried"] for r in docs + var),
         },
