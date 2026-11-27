@@ -70,6 +70,21 @@ final class LayoutAndClaimTests: XCTestCase {
         XCTAssertEqual(LayoutRead.resolve(#"{"slot":"NONE"}"#, page: page, ocr: OCREvidence(lines: [])), .conflict)
     }
 
+    func testLabelsBelongToTheFieldTheyPrecede() {
+        let grid = lines("Case number: CASE-3494 Auth. ref: DEMO-PA-571220")
+        let page = LayoutRead.build(grid)
+        XCTAssertEqual(LayoutRead.labeledValues(page), ["DEMO-PA-571220"])
+        XCTAssertEqual(LayoutRead.resolve(#"{"slot":"ID-1"}"#, page: page, ocr: OCREvidence(lines: grid)), .unsupported)
+        let prose = lines("The payer issued preauthorization reference DEMO-PA-463173 for this service.")
+        if case .ready = LayoutRead.resolve(#"{"slot":"ID-1"}"#, page: LayoutRead.build(prose), ocr: OCREvidence(lines: prose)) {} else {
+            XCTFail("a reference stated in a sentence should be readable")
+        }
+        let two = lines("Preauthorization number: DEMO-PA-100001", "Authorization code: AUTH-26-84909")
+        XCTAssertEqual(OCREvidence(lines: two).references.count, 2)
+        XCTAssertNil(OCREvidence(lines: two).candidate)
+        XCTAssertEqual(Lookalikes.note("PA-64O730")?.contains("letter O at position 6, zero at position 9"), true)
+    }
+
     func testClaimPreCheckMatchesTheWebRules() {
         let waiting = ClaimCheck.check(.demo, confirmedReference: nil, scanOutcome: nil)
         XCTAssertEqual(waiting.verdict, .pending)

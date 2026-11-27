@@ -12,6 +12,8 @@ struct LayoutSlot: Equatable, Sendable {
     let id: String
     let value: String
     var lineIndexes: [Int]
+    /// The form words just before each occurrence of this value on its line: its own label.
+    var segments: [String] = []
 }
 
 struct PageLayout: Equatable, Sendable {
@@ -30,7 +32,7 @@ enum LayoutRead {
     a an and or of the to for from by on in at is are was were be been has have had not no yet any this that
     which with without one only each per all both other another
     payer insurer scheme sha nhif shif fund provider
-    preauthorization pre-authorization preauthorisation pre-authorisation preauth pre-auth authorization authorisation
+    preauthorization pre-authorization preauthorisation pre-authorisation preauth pre-auth authorization authorisation pa prior
     auth approval approved approve denied declined rejected pending issued requested request requests awaiting await
     reference references ref refs number numbers no. no id ids code codes identifier
     hospital facility clinic tracking case referral referrals referred claim claims member patient practitioner
@@ -51,7 +53,7 @@ enum LayoutRead {
     private static let maxSlots = 40
     private static let idToken = try! NSRegularExpression(pattern: #"^[A-Za-z0-9][A-Za-z0-9-]{2,39}$"#)
     private static let letterTag = try! NSRegularExpression(pattern: #"^\([A-Za-z]\):?$"#)
-    private static let authLabel = try! NSRegularExpression(pattern: #"\b(pre-?auth\w*|authori[sz]ation|auth|approval)\b"#)
+    private static let authLabel = try! NSRegularExpression(pattern: #"\b(pre-?auth\w*|authori[sz]ation|auth|approval|pa)\b"#)
     private static let otherLabel = try! NSRegularExpression(pattern: #"\b(tracking|case|referral|referred|claim|hospital|facility|member|patient|practitioner|service|date)\b"#)
 
     private static func matches(_ expression: NSRegularExpression, _ text: String) -> Bool {
@@ -79,6 +81,7 @@ enum LayoutRead {
         for (lineIndex, line) in lines.enumerated() {
             var out: [String] = []
             var labelWords: [String] = []
+            var segment: [String] = []
             for raw in line.text.split(whereSeparator: \.isWhitespace).map(String.init) {
                 let (core, colon) = trim(raw)
                 let lower = core.lowercased()
@@ -97,10 +100,13 @@ enum LayoutRead {
                         slotIndex[core] = index
                     }
                     if slots[index].lineIndexes.last != lineIndex { slots[index].lineIndexes.append(lineIndex) }
+                    slots[index].segments.append(segment.joined(separator: " "))
+                    segment = []
                     out.append("[\(slots[index].id)]\(suffix)")
                 } else if vocabulary.contains(lower) {
                     out.append(lower + suffix)
                     labelWords.append(lower)
+                    segment.append(lower)
                 } else if matches(letterTag, raw) {
                     out.append("(\(raw.filter(\.isLetter).uppercased()))\(suffix)")
                 } else if out.last != "…" {
@@ -121,10 +127,12 @@ enum LayoutRead {
     }
 
     private static func authorizationLabeled(_ page: PageLayout, _ slot: LayoutSlot) -> Bool {
-        slot.lineIndexes.contains { index in
-            let labels = page.lineLabels[index]
-            return matches(authLabel, labels) && !matches(otherLabel, labels)
-        }
+        slot.segments.contains { matches(authLabel, $0) && !matches(otherLabel, $0) }
+    }
+
+    /// Distinct values whose own label says payer authorization. Used to detect conflicts on every route.
+    static func labeledValues(_ page: PageLayout) -> [String] {
+        page.slots.filter { authorizationLabeled(page, $0) }.map(\.value)
     }
 
     static func pick(in output: String) -> String? {
@@ -144,9 +152,7 @@ enum LayoutRead {
         guard let slot = page.slots.first(where: { $0.id == choice }),
               authorizationLabeled(page, slot) else { return .unsupported }
         if let independent = ocr.candidate, independent.value.reference != slot.value { return .disagreement }
-        guard let lineIndex = slot.lineIndexes.first(where: { authorizationLabeled(page, LayoutSlot(id: slot.id, value: slot.value, lineIndexes: [$0])) }) ?? slot.lineIndexes.first else {
-            return .unsupported
-        }
+        guard let lineIndex = slot.lineIndexes.first else { return .unsupported }
         let line = page.lines[lineIndex]
         let quote = page.layout.split(separator: "\n").first { $0.contains("[\(slot.id)]") }.map(String.init) ?? ""
         return .ready(ReferenceQuote(reference: slot.value, quote: quote),
