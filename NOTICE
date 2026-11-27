@@ -1,0 +1,12 @@
+ClaimGuard Evidence Review
+Copyright 2026 Sri Venkata Sandeep Madhavarapu
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product bundles third-party components under their own licenses:
+- Tesseract.js, Tesseract core and tessdata (Apache-2.0): evidence-review/ocr-runtime/licenses/
+- evidence-review/vendor/doc-scanner (MIT, Copyright (c) 2026 quannqit)
+- evidence-review/vendor/medocr (Apache-2.0, Copyright 2026 Sumit Sharma)
+- evidence-review/vendor/plainsight (Apache-2.0, Copyright 2026 LevelUpWorldHub)
+- tools/ocr-assets (MIT, Copyright (c) 2026 Bayu Trisnapati, see LICENSE.LabLens)
+Each keeps its original LICENSE file in its folder.

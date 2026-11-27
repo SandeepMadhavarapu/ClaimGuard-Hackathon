@@ -572,9 +572,13 @@ async function explainPolicy(hybrid) {
   status.textContent = "Explaining the synthetic policy with Firebase AI Logic.";
   try {
     const response = await (hybrid ? inference.explainHybrid() : inference.explain());
-    status.textContent = `${sourceAndTime(response)} · AI explanation`;
+    const route = !hybrid ? "Cloud-only request"
+      : response.source === "ON_DEVICE" ? "Answered by Gemini Nano on this device"
+        : "Gemini Nano was not ready, so Firebase AI Logic fell back to the cloud";
+    status.textContent = `${sourceAndTime(response)} · ${route}`;
     explanation.textContent = response.text;
-    recordTrace("Explain policy", response.source, "Explanation returned", response.duration, true);
+    recordTrace(hybrid ? "Explain policy (hybrid)" : "Explain policy (cloud only)", response.source,
+      hybrid && response.source === "IN_CLOUD" ? "Cloud fallback" : "Explanation returned", response.duration, true);
   } catch {
     recordTrace("Explain policy", "UNCONFIRMED", "Explanation unavailable", null, true);
     status.textContent = "AI explanation unavailable. Review the synthetic policy above.";
