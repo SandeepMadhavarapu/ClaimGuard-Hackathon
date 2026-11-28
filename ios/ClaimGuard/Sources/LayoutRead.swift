@@ -196,9 +196,12 @@ enum LayoutRead {
     static func resolve(_ output: String, page: PageLayout, ocr: OCREvidence) -> ScanDecision {
         let labeled = page.slots.filter { authorizationLabeled(page, $0) }
         if ocr.references.count > 1 || labeled.count > 1 { return .conflict }
-        guard let choice = pick(in: output) else { return .unsupported }
+        let choice = pick(in: output)
+        if page.authFragments > 0, choice != "NONE" { return .corroborationMissing }
+        // No payer-labeled value on the page and none from OCR: whatever the model said, there is no reference.
+        if labeled.isEmpty, ocr.references.isEmpty { return .abstained }
+        guard let choice else { return .unsupported }
         if choice == "NONE" { return .abstained }
-        if page.authFragments > 0 { return .corroborationMissing }
         guard let slot = page.slots.first(where: { $0.id == choice }),
               authorizationLabeled(page, slot) else { return .unsupported }
         if let independent = ocr.candidate, independent.value.reference != slot.value { return .disagreement }

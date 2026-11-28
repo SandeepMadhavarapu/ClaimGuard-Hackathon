@@ -185,6 +185,8 @@ export function resolveLayoutSlot(output, layoutResult, ocrEvidence = { referenc
   if (ocrEvidence.references > 1 || labeled.length > 1) return { status: "conflict", candidate: null, pick };
   // A payer label followed by an unreadable identifier fragment: there may be a second reference.
   if (layoutResult.authFragments > 0 && pick !== "NONE") return { status: "uncorroborated", candidate: null, pick };
+  // No payer-labeled value on the page and none from OCR: whatever the model said, there is no reference.
+  if (!labeled.length && !(ocrEvidence.references > 0)) return { status: "empty", candidate: null, pick };
   if (pick === undefined) return { status: "unsupported", candidate: null, pick };
   if (pick === "NONE") return { status: "empty", candidate: null, pick };
   const slot = layoutResult.slots.find(entry => entry.id === pick);

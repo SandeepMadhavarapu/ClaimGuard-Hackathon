@@ -633,10 +633,10 @@ extractOcr.addEventListener("click", async () => {
 
 const layoutMessages = {
   review: ["The OCR value in that slot is shown for confirmation.", "Candidate for review"],
-  empty: ["Gemini found no payer reference slot.", "Abstained"],
+  empty: ["No payer reference is labeled on this page.", "Abstained"],
   unsupported: ["That slot is not labeled as a payer reference, so it was blocked.", "Suggestion blocked"],
   conflict: ["More than one payer reference is labeled on this page. Resolve the conflict manually.", "Conflict blocked"],
-  disagreement: ["Gemini's slot and the OCR rule disagree. Review the scan before manual entry.", "Disagreement blocked"],
+  disagreement: ["The model's slot and the OCR rule disagree. Review the scan before manual entry.", "Disagreement blocked"],
   uncorroborated: ["OCR is not confident in that value. Review the scan before manual entry.", "Uncorroborated proposal blocked"],
 };
 
@@ -729,7 +729,7 @@ el("proof-run").addEventListener("click", async () => {
   const guardWords = { review: "passed, shown for your confirmation", conflict: "held, two payer references", empty: "held, no payer reference",
     unsupported: "blocked, not labeled as a payer reference", disagreement: "held, OCR disagrees", uncorroborated: "held, OCR not confident" };
   const describe = read => read.error ? `Not completed: ${read.error}. Try again in a few seconds.`
-    : `${routeNames[read.route] ?? read.route} · ${read.ms ?? "?"} ms · request ${read.requestBytes} bytes, ${read.identifiersInRequest} identifiers, SHA-256 ${read.requestSha256.slice(0, 12)}… · Gemini picked ${read.modelPick} · guard ${guardWords[read.guard] ?? read.guard}`;
+    : `${routeNames[read.route] ?? read.route} · ${read.ms ?? "?"} ms · request ${read.requestBytes} bytes, ${read.identifiersInRequest} identifiers, SHA-256 ${read.requestSha256.slice(0, 12)}… · the model picked ${read.modelPick} · guard ${guardWords[read.guard] ?? read.guard}`;
   try {
     // 1. Clean scan
     proofStep(0, "running", "Reading the specialist referral: OCR on this device, slots only to Gemini.");
@@ -882,7 +882,10 @@ function renderApprovedAction() {
   const reason = el("next-step-hold");
   if (reason) {
     reason.hidden = !outcomeCode || !held;
-    reason.textContent = held ? `Why: ${claimSummary || "the claim pre-check is not ready"}. While the claim is on hold, ClaimGuard shows only this approved action, not generated text.` : "";
+    const sw = nextStepLanguage() === "sw";
+    reason.textContent = !held ? "" : sw
+      ? `Sababu: ${claimSummary || "ukaguzi wa dai haujakamilika"}. Dai likiwa limesimamishwa, ClaimGuard inaonyesha hatua hii iliyoidhinishwa pekee, si maandishi yaliyotengenezwa na modeli.`
+      : `Why: ${claimSummary || "the claim pre-check is not ready"}. While the claim is on hold, ClaimGuard shows only this approved action, not generated text.`;
   }
   if (held) el("next-step-text").textContent = "";
   updateControls();

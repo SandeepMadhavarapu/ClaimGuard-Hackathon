@@ -90,7 +90,7 @@ test("an OCR rule that read a different reference blocks the pick", () => {
 
 test("pending and hospital-only pages give the model nothing it can return", () => {
   const pending = buildLayout(page("Hospital reference: DEMO-PA-427091", "Preauthorization is pending and no payer reference has been issued."));
-  assert.equal(resolveLayoutSlot('{"slot":"ID-1"}', pending).status, "unsupported");
+  assert.equal(resolveLayoutSlot('{"slot":"ID-1"}', pending).status, "empty");
   assert.match(pending.layout, /preauthorization is pending and no payer reference has been issued/);
 });
 
@@ -156,4 +156,11 @@ test("a payer label followed by an unreadable identifier fragment holds instead 
   assert.equal(layout.authFragments, 1);
   const pick = layout.slots.find(slot => slot.value === "PA-261090").id;
   assert.equal(resolveLayoutSlot(JSON.stringify({ slot: pick }), layout).status, "uncorroborated");
+});
+
+test("a page with no payer-labeled value is a no-reference hold, whatever the model picks", () => {
+  const layout = buildLayout(page("Hospital tracking ID: FAC-01328", "Preauthorization is pending."));
+  for (const pick of [...layout.slots.map(slot => slot.id), "NONE", "garbage"]) {
+    assert.equal(resolveLayoutSlot(JSON.stringify({ slot: pick }), layout).status, "empty", pick);
+  }
 });
