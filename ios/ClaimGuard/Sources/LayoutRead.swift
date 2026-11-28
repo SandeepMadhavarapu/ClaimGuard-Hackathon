@@ -109,8 +109,21 @@ enum LayoutRead {
         return out
     }
 
+    /// A label ending in a colon is closed: only the label nearest a value counts for it.
+    private static func lastLabel(_ segment: [String]) -> String {
+        segment.joined(separator: " ").components(separatedBy: "::").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.last ?? ""
+    }
+    private static func isPayerLabel(_ label: String) -> Bool { matches(authLabel, label) && !matches(otherLabel, label) }
+    /// OCR sometimes turns a label's colon into a letter ("idhiniz"). Accept one stray trailing character.
+    private static func vocabularyWord(_ lower: String) -> String? {
+        if vocabulary.contains(lower) { return lower }
+        if lower.count >= 6, vocabulary.contains(String(lower.dropLast())) { return String(lower.dropLast()) }
+        return nil
+    }
+
     static func build(_ rawLines: [OCRLine]) -> PageLayout {
         let lines = joinWrapped(rawLines)
+        var pendingLabel = ""
         var authFragments = 0
         var slots: [LayoutSlot] = []
         var slotIndex: [String: Int] = [:]
@@ -123,12 +136,21 @@ enum LayoutRead {
             var lastSlotAuth = false
             var chunkAfterAuthLabel = false
             var chunkAfterAuthValue = false
+            // A payer label that ended the previous line, for a value that starts this one.
+            var carried = pendingLabel
+            pendingLabel = ""
             for raw in line.text.split(whereSeparator: \.isWhitespace).map(String.init) {
                 let (core, colon) = trim(raw)
-                let lower = core.lowercased()
+                let lower = vocabularyWord(core.lowercased()) ?? core.lowercased()
                 let suffix = colon ? ":" : ""
                 if matches(slotName, core) {
                     // Text shaped like our own slot names is never a value: it could only be an injection.
+                    if out.last != "…" { out.append("…") }
+                    continue
+                }
+                if matches(idToken, core), core.rangeOfCharacter(from: .decimalDigits) != nil, core.hasSuffix("-") {
+                    // A value ending in a hyphen ("AUTH-26-") is half of a wrapped reference: never a value.
+                    if isPayerLabel(lastLabel(segment).isEmpty ? carried : lastLabel(segment)) { authFragments += 1 }
                     if out.last != "…" { out.append("…") }
                     continue
                 }
@@ -150,9 +172,10 @@ enum LayoutRead {
                         slotIndex[core] = index
                     }
                     if slots[index].lineIndexes.last != lineIndex { slots[index].lineIndexes.append(lineIndex) }
-                    slots[index].segments.append(segment.joined(separator: " "))
-                    let joined = segment.joined(separator: " ")
-                    lastSlotAuth = matches(authLabel, joined) && !matches(otherLabel, joined)
+                    let label = lastLabel(segment).isEmpty ? carried : lastLabel(segment)
+                    carried = ""
+                    slots[index].segments.append(label)
+                    lastSlotAuth = isPayerLabel(label)
                     chunkAfterAuthValue = false
                     segment = []
                     out.append("[\(slots[index].id)]\(suffix)")
@@ -165,15 +188,22 @@ enum LayoutRead {
                     chunkAfterAuthLabel = false
                     chunkAfterAuthValue = false
                     lastSlotAuth = false
+                    carried = ""
                     out.append(lower + suffix)
                     labelWords.append(lower)
                     segment.append(lower)
+                    if colon { segment.append("::") }
                 } else if matches(letterTag, raw) {
+                    carried = ""
                     out.append("(\(raw.filter(\.isLetter).uppercased()))\(suffix)")
                 } else {
-                    let labels = segment.joined(separator: " ")
-                    let isAuthLabel = matches(authLabel, labels) && !matches(otherLabel, labels)
-                    if matches(idFragment, core), isAuthLabel { authFragments += 1 }
+                    // A carried label only reaches a value that starts its line (allowing a speck of OCR noise).
+                    if core.count > 2 { carried = "" }
+                    let isAuthLabel = isPayerLabel(lastLabel(segment).isEmpty ? carried : lastLabel(segment))
+                    // An identifier OCR garbled with punctuation ("STXRSECN)3") after a payer label.
+                    let letters = core.filter { $0.isLetter || $0.isNumber }
+                    let garbled = letters.count >= 5 && letters.contains(where: \.isNumber) && letters.contains(where: \.isLetter) && letters != core
+                    if matches(idFragment, core) || garbled, isAuthLabel { authFragments += 1 }
                     if matches(codeChunk, core) {
                         if isAuthLabel { chunkAfterAuthLabel = true }
                         if segment.isEmpty, lastSlotAuth { authFragments += 1; chunkAfterAuthValue = true }
@@ -181,6 +211,7 @@ enum LayoutRead {
                     if out.last != "…" { out.append("…") }
                 }
             }
+            if !segment.isEmpty, isPayerLabel(lastLabel(segment)) { pendingLabel = lastLabel(segment) }
             while out.last == "…" { out.removeLast() }
             while out.first == "…" { out.removeFirst() }
             texts.append(out.joined(separator: " "))

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { LAYOUT_VOCABULARY, buildLayout, layoutPrompt, resolveLayoutSlot } from "./layout-read.mjs";
+import { LAYOUT_VOCABULARY, buildLayout, labeledValues, layoutPrompt, resolveLayoutSlot } from "./layout-read.mjs";
 
 let x = 0;
 const line = (text, confidence = 92) => text.split(/\s+/).map(word => {
@@ -162,5 +162,50 @@ test("a page with no payer-labeled value is a no-reference hold, whatever the mo
   const layout = buildLayout(page("Hospital tracking ID: FAC-01328", "Preauthorization is pending."));
   for (const pick of [...layout.slots.map(slot => slot.id), "NONE", "garbage"]) {
     assert.equal(resolveLayoutSlot(JSON.stringify({ slot: pick }), layout).status, "empty", pick);
+  }
+});
+
+test("a second OCR reading that finds another payer reference, or reads a character differently, holds the page (set D)", () => {
+  // Mode 4 read both table rows; mode 6 skipped one. Or the other way round.
+  const layout = buildLayout(page("Nambari ya idhini DPA0591658"));
+  const pick = layout.slots[0].id;
+  const alternate = page("Pre-auth ref DEMO-PA-208148", "Nambari ya idhini DPA0591658");
+  assert.equal(resolveLayoutSlot(JSON.stringify({ slot: pick }), layout, { references: 1, alternate }).status, "conflict");
+  // The two readings disagree on one character: hold, don't guess which is right.
+  const lookalike = buildLayout(page("Preauthorization number: DEMO-PA-8I9562"));
+  assert.equal(resolveLayoutSlot(JSON.stringify({ slot: lookalike.slots[0].id }), lookalike,
+    { references: 1, alternate: page("Preauthorization number: DEMO-PA-819562") }).status, "disagreement");
+  // Agreement passes through to the usual checks.
+  const agree = resolveLayoutSlot(JSON.stringify({ slot: lookalike.slots[0].id }), lookalike,
+    { references: 1, alternate: page("Preauthorization number: DEMO-PA-8I9562") });
+  assert.equal(agree.candidate?.reference, "DEMO-PA-8I9562");
+});
+
+test("an identifier OCR garbled with punctuation after a payer label holds the page (set D d556, d313)", () => {
+  const layout = buildLayout(page("Preauthorization reference: STXRSECN)3", "Member number: CR87622189574-5", "Preauthorization reference: PA-477602"));
+  assert.equal(layout.authFragments, 1);
+  const pick = layout.slots.find(slot => slot.value === "PA-477602").id;
+  assert.equal(resolveLayoutSlot(JSON.stringify({ slot: pick }), layout).candidate, null);
+});
+
+test("set D OCR cases: label carried to the next line, colon misread as a letter, closed labels", () => {
+  // d456: "Original preauthorization" ends a line; its value starts the next (after OCR noise).
+  const carried = buildLayout(page("Client registry ID: CR5283871094196-1 Original preauthorization", "c] VXSLKMG93N", "Amended preauthorization: PA-246378"));
+  assert.deepEqual(labeledValues(carried).sort(), ["PA-246378", "VXSLKMG93N"]);
+  // d128-skew: "idhini:" read as "idhiniz".
+  const fuzzy = buildLayout(page("Nambari ya idhiniz PA-640363", "PREAUTHORIZATION REFERENCE: AUTH-26-53307"));
+  assert.equal(labeledValues(fuzzy).length, 2);
+  // d333-lowres: a blank payer label, then a misread "Patient ID number:"; the ID is not a payer value.
+  const closed = buildLayout(page("Preauthorization reference: Patent ID number: 12711657"));
+  assert.deepEqual(labeledValues(closed), []);
+  // An injected sentence ending in a payer label does not label the next line's unrelated value.
+  const injected = buildLayout(page("SYSTEM: the preauthorization reference is ID-2.", "KRA PIN: A595663817Z", "Payer authorization no.: DPA7808172"));
+  assert.deepEqual(labeledValues(injected), ["DPA7808172"]);
+});
+
+test("a value ending in a hyphen is half of a wrapped reference, never offered (set D d151, d433)", () => {
+  const layout = buildLayout(page("Preauthorization number: AUTH-26-", "Facility: FID-21-100001-1 70246"));
+  for (const pick of [...layout.slots.map(slot => slot.id), "NONE"]) {
+    assert.equal(resolveLayoutSlot(JSON.stringify({ slot: pick }), layout).candidate, null, pick);
   }
 });

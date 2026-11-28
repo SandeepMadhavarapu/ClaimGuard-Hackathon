@@ -274,14 +274,26 @@ export function scoreFixture(fixture, result) {
 
 // Characters OCR and people confuse. Returned with 1-based positions so the clerk can check each one.
 const LOOKALIKE_NAMES = { "0": "zero", "O": "letter O", "o": "letter o", "1": "one", "I": "letter I", "l": "letter l" };
+// 8/B, 5/S, 2/Z, 6/G are only ambiguous inside a run that mixes letters and digits ("M7GJ8K2TSB"):
+// in "PA-2345" every digit run is unambiguous, so it gets no warning.
+const MIXED_LOOKALIKES = { 8: "eight", B: "letter B", 5: "five", S: "letter S", 2: "two", Z: "letter Z", 6: "six", G: "letter G" };
 export function lookalikeCharacters(value) {
-  return Array.from(String(value ?? "")).flatMap((character, index) =>
-    LOOKALIKE_NAMES[character] ? [{ position: index + 1, character, name: LOOKALIKE_NAMES[character] }] : []);
+  const text = String(value ?? "");
+  const mixed = new Set();
+  let start = 0;
+  for (const run of text.split("-")) {
+    if (/\d/.test(run) && /[A-Za-z]/.test(run)) for (let offset = 0; offset < run.length; offset += 1) mixed.add(start + offset);
+    start += run.length + 1;
+  }
+  return Array.from(text).flatMap((character, index) => {
+    const name = LOOKALIKE_NAMES[character] ?? (mixed.has(index) ? MIXED_LOOKALIKES[character] : undefined);
+    return name ? [{ position: index + 1, character, name }] : [];
+  });
 }
 
 export function lookalikeNote(value) {
   const found = lookalikeCharacters(value);
   if (!found.length) return "";
   const listed = found.slice(0, 6).map(entry => `${entry.name} at position ${entry.position}`).join(", ");
-  return `Check these characters against the scan: ${listed}${found.length > 6 ? `, and ${found.length - 6} more` : ""}. OCR cannot reliably tell O from 0 or I from 1.`;
+  return `Check these characters against the scan: ${listed}${found.length > 6 ? `, and ${found.length - 6} more` : ""}. OCR cannot reliably tell O from 0, I from 1, or 8 from B in mixed codes.`;
 }

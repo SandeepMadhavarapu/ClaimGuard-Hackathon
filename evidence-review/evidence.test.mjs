@@ -181,9 +181,11 @@ test("generated next-step guidance is discarded if it adds identifiers, numbers 
 
 test("look-alike characters are named with their positions", async () => {
   const { lookalikeCharacters, lookalikeNote } = await import("./evidence.mjs");
-  assert.deepEqual(lookalikeCharacters("PA-64O730").map(entry => [entry.position, entry.name]), [[6, "letter O"], [9, "zero"]]);
+  assert.deepEqual(lookalikeCharacters("PA-64O730").map(entry => [entry.position, entry.name]), [[4, "six"], [6, "letter O"], [9, "zero"]]);
   assert.match(lookalikeNote("DEM0-PA-1"), /zero at position 4, one at position 9/);
   assert.equal(lookalikeNote("PA-2345"), "");
+  // Mixed letter-and-digit codes also flag 8/B, 9-free: set D showed M7GJ8K2TSB read as M7GJIBK2TSB.
+  assert.deepEqual(lookalikeCharacters("M7GJ8K2TSB").map(entry => entry.name), ["letter G", "eight", "two", "letter S", "letter B"]);
 });
 
 test("on a held claim no generated text is shown, only the approved action and the app's reason", async () => {

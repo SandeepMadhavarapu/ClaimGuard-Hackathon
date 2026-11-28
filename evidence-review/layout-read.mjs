@@ -89,6 +89,17 @@ const ID_FRAGMENT = /^[A-Za-z0-9]*(\d|[A-Za-z0-9]-)[A-Za-z0-9-]*$/;
 // A short upper-case chunk ("HLZ", "BHB") next to a payer value: a code printed in pieces.
 const CODE_CHUNK = /^[A-Z0-9]{2,6}$/;
 
+// A label ending in a colon is closed: only the label nearest a value counts for it, so in
+// "Preauthorization reference: [blank] Patient ID number: 12711657" the number is not a payer value.
+const lastLabel = segment => segment.join(" ").split("::").map(part => part.trim()).filter(Boolean).at(-1) ?? "";
+const isAuthLabel = label => AUTH_LABEL.test(label) && !OTHER_LABEL.test(label);
+// OCR sometimes turns a label's colon into a letter ("idhiniz"). Accept one stray trailing character.
+function vocabularyWord(lower) {
+  if (LAYOUT_VOCABULARY.has(lower)) return lower;
+  if (lower.length >= 6 && LAYOUT_VOCABULARY.has(lower.slice(0, -1))) return lower.slice(0, -1);
+  return null;
+}
+
 // lines: OCR lines, each an array of { text, bbox, confidence }.
 export function buildLayout(rawLines) {
   const lines = joinWrappedIdentifiers(rawLines);
@@ -96,10 +107,14 @@ export function buildLayout(rawLines) {
   const slots = [];
   const byValue = new Map();
   const layoutLines = [];
+  let pendingLabel = "";
   for (const [lineIndex, words] of lines.entries()) {
     const out = [];
     const labelWords = [];
     let segment = [];
+    // A payer label that ended the previous line, for a value that starts this one.
+    let carried = pendingLabel;
+    pendingLabel = "";
     let lastSlotAuth = false;
     let chunkAfterAuthLabel = false;
     let chunkAfterAuthValue = false;
@@ -107,9 +122,15 @@ export function buildLayout(rawLines) {
       const raw = String(word.text ?? "").trim();
       if (!raw) continue;
       const { core, trailing } = trimPunctuation(raw);
-      const lower = core.toLowerCase();
+      const lower = vocabularyWord(core.toLowerCase()) ?? core.toLowerCase();
       if (SLOT_NAME.test(core)) {
         // Text that looks like our own slot names is never a value: it could only be an injection.
+        if (out.at(-1) !== "…") out.push("…");
+        continue;
+      }
+      if (ID_TOKEN.test(core) && /\d/.test(core) && core.endsWith("-")) {
+        // A value ending in a hyphen ("AUTH-26-") is the first half of a wrapped reference: never a value.
+        if (isAuthLabel(lastLabel(segment) || carried)) authFragments += 1;
         if (out.at(-1) !== "…") out.push("…");
         continue;
       }
@@ -130,8 +151,10 @@ export function buildLayout(rawLines) {
         slot.words.push(word);
         // The label for this value is the form words since the previous value on the same line,
         // so a card or grid row with two fields doesn't mix their labels.
-        slot.segments.push(segment.join(" "));
-        lastSlotAuth = AUTH_LABEL.test(segment.join(" ")) && !OTHER_LABEL.test(segment.join(" "));
+        const label = lastLabel(segment) || carried;
+        carried = "";
+        slot.segments.push(label);
+        lastSlotAuth = isAuthLabel(label);
         chunkAfterAuthValue = false;
         segment = [];
         out.push(`[${slot.id}]${trailing}`);
@@ -145,16 +168,23 @@ export function buildLayout(rawLines) {
         chunkAfterAuthLabel = false;
         chunkAfterAuthValue = false;
         lastSlotAuth = false;
+        carried = "";
         out.push(lower + trailing);
         labelWords.push(lower);
         segment.push(lower);
+        if (trailing.includes(":")) segment.push("::");
       } else if (LETTER_TAG.test(raw)) {
+        carried = "";
         out.push(`(${raw.replace(/[^A-Za-z]/g, "").toUpperCase()})${trailing}`);
       } else {
         // A broken identifier right after a payer label means the reference can't be read whole.
-        const labels = segment.join(" ");
-        const authLabel = AUTH_LABEL.test(labels) && !OTHER_LABEL.test(labels);
-        if (ID_FRAGMENT.test(core) && authLabel) authFragments += 1;
+        // A carried label only reaches a value that starts its line (allowing a speck of OCR noise).
+        if (core.length > 2) carried = "";
+        const authLabel = isAuthLabel(lastLabel(segment) || carried);
+        // An identifier OCR garbled with punctuation ("STXRSECN)3", "ANG29X|BX2") after a payer label.
+        const letters = core.replace(/[^A-Za-z0-9]/g, "");
+        const garbled = letters.length >= 5 && /\d/.test(letters) && /[A-Za-z]/.test(letters) && letters !== core;
+        if ((ID_FRAGMENT.test(core) || garbled) && authLabel) authFragments += 1;
         if (CODE_CHUNK.test(core)) {
           if (authLabel) chunkAfterAuthLabel = true;
           if (!segment.length && lastSlotAuth) { authFragments += 1; chunkAfterAuthValue = true; }
@@ -164,6 +194,7 @@ export function buildLayout(rawLines) {
     }
     while (out.at(-1) === "…") out.pop();
     while (out[0] === "…") out.shift();
+    if (segment.length && isAuthLabel(lastLabel(segment))) pendingLabel = lastLabel(segment);
     layoutLines.push({ text: out.join(" "), labels: labelWords.join(" ") });
   }
   return {
@@ -204,6 +235,17 @@ export function resolveLayoutSlot(output, layoutResult, ocrEvidence = { referenc
   const pick = parseSlot(output);
   const labeled = layoutResult.slots.filter(slot => authorizationLabeled(layoutResult, slot));
   if (ocrEvidence.references > 1 || labeled.length > 1) return { status: "conflict", candidate: null, pick };
+  // A second, independent OCR reading of the same scan (a different page-segmentation mode). If it
+  // finds another payer reference, reads a character differently or hits an unreadable fragment,
+  // the two readings disagree, and the page is held.
+  if (ocrEvidence.alternate) {
+    const alternate = buildLayout(ocrEvidence.alternate);
+    const alternateLabeled = alternate.slots.filter(slot => authorizationLabeled(alternate, slot)).map(slot => slot.value);
+    if (alternateLabeled.length > 1) return { status: "conflict", candidate: null, pick };
+    const values = new Set([...labeled.map(slot => slot.value), ...alternateLabeled]);
+    if (values.size > 1) return { status: "disagreement", candidate: null, pick };
+    if (alternate.authFragments > 0 && pick !== "NONE") return { status: "uncorroborated", candidate: null, pick };
+  }
   // A payer label followed by an unreadable identifier fragment: there may be a second reference.
   if (layoutResult.authFragments > 0 && pick !== "NONE") return { status: "uncorroborated", candidate: null, pick };
   // No payer-labeled value on the page and none from OCR: whatever the model said, there is no reference.

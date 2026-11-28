@@ -15,12 +15,14 @@ from playwright.async_api import async_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SET_FILE = "cases"  # cases.json = set A; cases-b.json = set B
+PSM = None  # optional Tesseract page segmentation mode override for experiments
 JS = """
 async () => {
   const ocr = await import('./ocr-evidence.mjs');
   const L = await import('./layout-read.mjs');
   const { documents, variants } = await (await fetch('./heldout/' + (window.__set || 'cases') + '.json')).json();
-  await ocr.prepareOcr();
+  const worker = await ocr.prepareOcr();
+  if (window.__psm) await worker.setParameters({ tessedit_pageseg_mode: window.__psm });
   const run = async item => {
     const blob = await (await fetch('./heldout/' + item.file)).blob();
     const ev = await ocr.readScanLayoutEvidence(blob);
@@ -71,6 +73,7 @@ async def main():
             page = await browser.new_page()
             await page.goto("http://localhost:8799/index.html")
             await page.evaluate(f"window.__set = {json.dumps(SET_FILE)}")
+            if PSM: await page.evaluate(f"window.__psm = {json.dumps(PSM)}")
             result = await page.evaluate(JS)
             await browser.close()
     finally:
@@ -78,7 +81,7 @@ async def main():
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     if subprocess.run(["git", "status", "--porcelain", "--", "evidence-review"], cwd=ROOT, capture_output=True, text=True).stdout.strip():
         commit += "-dirty"
-    label = "A" if SET_FILE == "cases" else "B"
+    label = "A" if SET_FILE == "cases" else SET_FILE.split("-")[-1].upper()
     docs, var = result["documents"], result["variants"]
     summary = {
         "commit": commit,
@@ -96,7 +99,7 @@ async def main():
         "ocr_read_expected_value": sum(r["valueRead"] for r in docs if r["expected"]),
     }
     summary["set"] = label
-    out = ROOT / "evaluation" / "heldout" / f"results-{label}-{commit}.json"
+    out = ROOT / "evaluation" / "heldout" / f"results-{label}-{commit}{'-psm' + PSM if PSM else ''}.json"
     out.write_text(json.dumps({"summary": summary, "rows": result}, indent=1) + "\n")
     print(json.dumps(summary, indent=1))
     for r in docs:
@@ -106,4 +109,6 @@ async def main():
 
 if len(sys.argv) > 1:
     SET_FILE = sys.argv[1]
+if len(sys.argv) > 2:
+    PSM = sys.argv[2]
 asyncio.run(main())

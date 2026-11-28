@@ -353,10 +353,26 @@ enum GuidancePolicy {
 enum Lookalikes {
     private static let names: [Character: String] = ["0": "zero", "O": "letter O", "o": "letter o", "1": "one", "I": "letter I", "l": "letter l"]
 
+    /// 8/B, 5/S, 2/Z, 6/G are only ambiguous inside a run that mixes letters and digits.
+    private static let mixedNames: [Character: String] = ["8": "eight", "B": "letter B", "5": "five", "S": "letter S", "2": "two", "Z": "letter Z", "6": "six", "G": "letter G"]
+
+    static func characters(_ value: String) -> [(position: Int, name: String)] {
+        var mixed = Set<Int>()
+        var start = 0
+        for run in value.split(separator: "-", omittingEmptySubsequences: false) {
+            if run.contains(where: \.isNumber), run.contains(where: \.isLetter) { for offset in 0..<run.count { mixed.insert(start + offset) } }
+            start += run.count + 1
+        }
+        return value.enumerated().compactMap { index, character in
+            let name = names[character] ?? (mixed.contains(index) ? mixedNames[character] : nil)
+            return name.map { (index + 1, $0) }
+        }
+    }
+
     static func note(_ value: String) -> String? {
-        let found = value.enumerated().compactMap { index, character in names[character].map { "\($0) at position \(index + 1)" } }
+        let found = characters(value).map { "\($0.name) at position \($0.position)" }
         guard !found.isEmpty else { return nil }
         let listed = found.prefix(6).joined(separator: ", ") + (found.count > 6 ? ", and \(found.count - 6) more" : "")
-        return "Check these characters against the scan: \(listed). OCR cannot reliably tell O from 0 or I from 1."
+        return "Check these characters against the scan: \(listed). OCR cannot reliably tell O from 0, I from 1, or 8 from B in mixed codes."
     }
 }
