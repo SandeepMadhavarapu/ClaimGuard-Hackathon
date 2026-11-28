@@ -226,3 +226,5 @@ a { color: #225843; }
 .proof li[data-state="running"] strong::after { content: " · in progress"; color: #8a6d00; font-weight: 600; }
 .proof li[data-state="done"] strong::after { content: " ✓"; color: #1f6b46; }
 .proof li[data-state="failed"] strong::after { content: " · not completed"; color: #a42121; }
+
+.next-step-action { background: #eef6f0; border: 1px solid #cfe5d6; border-radius: 10px; padding: 10px 12px; }
