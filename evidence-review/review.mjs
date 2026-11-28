@@ -3,7 +3,7 @@ import {
   parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
-import { compareBenchmarkRuns, rateLimitDelayMs, shareableBenchmark, runLayoutBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
+import { benchmarkCsv, compareBenchmarkRuns, rateLimitDelayMs, shareableBenchmark, runLayoutBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
 import { imageModelAvailability } from "./browser-readiness.mjs";
 import { DEMO_CLAIM, DEMO_CLAIM_WITH_ERRORS, checkClaim, operationOutcome } from "./claim-check.mjs";
 import { setupInference } from "./firebase-ai.mjs";
@@ -88,6 +88,10 @@ function downloadJson(value, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Benchmarks pace cloud calls under the free tier (15 requests per minute). ?pace=0 removes the pause
+// for long on-device runs; any cloud fallback is still retried on a rate limit.
+const PACE_MS = (() => { const value = Number(new URLSearchParams(location.search).get("pace")); return Number.isFinite(value) && value >= 0 && new URLSearchParams(location.search).has("pace") ? Math.min(value, 10000) : 4200; })();
+
 let build = { commit: "local", builtAt: null };
 fetch("./build.json", { cache: "no-store" }).then(response => response.ok ? response.json() : null).then(value => {
   if (value?.commit) build = value;
@@ -95,16 +99,21 @@ fetch("./build.json", { cache: "no-store" }).then(response => response.ok ? resp
   if (stamp) stamp.textContent = `Build ${build.commit}${build.builtAt ? ` · ${build.builtAt.slice(0, 10)}` : ""}`;
 }).catch(() => {});
 
-el("export-trace").addEventListener("click", () => {
-  if (trace.length) {
-    downloadJson({
-      schemaVersion: 2,
-      kind: "claimguard-run-receipt",
-      scope: "In-app actions and SDK-reported inference routes. Synthetic documents only; no scan, reference or document text.",
-      build,
-      exportedAt: new Date().toISOString(),
-      events: trace,
-    }, "claimguard-run-receipt.json");
+el("export-trace").addEventListener("click", async () => {
+  if (!trace.length) return;
+  const receipt = {
+    schemaVersion: 3,
+    kind: "claimguard-run-receipt",
+    scope: "In-app actions and SDK-reported inference routes. Synthetic documents only; no scan, reference or document text.",
+    build,
+    exportedAt: new Date().toISOString(),
+    steps: trace,
+  };
+  try {
+    const { signReceipt } = await import("./receipts.mjs");
+    downloadJson(await signReceipt(receipt), "claimguard-run-receipt.json");
+  } catch {
+    downloadJson(receipt, "claimguard-run-receipt.json");
   }
 });
 
@@ -255,6 +264,7 @@ function updateControls() {
   el("evaluate-heldout").disabled = busy || !inference;
   el("proof-run").disabled = busy || !inference;
   exportEvaluation.disabled = busy || !(latestBenchmark || latestOcrBenchmark || latestLayoutBenchmark);
+  el("export-evaluation-csv").disabled = exportEvaluation.disabled;
   manual.inert = busy || !canReview;
   manual.hidden = !canReview;
   straighten.disabled = busy || scanLoading || !currentImage;
@@ -767,7 +777,16 @@ el("proof-run").addEventListener("click", async () => {
     runButton.disabled = false;
   }
 });
-el("proof-download").addEventListener("click", () => { if (proofReceipt) downloadJson(proofReceipt, "claimguard-proof-receipt.json"); });
+el("proof-download").addEventListener("click", async () => {
+  if (!proofReceipt) return;
+  const { egressManifest, signReceipt } = await import("./receipts.mjs");
+  const receipt = { ...proofReceipt, ...egressManifest(proofReceipt.steps) };
+  try {
+    downloadJson(await signReceipt(receipt), "claimguard-proof-receipt.json");
+  } catch {
+    downloadJson(receipt, "claimguard-proof-receipt.json");
+  }
+});
 
 extract.addEventListener("click", async () => {
   const scanning = mode === "scan";
@@ -1033,6 +1052,16 @@ evaluateOcr.addEventListener("click", async () => {
   }
 });
 
+el("export-evaluation-csv").addEventListener("click", () => {
+  const file = new Blob([benchmarkCsv(latestLayoutBenchmark, latestBenchmark, latestOcrBenchmark)], { type: "text/csv" });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "claimguard-findings.csv";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
 exportEvaluation.addEventListener("click", () => {
   if (!latestBenchmark && !latestOcrBenchmark && !latestLayoutBenchmark) return;
   downloadJson({ ...shareableBenchmark(latestBenchmark, latestOcrBenchmark, latestLayoutBenchmark), build }, "claimguard-web-benchmark.json");
@@ -1054,7 +1083,7 @@ async function runLayout(fixtures, readSample, label) {
       readLayoutEvidence: ocr.readScanLayoutEvidence,
       readLayout: (prompt, slotIds) => inference.readLayout(prompt, slotIds),
       ...layoutRead,
-      paceMs: 4200,
+      paceMs: PACE_MS,
       onProgress: (current, total) => { status.textContent = `${label} · document ${current} of ${total} · paced under the free-tier limit of 15 requests per minute.`; },
     });
     const { summary, rows } = latestLayoutBenchmark;
@@ -1092,7 +1121,9 @@ async function runLayout(fixtures, readSample, label) {
 
 el("evaluate-heldout").addEventListener("click", async () => {
   // ?heldout=c runs the blind set C generated after the slot-enum change; set B is the default.
-  const set = new URLSearchParams(location.search).get("heldout") === "c" ? "c" : "b";
+  // ?heldout=c or d selects the later synthetic sets; set B is the default.
+  const requested = new URLSearchParams(location.search).get("heldout");
+  const set = ["c", "d"].includes(requested) ? requested : "b";
   const response = await fetch(`./heldout/cases-${set}.json`);
   if (!response.ok) { el("eval-layout-status").textContent = "The held-out set could not be loaded."; return; }
   const { documents } = await response.json();
@@ -1120,7 +1151,7 @@ el("evaluate-layout").addEventListener("click", async () => {
       readLayoutEvidence: ocr.readScanLayoutEvidence,
       readLayout: (prompt, slotIds) => inference.readLayout(prompt, slotIds),
       ...layoutRead,
-      paceMs: 4200,
+      paceMs: PACE_MS,
       onProgress: (current, total) => { status.textContent = `Private layout · scan ${current} of ${total}.`; },
     });
     const { summary } = latestLayoutBenchmark;

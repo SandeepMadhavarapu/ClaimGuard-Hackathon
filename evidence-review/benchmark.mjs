@@ -365,3 +365,18 @@ export async function runLayoutBenchmark({
     rows,
   };
 }
+
+// CSV of per-document findings, for a spreadsheet. Synthetic samples only: reference values are the
+// synthetic demo references; no document text.
+export function benchmarkCsv(...runs) {
+  const columns = ["run", "sample", "label", "expectedReference", "outcome", "lostAt", "pick", "inferenceSource", "milliseconds"];
+  const cell = value => {
+    const text = value === null || value === undefined ? "" : String(value);
+    return /[",\n]/.test(text) || /^[=+\-@]/.test(text) ? `"${text.replace(/^([=+\-@])/, "'$1").replace(/"/g, '""')}"` : text;
+  };
+  const lines = [columns.join(",")];
+  for (const run of runs.filter(Boolean)) {
+    for (const row of run.rows ?? []) lines.push(columns.map(column => cell(column === "run" ? run.mode : row[column])).join(","));
+  }
+  return lines.join("\n") + "\n";
+}

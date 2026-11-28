@@ -72,8 +72,12 @@ export function prepareOcr() {
   return worker;
 }
 
-async function readScanLines(image) {
-  const { data } = await (await prepareOcr()).recognize(image, {}, { blocks: true });
+// Tesseract page-segmentation modes: 6 reads the page as one block (it can skip bordered table rows);
+// 4 reads columns of lines (keeps table rows with their labels). The private layout read uses both.
+async function readScanLines(image, mode = "6") {
+  const ocrWorker = await prepareOcr();
+  await ocrWorker.setParameters({ tessedit_pageseg_mode: mode });
+  const { data } = await ocrWorker.recognize(image, {}, { blocks: true });
   return (data.blocks ?? []).flatMap(block =>
     block.paragraphs.flatMap(paragraph => paragraph.lines.map(line => line.words)));
 }
@@ -93,6 +97,8 @@ export async function locateOnScan(image, reference) {
 
 // Lines plus the OCR rule's own reading, for the private layout read.
 export async function readScanLayoutEvidence(image) {
-  const lines = await readScanLines(image);
-  return { lines, candidate: readOcrCandidate(lines), references: countOcrReferences(lines) };
+  const lines = await readScanLines(image, "4");
+  const alternate = await readScanLines(image, "6");
+  return { lines, alternate, candidate: readOcrCandidate(lines),
+    references: Math.max(countOcrReferences(lines), countOcrReferences(alternate)) };
 }

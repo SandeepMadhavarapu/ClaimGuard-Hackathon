@@ -55,7 +55,8 @@
           <li data-state="waiting"><strong>Conflicting references</strong><span class="proof-detail"></span></li>
           <li data-state="waiting"><strong>Next-step guidance</strong><span class="proof-detail"></span></li>
         </ol>
-        <button type="button" class="secondary" id="proof-download" hidden>Download proof receipt</button>
+        <button type="button" class="secondary" id="proof-download" hidden>Download signed proof receipt</button>
+        <a href="./verify.html" class="fine">Verify a receipt ↗</a>
       </div>
       <div class="judge-actions">
         <button type="button" class="scenario" id="judge-referral" data-scan="referral.png" aria-pressed="true">
@@ -246,6 +247,7 @@
       <button id="evaluate-layout" type="button" class="secondary" disabled>Run private layout · hybrid</button>
       <button id="evaluate-heldout" type="button" class="secondary" disabled>Run held-out set B · 50 new documents</button>
       <button id="export-evaluation" type="button" class="secondary" disabled>Export benchmark JSON</button>
+      <button id="export-evaluation-csv" type="button" class="secondary" disabled>Export findings CSV</button>
       <p id="eval-status" class="fine status" role="status"></p>
       <p id="eval-metrics" class="fine"></p>
       <p id="eval-ocr-status" class="fine status" role="status"></p>

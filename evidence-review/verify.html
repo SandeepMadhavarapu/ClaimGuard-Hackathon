@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verify a receipt | ClaimGuard</title>
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    .verify { max-width: 860px; margin: 32px auto; padding: 0 20px; }
+    .verify textarea { width: 100%; min-height: 160px; font: 13px/1.4 ui-monospace, monospace; }
+    .checks { list-style: none; padding: 0; }
+    .checks li { padding: 8px 10px; border-radius: 8px; margin: 6px 0; }
+    .checks li[data-ok="true"] { background: #eef6f0; }
+    .checks li[data-ok="false"] { background: #fdecec; }
+    .verdict { font-size: 1.3rem; font-weight: 600; margin: 16px 0 6px; }
+    table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+    td, th { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
+    @media (max-width: 760px) { table { display: block; overflow-x: auto; white-space: nowrap; } }
+  </style>
+</head>
+<body>
+  <main class="verify">
+    <p><a href="./?judge=1">← ClaimGuard</a></p>
+    <h1>Verify a receipt</h1>
+    <p>Load a <strong>signed proof receipt</strong> or <strong>run receipt</strong> downloaded from ClaimGuard. This page checks it entirely in your browser: the hash chain over every step, the signature made by a key that never left the device that produced it, and the egress manifest of what was sent. Change one character and the signature check fails.</p>
+    <p class="fine">What a valid signature proves: the receipt was not altered after it was produced. It does not prove the producing device is honest; the published code, the tests and the leak gate cover that.</p>
+    <p><input type="file" id="file" accept="application/json,.json"></p>
+    <p><textarea id="text" placeholder="…or paste the receipt JSON here"></textarea></p>
+    <p><button type="button" id="check">Verify</button></p>
+    <div id="verdict" class="verdict" role="status"></div>
+    <ul id="checks" class="checks"></ul>
+    <div id="manifest"></div>
+  </main>
+  <script type="module">
+    import { verifyReceipt } from "./receipts.mjs";
+    const el = id => document.getElementById(id);
+    const escape = value => String(value ?? "").replace(/[&<>"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
+    el("file").addEventListener("change", async event => { el("text").value = await event.target.files[0].text(); el("check").click(); });
+    el("check").addEventListener("click", async () => {
+      let receipt;
+      try { receipt = JSON.parse(el("text").value); } catch { el("verdict").textContent = "That is not valid JSON."; return; }
+      const result = await verifyReceipt(receipt);
+      el("verdict").textContent = result.ok ? "✓ Receipt verified" : "✗ Receipt failed verification";
+      el("checks").innerHTML = result.checks.map(check => `<li data-ok="${check.ok}">${check.ok ? "✓" : "✗"} ${escape(check.name)}${check.detail ? ` · <span class="fine">${escape(check.detail)}</span>` : ""}</li>`).join("");
+      const egress = receipt.egress ?? [];
+      el("manifest").innerHTML = egress.length || receipt.stayedOnDevice ? `<h2>Egress manifest</h2>
+        <table><thead><tr><th>Step</th><th>Route</th><th>Bytes</th><th>Identifiers</th><th>SHA-256 of the exact request</th></tr></thead><tbody>
+        ${egress.map(entry => `<tr><td>${escape(entry.step)}</td><td>${escape(entry.route)}</td><td>${escape(entry.bytes)}</td><td>${escape(entry.identifiers)}</td><td><code>${escape(entry.sha256)}</code></td></tr>`).join("")}
+        </tbody></table>
+        <h2>Stayed on the device</h2><ul>${(receipt.stayedOnDevice ?? []).map(item => `<li>${escape(item)}</li>`).join("")}</ul>` : "";
+    });
+  </script>
+</body>
+</html>
