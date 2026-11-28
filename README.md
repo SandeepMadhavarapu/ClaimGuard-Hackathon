@@ -126,7 +126,7 @@ Reading the whole image with Nano varies by machine and model build; the private
 node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test.mjs"
 ```
 
-59 tests cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
+83 Web tests (plus 23 iOS tests) cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK, plus a stress suite built from public formats in the SHA claims guide (preauth and provider tokens, CR, SHA, FID, PUID and intervention codes, claim UUIDs), Kenyan ID, phone and KRA PIN shapes, prompt injection, Kiswahili labels, OCR splits, line wraps and Unicode dashes: under every possible model answer, no wrong value is shown and no identifier reaches a prompt. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
 
 ## Built with
 
