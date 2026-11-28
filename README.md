@@ -121,7 +121,7 @@ The one miss on every Web route is the deliberate O-versus-0 scan: OCR reads the
 node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test.mjs"
 ```
 
-58 tests cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
+59 tests cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
 
 ## Built with
 

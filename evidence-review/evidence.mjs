@@ -93,6 +93,50 @@ export function groundNextStep(text) {
   return { ok: true };
 }
 
+// Guidance policy. The app, not the model, decides which action is allowed: a vetted first action
+// per outcome and claim verdict, in English and Kiswahili. Model text is only an explanation, and a
+// deny rule overrides it when it recommends something the verdict forbids. (Kiswahili action text
+// was written for this demo and should be reviewed by a native speaker before production use.)
+export const APPROVED_ACTIONS = Object.freeze({
+  CONFLICT: { id: "ask-payer-which-reference", en: "Ask the payer which reference applies to this service and date. Do not choose one yourself.",
+    sw: "Uliza mlipaji ni rejea ipi inayohusu huduma hii na tarehe hii. Usichague rejea wewe mwenyewe." },
+  NO_REFERENCE: { id: "get-preauthorization-first", en: "Hold the claim and get the preauthorization reference from the payer before submitting.",
+    sw: "Simamisha dai na upate rejea ya uidhinishaji kutoka kwa mlipaji kabla ya kuwasilisha." },
+  NEEDS_REVIEW: { id: "compare-with-original", en: "Compare the reference with the original scan character by character before recording it.",
+    sw: "Linganisha rejea na nakala asili herufi kwa herufi kabla ya kuiandika." },
+  RECORDED_READY: { id: "confirm-approval-then-submit", en: "Confirm the approval with the payer, then submit the claim within the filing window.",
+    sw: "Thibitisha idhini na mlipaji, kisha wasilisha dai ndani ya muda wa kuwasilisha." },
+  RECORDED_HOLD: { id: "fix-claim-before-submitting", en: "Fix the claim pre-check issues before submitting. The reference is recorded, but the claim is on hold.",
+    sw: "Rekebisha makosa ya ukaguzi wa dai kabla ya kuwasilisha. Rejea imeandikwa, lakini dai limesimamishwa." },
+});
+
+export function approvedAction(code, claimVerdict, language = "en") {
+  const key = code === "RECORDED" ? (claimVerdict === "ready" ? "RECORDED_READY" : "RECORDED_HOLD") : code;
+  const action = APPROVED_ACTIONS[key];
+  if (!action) return null;
+  return { id: action.id, text: language === "sw" ? action.sw : action.en };
+}
+
+const SUBMIT = /\b(submit\w*|send(?:ing)? (?:the|this) claim|file (?:the|this) claim|lodge\w*|wasilish\w*|tuma dai|peleka dai)\b/i;
+const CHOOSE = /\b(use|choose|pick|select|go with|tumia|chagua)\b[^.]{0,40}\b(first|second|newer|newest|latest|older|higher|lower|either|one of|ya kwanza|ya pili|mojawapo)\b/i;
+const NEGATED = /\b(do not|don't|never|not|no|avoid|before|until|unless|only after|once|after the payer|hold|usi\w+|kabla ya|hadi|mpaka|baada ya)\b/i;
+
+function affirmativeClauses(text) {
+  return String(text).split(/[.;!?\n]+|\bbut\b|\bhowever\b|\blakini\b/i).map(clause => clause.trim()).filter(Boolean)
+    .filter(clause => !NEGATED.test(clause));
+}
+
+// Deny rules that override generated guidance. Returns { ok, reason }.
+export function guidancePolicy(text, { code, claimVerdict }) {
+  const grounded = groundNextStep(text);
+  if (!grounded.ok) return grounded;
+  const clauses = affirmativeClauses(text);
+  const submitAllowed = code === "RECORDED" && claimVerdict === "ready";
+  if (!submitAllowed && clauses.some(clause => SUBMIT.test(clause))) return { ok: false, reason: "recommends submitting while the claim is not ready" };
+  if (code !== "RECORDED" && clauses.some(clause => CHOOSE.test(clause))) return { ok: false, reason: "picks a reference without payer confirmation" };
+  return { ok: true };
+}
+
 // Maps a review decision to an outcome code. A candidate still awaiting the clerk has no code yet.
 export function nextStepCode(status) {
   return {

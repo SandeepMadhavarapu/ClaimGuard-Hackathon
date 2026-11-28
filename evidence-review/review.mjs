@@ -1,5 +1,5 @@
 import {
-  CASES, NEXT_STEPS, groundNextStep, lookalikeNote, NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
+  CASES, NEXT_STEPS, approvedAction, guidancePolicy, lookalikeNote, NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
   parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
@@ -134,8 +134,11 @@ function fillClaim(claim) {
   renderClaimCheck();
 }
 
+let claimVerdict = "pending";
 function renderClaimCheck() {
   const result = checkClaim(readClaim(), confirmedReference, outcomeCode);
+  claimVerdict = result.verdict;
+  renderApprovedAction();
   const verdict = el("claim-verdict");
   verdict.dataset.verdict = result.verdict;
   verdict.textContent = result.summary;
@@ -191,6 +194,7 @@ function renderNextStepLanguage() {
 function setOutcome(code) {
   outcomeCode = code;
   if (claimForm) renderClaimCheck();
+  else renderApprovedAction();
   el("next-step").hidden = !code;
   el("next-step-status").textContent = "";
   el("next-step-text").textContent = "";
@@ -858,7 +862,20 @@ for (const radio of document.querySelectorAll('input[name="next-step-language"]'
     el("next-step-status").textContent = "";
     el("next-step-text").textContent = "";
     renderNextStepLanguage();
+    renderApprovedAction();
   });
+}
+
+function renderApprovedAction() {
+  const target = el("next-step-action");
+  if (!target) return;
+  const action = outcomeCode && approvedAction(outcomeCode, claimVerdict, nextStepLanguage());
+  target.hidden = !action;
+  if (action) {
+    target.querySelector("strong").textContent = nextStepLanguage() === "sw" ? "Hatua iliyoidhinishwa:" : "Approved action:";
+    target.querySelector("span").textContent = ` ${action.text}`;
+    target.dataset.action = action.id;
+  }
 }
 
 el("next-step-run").addEventListener("click", async () => {
@@ -876,9 +893,9 @@ el("next-step-run").addEventListener("click", async () => {
     const route = response.source === "ON_DEVICE" ? "Answered by Gemini Nano on this device"
       : language === "sw" ? "Kiswahili is not a Gemini Nano output language, so this public request ran in the cloud"
         : "Gemini Nano was not ready, so Firebase AI Logic fell back to the cloud";
-    const grounded = groundNextStep(response.text);
-    status.textContent = grounded.ok ? `${sourceAndTime(response)} · ${route}`
-      : `${sourceAndTime(response)} · ${route} · Answer discarded (${grounded.reason} not in the checklist). Follow the checklist above.`;
+    const grounded = guidancePolicy(response.text, { code, claimVerdict });
+    status.textContent = grounded.ok ? `${sourceAndTime(response)} · ${route} · Explanation checked against the approved action`
+      : `${sourceAndTime(response)} · ${route} · Explanation discarded (${grounded.reason}). Follow the approved action above.`;
     text.textContent = grounded.ok ? response.text : "";
     recordTrace(`Next step (${NEXT_STEPS[code].label}, ${NEXT_STEP_LANGUAGES[language].name})`, response.source,
       language === "sw" ? "Cloud by language" : response.source === "IN_CLOUD" ? "Cloud fallback" : "Guidance returned", response.duration, true);
