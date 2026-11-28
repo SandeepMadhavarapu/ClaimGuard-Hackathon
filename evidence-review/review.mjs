@@ -673,7 +673,7 @@ async function readPrivateLayout() {
       return { ...step, blocked: "leak gate" };
     }
     localStatus.textContent = "Asking Gemini for the slot · on-device first, cloud fallback.";
-    const response = await inference.readLayout(prompt);
+    const response = await inference.readLayout(prompt, layout.slots.map(slot => slot.id));
     const decision = resolveLayoutSlot(response.text, layout, evidence);
     const [message, outcome] = layoutMessages[decision.status];
     const route = response.source === "ON_DEVICE" ? "Chrome built-in model on this device" : "Cloud fallback · values stayed on this device";
@@ -1049,7 +1049,7 @@ async function runLayout(fixtures, readSample, label) {
     latestLayoutBenchmark = await runLayoutBenchmark({
       fixtures, readSample,
       readLayoutEvidence: ocr.readScanLayoutEvidence,
-      readLayout: prompt => inference.readLayout(prompt),
+      readLayout: (prompt, slotIds) => inference.readLayout(prompt, slotIds),
       ...layoutRead,
       paceMs: 4200,
       onProgress: (current, total) => { status.textContent = `${label} · document ${current} of ${total} · paced under the free-tier limit of 15 requests per minute.`; },
@@ -1088,7 +1088,9 @@ async function runLayout(fixtures, readSample, label) {
 }
 
 el("evaluate-heldout").addEventListener("click", async () => {
-  const response = await fetch("./heldout/cases-b.json");
+  // ?heldout=c runs the blind set C generated after the slot-enum change; set B is the default.
+  const set = new URLSearchParams(location.search).get("heldout") === "c" ? "c" : "b";
+  const response = await fetch(`./heldout/cases-${set}.json`);
   if (!response.ok) { el("eval-layout-status").textContent = "The held-out set could not be loaded."; return; }
   const { documents } = await response.json();
   const fixtures = documents.map(doc => ({ file: doc.file, label: `${doc.file} · ${doc.note}`, expected: doc.expected }));
@@ -1096,7 +1098,7 @@ el("evaluate-heldout").addEventListener("click", async () => {
     const image = await fetch(`./heldout/${fixture.file}`);
     if (!image.ok) throw new Error("missing");
     return image.blob();
-  }, "Held-out set B");
+  }, `Held-out set ${set.toUpperCase()}`);
 });
 
 el("evaluate-layout").addEventListener("click", async () => {
@@ -1113,7 +1115,7 @@ el("evaluate-layout").addEventListener("click", async () => {
     latestLayoutBenchmark = await runLayoutBenchmark({
       readSample: bundledScan,
       readLayoutEvidence: ocr.readScanLayoutEvidence,
-      readLayout: prompt => inference.readLayout(prompt),
+      readLayout: (prompt, slotIds) => inference.readLayout(prompt, slotIds),
       ...layoutRead,
       paceMs: 4200,
       onProgress: (current, total) => { status.textContent = `Private layout · scan ${current} of ${total}.`; },
