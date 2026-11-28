@@ -39,7 +39,7 @@ const steps = [...el("review-steps").children];
 const scenarios = [...el("judge-panel").querySelectorAll("[data-scan]")];
 const trace = [];
 const routeNames = {
-  LOCAL_OCR: "This device · OCR", LOCAL_TEXT: "This device · text match", LOCAL_RULES: "This device · claim rules", ON_DEVICE: "This device · Gemini Nano",
+  LOCAL_OCR: "This device · OCR", LOCAL_TEXT: "This device · text match", LOCAL_RULES: "This device · claim rules", ON_DEVICE: "This device · Chrome built-in model",
   IN_CLOUD: "Cloud · Firebase AI Logic", HUMAN: "Human review", UNCONFIRMED: "Route unconfirmed",
 };
 
@@ -273,13 +273,13 @@ function showIdleStatus() {
       : "Use text matching to check the pasted letter.";
   } else {
     const availabilityNote = {
-      available: "Gemini Nano image input is ready in this Chrome.",
-      downloadable: "Gemini Nano is available to download when you start.",
-      downloading: "Chrome is downloading Gemini Nano.",
-      unavailable: "This Chrome profile reports Gemini Nano image input is unavailable.",
+      available: "Chrome's built-in model (Gemini Nano by default) is ready for image input.",
+      downloadable: "Chrome's built-in model (Gemini Nano by default) will download when you start.",
+      downloading: "Chrome is downloading its built-in model.",
+      unavailable: "This Chrome profile reports its built-in model is unavailable for image input.",
     }[deviceAvailability];
     localStatus.textContent = inference
-      ? availabilityNote ?? "Chrome checks for Gemini Nano when you start."
+      ? availabilityNote ?? "Chrome checks for its built-in model when you start."
       : "Checking Firebase configuration.";
   }
 }
@@ -379,7 +379,7 @@ function progressFor(status) {
   return ratio => {
     if (Number.isFinite(ratio)) {
       const percentage = Math.round(Math.min(1, Math.max(0, ratio)) * 100);
-      status.textContent = `Preparing Gemini Nano · ${percentage}%`;
+      status.textContent = `Preparing the on-device model · ${percentage}%`;
     }
   };
 }
@@ -676,7 +676,7 @@ async function readPrivateLayout() {
     const response = await inference.readLayout(prompt);
     const decision = resolveLayoutSlot(response.text, layout, evidence);
     const [message, outcome] = layoutMessages[decision.status];
-    const route = response.source === "ON_DEVICE" ? "Gemini Nano on this device" : "Cloud fallback · values stayed on this device";
+    const route = response.source === "ON_DEVICE" ? "Chrome built-in model on this device" : "Cloud fallback · values stayed on this device";
     localStatus.textContent = `${sourceAndTime(response)} · ${route} · Picked ${decision.pick ?? "nothing usable"} · ${message}`;
     recordTrace("Read private layout", response.source, outcome, response.duration);
     present(decision.candidate, "Confirmed after private layout read", `Gemini slot ${decision.pick} + local OCR`, decision.box);
@@ -754,10 +754,10 @@ el("proof-run").addEventListener("click", async () => {
     const held = el("claim-verdict").textContent;
     proofReceipt.steps.push({ step: "conflicting references", ...conflict, claimVerdict: held });
     proofStep(2, conflict.error ? "failed" : "done", `${describe(conflict)} · nothing offered · claim pre-check: ${held}`);
-    // 4. Next step, without sending anything
-    const request = nextStepPrompt("CONFLICT");
-    proofReceipt.steps.push({ step: "next-step request (not sent)", outcomeCode: "CONFLICT", requestBytes: new TextEncoder().encode(request).length });
-    proofStep(3, "done", `Only the outcome code reaches the model for guidance: a fixed ${new TextEncoder().encode(request).length}-byte public checklist request. Open "Next step" below to send it, or to see it in Kiswahili.`);
+    // 4. Next step on a held claim: the app's approved action, no model text
+    const action = approvedAction("CONFLICT", claimVerdict, "en");
+    proofReceipt.steps.push({ step: "next step on a held claim", outcomeCode: "CONFLICT", claimVerdict, approvedAction: action.id, generatedTextShown: false });
+    proofStep(3, "done", `Held, so no generated text: the app shows its approved action ("${action.text}") and its reason. Model guidance unlocks only for a ready claim: record the Specialist referral, then try Kiswahili under Next step.`);
     proofReceipt.finishedAt = new Date().toISOString();
     el("proof-download").hidden = false;
   } catch {
@@ -776,7 +776,7 @@ extract.addEventListener("click", async () => {
   present(null);
   busy = true;
   updateControls();
-  localStatus.textContent = "Preparing Gemini Nano.";
+  localStatus.textContent = "Preparing the on-device model.";
   try {
     await inference.prepareLocal(progressFor(localStatus));
     localStatus.textContent = "Reading the supporting document on this device.";
@@ -830,8 +830,8 @@ async function explainPolicy(hybrid) {
   try {
     const response = await (hybrid ? inference.explainHybrid() : inference.explain());
     const route = !hybrid ? "Cloud-only request"
-      : response.source === "ON_DEVICE" ? "Answered by Gemini Nano on this device"
-        : "Gemini Nano was not ready, so Firebase AI Logic fell back to the cloud";
+      : response.source === "ON_DEVICE" ? "Answered by Chrome's built-in model on this device"
+        : "Chrome's built-in model was not ready, so Firebase AI Logic fell back to the cloud";
     status.textContent = `${sourceAndTime(response)} · ${route}`;
     explanation.textContent = response.text;
     recordTrace(hybrid ? "Explain policy (hybrid)" : "Explain policy (cloud only)", response.source,
@@ -900,9 +900,9 @@ el("next-step-run").addEventListener("click", async () => {
   status.textContent = "Asking Firebase AI Logic for the next step.";
   try {
     const response = await inference.nextStep(code, language);
-    const route = response.source === "ON_DEVICE" ? "Answered by Gemini Nano on this device"
-      : language === "sw" ? "Kiswahili is not a Gemini Nano output language, so this public request ran in the cloud"
-        : "Gemini Nano was not ready, so Firebase AI Logic fell back to the cloud";
+    const route = response.source === "ON_DEVICE" ? "Answered by Chrome's built-in model on this device"
+      : language === "sw" ? "Kiswahili is not an output language of Chrome's built-in model, so this public request ran in the cloud"
+        : "Chrome's built-in model was not ready, so Firebase AI Logic fell back to the cloud";
     const grounded = guidancePolicy(response.text, { code, claimVerdict });
     status.textContent = grounded.ok ? `${sourceAndTime(response)} · ${route} · Explanation checked against the approved action`
       : `${sourceAndTime(response)} · ${route} · Explanation discarded (${grounded.reason}). Follow the approved action above.`;
@@ -926,7 +926,7 @@ function renderBenchmark(report) {
   const { correctOutcomes, planned, counts, wrongProposalsBlocked, latencyMs, quoteCharacters } = summary;
   const prefix = { partial: "Partial run · ", failed: "Benchmark failed · " }[status] ?? "";
   el("eval-status").textContent = status === "not_run"
-    ? "Benchmark did not run. Gemini Nano could not be prepared."
+    ? "Benchmark did not run. the on-device model could not be prepared."
     : `${prefix}${correctOutcomes}/${planned} correct outcomes · ${Object.entries(counts).map(([name, count]) => `${count} ${name.toLowerCase()}`).join(" · ")}`;
   const notes = [];
   if (wrongProposalsBlocked) notes.push(`Wrong model proposals blocked: ${wrongProposalsBlocked}`);
@@ -978,7 +978,7 @@ evaluate.addEventListener("click", async () => {
   renderBenchmarkRows();
   busy = true;
   updateControls();
-  status.textContent = "Preparing Gemini Nano.";
+  status.textContent = "Preparing the on-device model.";
   try {
     latestBenchmark = await runScanBenchmark({
       prepare: () => inference.prepareLocal(progressFor(status)),
