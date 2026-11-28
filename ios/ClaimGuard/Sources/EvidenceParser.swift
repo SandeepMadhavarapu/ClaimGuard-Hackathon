@@ -317,7 +317,7 @@ struct ApprovedAction: Equatable, Sendable {
 enum GuidancePolicy {
     private static let submit = #"\b(submit\w*|send(?:ing)? (?:the|this) claim|file (?:the|this) claim|lodge\w*|wasilish\w*|tuma dai|peleka dai)\b"#
     private static let choose = #"\b(use|choose|pick|select|go with|tumia|chagua)\b[^.]{0,40}\b(first|second|newer|newest|latest|older|higher|lower|either|one of|ya kwanza|ya pili|mojawapo)\b"#
-    private static let negated = #"\b(do not|don't|never|not|no|avoid|before|until|unless|only after|once|after the payer|hold|usi\w+|kabla ya|hadi|mpaka|baada ya)\b"#
+    private static let negated = #"\b(do not|don't|never|not|no|avoid|before|until|unless|usi\w+|kabla ya|hadi|mpaka|baada ya)\b"#
     private static let splitter = #"[.;!?\n]+|\bbut\b|\bhowever\b|\blakini\b"#
 
     private static func matches(_ text: String, _ pattern: String) -> Bool {
@@ -331,8 +331,15 @@ enum GuidancePolicy {
             .filter { !$0.isEmpty && !matches($0, negated) }
     }
 
+    /// Generated guidance is shown only when the reference is recorded and the claim is ready. On any
+    /// hold, only the approved action and the app's own reason are shown.
+    static func explanationAllowed(code: NextStepCode, verdict: ClaimCheckResult.Verdict) -> Bool {
+        code == .recorded && verdict == .ready
+    }
+
     /// Returns nil when the text may be shown, otherwise the reason it was discarded.
     static func check(_ text: String, code: NextStepCode, verdict: ClaimCheckResult.Verdict) -> String? {
+        if !explanationAllowed(code: code, verdict: verdict) { return "claim on hold, so only the approved action is shown" }
         if let reason = NextStepGrounding.check(text) { return reason }
         let clauses = affirmativeClauses(text)
         let submitAllowed = code == .recorded && verdict == .ready

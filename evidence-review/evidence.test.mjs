@@ -186,24 +186,21 @@ test("look-alike characters are named with their positions", async () => {
   assert.equal(lookalikeNote("PA-2345"), "");
 });
 
-test("the guidance policy overrides model text that contradicts the verdict, in English and Kiswahili", async () => {
-  const { guidancePolicy, approvedAction } = await import("./evidence.mjs");
-  const hold = { code: "CONFLICT", claimVerdict: "hold" };
-  // The text an outside review showed the old check accepted:
-  assert.equal(guidancePolicy("Submit the claim immediately.", hold).ok, false);
-  assert.equal(guidancePolicy("Wasilisha dai mara moja.", hold).ok, false);
-  assert.match(guidancePolicy("Use the first reference and keep going.", hold).reason, /picks a reference/);
-  assert.equal(guidancePolicy("Chagua rejea ya kwanza.", hold).ok, false);
-  // Negated or conditional mentions are fine.
-  assert.equal(guidancePolicy("Do not submit until the payer confirms which reference applies.", hold).ok, true);
-  assert.equal(guidancePolicy("Ask the payer which reference applies. Keep both documents.", hold).ok, true);
-  assert.equal(guidancePolicy("Usiwasilishe dai hadi mlipaji athibitishe rejea.", hold).ok, true);
-  assert.equal(guidancePolicy("Confirm the approval status with the payer before submitting.", { code: "RECORDED", claimVerdict: "hold" }).ok, true);
-  // Submitting is allowed only when the reference is recorded and the claim pre-check is ready.
-  assert.equal(guidancePolicy("Submit the claim within the filing window.", { code: "RECORDED", claimVerdict: "ready" }).ok, true);
-  assert.equal(guidancePolicy("Submit the claim within the filing window.", { code: "RECORDED", claimVerdict: "hold" }).ok, false);
-  // Earlier grounding still applies.
-  assert.equal(guidancePolicy("Use DEMO-PA-134220.", hold).reason, "identifier");
+test("on a held claim no generated text is shown, only the approved action and the app's reason", async () => {
+  const { guidancePolicy, approvedAction, explanationAllowed } = await import("./evidence.mjs");
+  const holds = [{ code: "CONFLICT", claimVerdict: "hold" }, { code: "NO_REFERENCE", claimVerdict: "hold" },
+    { code: "NEEDS_REVIEW", claimVerdict: "pending" }, { code: "RECORDED", claimVerdict: "hold" }, { code: "RECORDED", claimVerdict: "pending" }];
+  // Examples an outside review used, including one that got past the old word-list filter.
+  const attempts = ["Submit the claim immediately.", "Once you see both references, submit the claim.", "Wasilisha dai mara moja.",
+    "Use the first reference and keep going.", "Do not submit until the payer confirms which reference applies."];
+  for (const context of holds) {
+    assert.equal(explanationAllowed(context), false);
+    for (const text of attempts) assert.equal(guidancePolicy(text, context).ok, false, `${text} on ${context.code}/${context.claimVerdict}`);
+  }
+  // Ready claims: explanations are shown, still grounded.
+  const ready = { code: "RECORDED", claimVerdict: "ready" };
+  assert.equal(guidancePolicy("Confirm the approval with the payer, then submit the claim within the filing window.", ready).ok, true);
+  assert.equal(guidancePolicy("Use DEMO-PA-134220.", ready).reason, "identifier");
   // The approved action comes from the outcome and the verdict, never from the model.
   assert.equal(approvedAction("CONFLICT", "hold").id, "ask-payer-which-reference");
   assert.equal(approvedAction("RECORDED", "hold").id, "fix-claim-before-submitting");

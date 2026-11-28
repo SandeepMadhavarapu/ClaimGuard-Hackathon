@@ -124,15 +124,16 @@ final class LayoutAndClaimTests: XCTestCase {
         XCTAssertEqual(NextStepGrounding.check("See https://example.com"), "link or email")
     }
 
-    func testGuidancePolicyOverridesModelTextThatContradictsTheVerdict() {
-        XCTAssertNotNil(GuidancePolicy.check("Submit the claim immediately.", code: .conflict, verdict: .hold))
-        XCTAssertNotNil(GuidancePolicy.check("Wasilisha dai mara moja.", code: .conflict, verdict: .hold))
-        XCTAssertEqual(GuidancePolicy.check("Use the first reference and keep going.", code: .conflict, verdict: .hold), "picks a reference without payer confirmation")
-        XCTAssertNil(GuidancePolicy.check("Do not submit until the payer confirms which reference applies.", code: .conflict, verdict: .hold))
-        XCTAssertNil(GuidancePolicy.check("Usiwasilishe dai hadi mlipaji athibitishe rejea.", code: .conflict, verdict: .hold))
-        XCTAssertNil(GuidancePolicy.check("Submit the claim within the filing window.", code: .recorded, verdict: .ready))
-        XCTAssertNotNil(GuidancePolicy.check("Submit the claim within the filing window.", code: .recorded, verdict: .hold))
-        XCTAssertEqual(GuidancePolicy.check("Use DEMO-PA-134220.", code: .conflict, verdict: .hold), "identifier")
+    func testHeldClaimsShowOnlyTheApprovedAction() {
+        let attempts = ["Submit the claim immediately.", "Once you see both references, submit the claim.", "Wasilisha dai mara moja.",
+                        "Use the first reference and keep going.", "Do not submit until the payer confirms which reference applies."]
+        let holds: [(NextStepCode, ClaimCheckResult.Verdict)] = [(.conflict, .hold), (.noReference, .hold), (.needsReview, .pending), (.recorded, .hold), (.recorded, .pending)]
+        for (code, verdict) in holds {
+            XCTAssertFalse(GuidancePolicy.explanationAllowed(code: code, verdict: verdict))
+            for text in attempts { XCTAssertNotNil(GuidancePolicy.check(text, code: code, verdict: verdict), text) }
+        }
+        XCTAssertNil(GuidancePolicy.check("Confirm the approval with the payer, then submit the claim within the filing window.", code: .recorded, verdict: .ready))
+        XCTAssertEqual(GuidancePolicy.check("Use DEMO-PA-134220.", code: .recorded, verdict: .ready), "identifier")
         XCTAssertEqual(ApprovedAction.forOutcome(.recorded, verdict: .hold, language: .english).id, "fix-claim-before-submitting")
         XCTAssertEqual(ApprovedAction.forOutcome(.conflict, verdict: .hold, language: .english).id, "ask-payer-which-reference")
     }

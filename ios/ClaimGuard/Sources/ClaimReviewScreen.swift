@@ -275,6 +275,11 @@ struct ClaimReviewScreen: View {
                 .padding(10).frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.privacyGreen.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                 .accessibilityIdentifier("approved-action")
+            let held = !GuidancePolicy.explanationAllowed(code: code, verdict: review.claimResult.verdict)
+            if held {
+                Text("Why: \(review.claimResult.summary). While the claim is on hold, ClaimGuard shows only this approved action, not generated text.")
+                    .font(.footnote).foregroundStyle(.orange)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(Array(code.checklist.enumerated()), id: \.offset) { item in
                     Text("\(item.offset + 1). \(item.element)").font(.subheadline).foregroundStyle(.secondary)
@@ -287,11 +292,11 @@ struct ClaimReviewScreen: View {
             .pickerStyle(.segmented)
             Button("Suggest next step", systemImage: "arrow.forward.circle") { Task { await review.suggestNextStep() } }
                 .buttonStyle(.bordered)
-                .disabled(review.busy || !FirebaseSetup.configured)
+                .disabled(review.busy || !FirebaseSetup.configured || held)
             DisclosureGroup("View the exact request") {
                 Text(code.prompt(language: review.language)).font(.footnote.monospaced()).textSelection(.enabled)
             }
-            if let reply = review.nextStep {
+            if let reply = review.nextStep, !held {
                 Label(reply.route == .onDevice ? "On-device" : "Cloud fallback",
                       systemImage: reply.route == .onDevice ? "iphone" : "cloud")
                     .font(.subheadline.weight(.semibold))
