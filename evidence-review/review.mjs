@@ -1,5 +1,5 @@
 import {
-  CASES, NEXT_STEPS, approvedAction, guidancePolicy, lookalikeNote, NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
+  CASES, NEXT_STEPS, approvedAction, explanationAllowed, guidancePolicy, lookalikeNote, NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, PUBLIC_RULE, SCAN_CASES, decideScanReview, matchLetter, nextStepCode, nextStepPrompt,
   parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
@@ -135,9 +135,11 @@ function fillClaim(claim) {
 }
 
 let claimVerdict = "pending";
+let claimSummary = "";
 function renderClaimCheck() {
   const result = checkClaim(readClaim(), confirmedReference, outcomeCode);
   claimVerdict = result.verdict;
+  claimSummary = result.summary;
   renderApprovedAction();
   const verdict = el("claim-verdict");
   verdict.dataset.verdict = result.verdict;
@@ -256,7 +258,7 @@ function updateControls() {
   manual.inert = busy || !canReview;
   manual.hidden = !canReview;
   straighten.disabled = busy || scanLoading || !currentImage;
-  el("next-step-run").disabled = busy || !inference || !outcomeCode;
+  el("next-step-run").disabled = busy || !inference || !outcomeCode || !explanationAllowed({ code: outcomeCode, claimVerdict });
 }
 
 function showIdleStatus() {
@@ -876,12 +878,20 @@ function renderApprovedAction() {
     target.querySelector("span").textContent = ` ${action.text}`;
     target.dataset.action = action.id;
   }
+  const held = !explanationAllowed({ code: outcomeCode, claimVerdict });
+  const reason = el("next-step-hold");
+  if (reason) {
+    reason.hidden = !outcomeCode || !held;
+    reason.textContent = held ? `Why: ${claimSummary || "the claim pre-check is not ready"}. While the claim is on hold, ClaimGuard shows only this approved action, not generated text.` : "";
+  }
+  if (held) el("next-step-text").textContent = "";
+  updateControls();
 }
 
 el("next-step-run").addEventListener("click", async () => {
   const code = outcomeCode;
   const language = nextStepLanguage();
-  if (!code || !inference) return;
+  if (!code || !inference || !explanationAllowed({ code, claimVerdict })) return;
   const status = el("next-step-status");
   const text = el("next-step-text");
   busy = true;

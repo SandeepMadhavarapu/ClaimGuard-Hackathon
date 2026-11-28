@@ -232,7 +232,7 @@ final class ClaimReview {
     }
 
     func suggestNextStep() async {
-        guard let code = outcome, !busy else { return }
+        guard let code = outcome, !busy, GuidancePolicy.explanationAllowed(code: code, verdict: claimResult.verdict) else { return }
         busy = true
         defer { busy = false }
         nextStep = nil

@@ -83,4 +83,4 @@ jobs:
         with:
           name: ClaimGuard-debug-ipa
           path: ${{ runner.temp }}/ipa/ClaimGuard-debug.ipa
-          retention-days: 7
+          retention-days: 30

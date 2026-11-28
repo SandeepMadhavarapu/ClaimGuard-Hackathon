@@ -119,15 +119,24 @@ export function approvedAction(code, claimVerdict, language = "en") {
 
 const SUBMIT = /\b(submit\w*|send(?:ing)? (?:the|this) claim|file (?:the|this) claim|lodge\w*|wasilish\w*|tuma dai|peleka dai)\b/i;
 const CHOOSE = /\b(use|choose|pick|select|go with|tumia|chagua)\b[^.]{0,40}\b(first|second|newer|newest|latest|older|higher|lower|either|one of|ya kwanza|ya pili|mojawapo)\b/i;
-const NEGATED = /\b(do not|don't|never|not|no|avoid|before|until|unless|only after|once|after the payer|hold|usi\w+|kabla ya|hadi|mpaka|baada ya)\b/i;
+const NEGATED = /\b(do not|don't|never|not|no|avoid|before|until|unless|usi\w+|kabla ya|hadi|mpaka|baada ya)\b/i;
 
 function affirmativeClauses(text) {
   return String(text).split(/[.;!?\n]+|\bbut\b|\bhowever\b|\blakini\b/i).map(clause => clause.trim()).filter(Boolean)
     .filter(clause => !NEGATED.test(clause));
 }
 
+// Generated guidance is allowed only when the reference is recorded and the claim pre-check is
+// ready. On any hold, no model text is shown at all: only the approved action and the app's own
+// reason. A word-list filter alone can be talked around ("Once you see both, submit"), so held
+// claims don't depend on it.
+export function explanationAllowed({ code, claimVerdict }) {
+  return code === "RECORDED" && claimVerdict === "ready";
+}
+
 // Deny rules that override generated guidance. Returns { ok, reason }.
 export function guidancePolicy(text, { code, claimVerdict }) {
+  if (!explanationAllowed({ code, claimVerdict })) return { ok: false, reason: "claim on hold, so only the approved action is shown" };
   const grounded = groundNextStep(text);
   if (!grounded.ok) return grounded;
   const clauses = affirmativeClauses(text);

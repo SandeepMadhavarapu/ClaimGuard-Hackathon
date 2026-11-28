@@ -228,3 +228,4 @@ a { color: #225843; }
 .proof li[data-state="failed"] strong::after { content: " · not completed"; color: #a42121; }
 
 .next-step-action { background: #eef6f0; border: 1px solid #cfe5d6; border-radius: 10px; padding: 10px 12px; }
+.next-step-hold { font-size: 0.9rem; color: #6b4f00; margin-top: -4px; }
