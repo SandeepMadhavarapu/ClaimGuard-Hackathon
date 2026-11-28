@@ -1159,6 +1159,7 @@ setupInference().then(client => {
   void imageModelAvailability().then(availability => {
     deviceAvailability = availability;
     if (!busy && localStatus.textContent.startsWith("Chrome checks")) showIdleStatus();
+    if (availability === "available") warmOnDeviceModel();
   });
 }).catch(() => {
   inferenceUnavailable = true;
@@ -1167,6 +1168,19 @@ setupInference().then(client => {
   updateControls();
   showIdleStatus();
 });
+
+// The first on-device answer after Chrome starts waits ~20 s while the model loads into memory.
+// When the model is already downloaded (never otherwise, so this never starts a download), open
+// one idle session in the background so a judge's first read is fast. Nothing is prompted.
+let warmSession = null;
+function warmOnDeviceModel() {
+  if (warmSession || typeof LanguageModel === "undefined") return;
+  const start = () => LanguageModel.create({ expectedInputs: [{ type: "text", languages: ["en"] }], expectedOutputs: [{ type: "text", languages: ["en"] }] })
+    .then(session => { warmSession = session; })
+    .catch(() => {});
+  if ("requestIdleCallback" in window) requestIdleCallback(start, { timeout: 3000 });
+  else setTimeout(start, 1500);
+}
 
 // Offline support (HTTPS only): the worker caches the app, samples and OCR data for airplane mode.
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
