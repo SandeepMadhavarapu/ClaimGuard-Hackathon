@@ -26,7 +26,7 @@ struct OCREvidence: Equatable, Sendable {
     let candidate: OCRCandidate?
 
     init(lines: [OCRLine]) {
-        let matches = lines.flatMap { line in
+        let matches = LayoutRead.joinWrapped(lines).flatMap { line in
             EvidenceParser.labeledReferences(in: line.text).map { match in
                 OCRCandidate(value: match, location: EvidenceLocation(page: line.page, bounds: line.bounds))
             }

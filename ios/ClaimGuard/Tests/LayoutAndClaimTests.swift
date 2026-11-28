@@ -137,4 +137,29 @@ final class LayoutAndClaimTests: XCTestCase {
         XCTAssertEqual(ApprovedAction.forOutcome(.recorded, verdict: .hold, language: .english).id, "fix-claim-before-submitting")
         XCTAssertEqual(ApprovedAction.forOutcome(.conflict, verdict: .hold, language: .english).id, "ask-payer-which-reference")
     }
+
+    func testWrappedReferenceIsOneIdentifierSoAmendedReferenceIsAConflict() {
+        let lines = [
+            OCRLine(text: "Referral ID: REF-8616 Original preauthorization: DEMO-PA-", bounds: CGRect(x: 0, y: 0.8, width: 1, height: 0.05), page: 0),
+            OCRLine(text: "459714", bounds: CGRect(x: 0.5, y: 0.75, width: 0.2, height: 0.05), page: 0),
+            OCRLine(text: "Amended preauthorization: PA-261090", bounds: CGRect(x: 0, y: 0.7, width: 1, height: 0.05), page: 0),
+        ]
+        let page = LayoutRead.build(lines)
+        XCTAssertEqual(Set(LayoutRead.labeledValues(page)), ["DEMO-PA-459714", "PA-261090"])
+        for slot in page.slots.map(\.id) + ["NONE"] {
+            if case .ready = LayoutRead.resolve("{\"slot\":\"\(slot)\"}", page: page, ocr: OCREvidence(lines: [])) {
+                XCTFail("\(slot) must not be shown")
+            }
+        }
+    }
+
+    func testPayerLabelWithUnreadableFragmentHolds() {
+        let page = LayoutRead.build([
+            OCRLine(text: "Preauthorization number: DEMO-PA-", bounds: .zero, page: 0),
+            OCRLine(text: "Amended preauthorization: PA-261090", bounds: .zero, page: 0),
+        ])
+        XCTAssertEqual(page.authFragments, 1)
+        let pick = page.slots.first { $0.value == "PA-261090" }!.id
+        XCTAssertEqual(LayoutRead.resolve("{\"slot\":\"\(pick)\"}", page: page, ocr: OCREvidence(lines: [])), .corroborationMissing)
+    }
 }
