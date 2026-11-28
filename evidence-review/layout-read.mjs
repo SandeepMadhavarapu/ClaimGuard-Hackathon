@@ -33,6 +33,14 @@ export const SLOT_SCHEMA = Object.freeze({
   required: ["slot"],
 });
 
+// Per-document schema: the answer must be one of this layout's slot names or NONE. The slot names
+// are public ("ID-1", "ID-2", ...); identifier values never enter the schema.
+export function slotSchema(slotIds = []) {
+  const ids = slotIds.filter(id => /^ID-\d{1,3}$/.test(id));
+  if (!ids.length) return SLOT_SCHEMA;
+  return { type: "object", properties: { slot: { type: "string", enum: [...ids, "NONE"], description: "The slot holding the payer preauthorization reference, or NONE" } }, required: ["slot"] };
+}
+
 export const LAYOUT_INSTRUCTIONS = [
   "Below is the layout of a scanned hospital supporting document.",
   "On the user's device, every identifier value was replaced by a slot such as [ID-1], and words outside a fixed form vocabulary were removed (shown as …).",

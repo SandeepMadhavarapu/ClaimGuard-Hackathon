@@ -1,5 +1,5 @@
 import { NEXT_STEP_LANGUAGES, PUBLIC_PROMPT, nextStepPrompt } from "./evidence.mjs";
-import { SLOT_SCHEMA } from "./layout-read.mjs";
+import { SLOT_SCHEMA, slotSchema } from "./layout-read.mjs";
 
 export const CLOUD_MODEL = "gemini-3.5-flash-lite";
 
@@ -97,26 +97,31 @@ export async function setupInference() {
     return { ...await generate(localModel(), prompt, "ON_DEVICE"), constrained: false };
   }
 
-  let layout;
 
   // The private layout read: on-device first, cloud fallback. Both routes are schema-constrained
   // to {slot}. The prompt holds only form words and slot names, never identifier values.
-  function layoutModel() {
+  const layoutModels = new Map();
+  function layoutModel(slotIds = []) {
     if (!InferenceMode.PREFER_ON_DEVICE) throw new Error("Hybrid inference unavailable");
-    return layout ??= getGenerativeModel(ai, {
+    const schema = slotSchema(slotIds);
+    const key = JSON.stringify(schema);
+    if (layoutModels.has(key)) return layoutModels.get(key);
+    const model = getGenerativeModel(ai, {
       mode: InferenceMode.PREFER_ON_DEVICE,
       onDeviceParams: {
         createOptions: {
           expectedInputs: [{ type: "text", languages: ["en"] }],
           expectedOutputs: [{ type: "text", languages: ["en"] }],
         },
-        promptOptions: { responseConstraint: SLOT_SCHEMA },
+        promptOptions: { responseConstraint: schema },
       },
       inCloudParams: {
         model: CLOUD_MODEL,
-        generationConfig: { responseMimeType: "application/json", responseJsonSchema: SLOT_SCHEMA, temperature: 0 },
+        generationConfig: { responseMimeType: "application/json", responseJsonSchema: schema, temperature: 0 },
       },
     });
+    layoutModels.set(key, model);
+    return model;
   }
 
   function hybridModel() {
@@ -151,7 +156,7 @@ export async function setupInference() {
     },
     extract: async letter => extractOnDevice(extractionInstructions + "\n" + JSON.stringify({ letter })),
     extractScan: async inlineData => extractOnDevice([extractionInstructions, { inlineData }]),
-    readLayout: prompt => generate(layoutModel(), prompt, "ON_DEVICE", "IN_CLOUD"),
+    readLayout: (prompt, slotIds = []) => generate(layoutModel(slotIds), prompt, "ON_DEVICE", "IN_CLOUD"),
     explain: () => generate(cloud, PUBLIC_PROMPT, "IN_CLOUD"),
     explainHybrid: async () => generate(hybridModel(), PUBLIC_PROMPT, "ON_DEVICE", "IN_CLOUD"),
     // Only a fixed outcome code and its public checklist are sent; the code is validated first.

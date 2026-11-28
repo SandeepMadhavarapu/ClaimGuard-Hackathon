@@ -327,7 +327,7 @@ export async function runLayoutBenchmark({
       const gap = paceMs - (Date.now() - lastCall);
       if (gap > 0) await sleep(gap);
       lastCall = Date.now();
-      const response = await withRateLimitRetry(() => readLayout(prompt), { wait: sleep });
+      const response = await withRateLimitRetry(() => readLayout(prompt, layout.slots.map(slot => slot.id)), { wait: sleep });
       if (!["ON_DEVICE", "IN_CLOUD"].includes(response.source)) throw new Error("Unverified inference source");
       const decision = resolveLayoutSlot(response.text, layout, evidence);
       rows.push({ ...scoreLayoutCase(fixture, { evidence, layout, pick: decision.pick, decision, response }), sweep, sampleSha256 });

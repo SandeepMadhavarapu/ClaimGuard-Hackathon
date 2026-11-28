@@ -12,9 +12,9 @@ from PIL import Image, ImageFilter
 import sys
 OUT = pathlib.Path(__file__).resolve().parents[2] / "evidence-review" / "heldout"
 SET = sys.argv[1] if len(sys.argv) > 1 else "a"   # "a" = first held-out set, "b" = fresh set generated after fixes
-SEED = 20261128 if SET == "a" else 20261129
-PREFIX = "h" if SET == "a" else "b"
-JSON_NAME = "cases.json" if SET == "a" else "cases-b.json"
+SEED = {"a": 20261128, "b": 20261129, "c": 20261130}[SET]
+PREFIX = {"a": "h", "b": "b", "c": "c"}[SET]
+JSON_NAME = {"a": "cases.json", "b": "cases-b.json", "c": "cases-c.json"}[SET]
 rng = random.Random(SEED)
 
 CLINICS = ["Ridgeview Demo Hospital", "Lakeshore Sample Clinic", "Acacia Training Medical Centre",
@@ -30,6 +30,9 @@ UNFAMILIAR = ["Pre-auth ref:", "Payer authorization no.:", "Authorization code:"
 if SET == "b":
     # Set B swaps in four wordings that were never seen during development.
     UNFAMILIAR = UNFAMILIAR[:8] + ["Payer auth code:", "Pre-approval no.:", "Authorization ID:", "Approval #:"]
+if SET == "c":
+    # Set C: generated after the slot-enum change (Nov 28), new seed, four more never-seen wordings.
+    UNFAMILIAR = UNFAMILIAR[:8] + ["Insurer pre-auth:", "Approval code:", "PA ref.:", "Authorization number:"]
 FONTS = ["'DejaVu Serif'", "'DejaVu Sans'", "Inter", "'Courier 10 Pitch', Courier, monospace", "'DejaVu Sans Condensed'"]
 
 

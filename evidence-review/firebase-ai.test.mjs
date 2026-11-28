@@ -141,6 +141,13 @@ test("Firebase adapter constrains what each inference model receives", async () 
   assert.equal(JSON.stringify(layoutModel.inCloudParams.generationConfig.responseJsonSchema), JSON.stringify(SLOT_SCHEMA));
   assert.equal(layoutModel.inCloudParams.generationConfig.responseMimeType, "application/json");
   assert.equal(JSON.stringify(layoutModel.onDeviceParams.promptOptions.responseConstraint), JSON.stringify(SLOT_SCHEMA));
+  // With the layout's slot names, the answer is constrained to those names or NONE on both routes.
+  const { slotSchema } = await import("./layout-read.mjs");
+  await adapter.readLayout(layoutText, ["ID-1", "ID-2", "DEMO-PA-240817"]);
+  const enumModel = context.models.find(options => options.inCloudParams?.generationConfig?.responseJsonSchema?.properties?.slot?.enum);
+  assert.equal(JSON.stringify(enumModel.inCloudParams.generationConfig.responseJsonSchema.properties.slot.enum), JSON.stringify(["ID-1", "ID-2", "NONE"]));
+  assert.equal(JSON.stringify(enumModel.onDeviceParams.promptOptions.responseConstraint), JSON.stringify(slotSchema(["ID-1", "ID-2"])));
+  assert.ok(!JSON.stringify(enumModel).includes("240817"), "identifier values never enter the schema");
   sourceOverride = "unknown";
   await assert.rejects(adapter.readLayout(layoutText), /source could not be verified/);
   sourceOverride = undefined;
