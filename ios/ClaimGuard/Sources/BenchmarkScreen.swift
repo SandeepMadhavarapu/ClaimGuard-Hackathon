@@ -25,6 +25,13 @@ struct BenchmarkScreen: View {
                     Text("Vision OCR and Apple Intelligence + guard use the same synthetic PNGs. Model failures count as not measured. Latencies include OCR for both paths.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
+                Section {
+                    NavigationLink {
+                        HeldoutScreen()
+                    } label: {
+                        Label("Held-out set B · 50 new documents", systemImage: "checklist")
+                    }
+                }
                 if !rows.isEmpty {
                     Button("Save synthetic benchmark report", systemImage: "square.and.arrow.up") {
                         do {
@@ -106,7 +113,7 @@ struct BenchmarkScreen: View {
     }
 }
 
-private struct BenchmarkJSONDocument: FileDocument {
+struct BenchmarkJSONDocument: FileDocument {
     static let readableContentTypes: [UTType] = [.json]
     let bytes: Data
 
