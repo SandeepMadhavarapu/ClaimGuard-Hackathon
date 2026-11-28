@@ -86,6 +86,8 @@ export function joinWrappedIdentifiers(lines) {
 }
 
 const ID_FRAGMENT = /^[A-Za-z0-9]*(\d|[A-Za-z0-9]-)[A-Za-z0-9-]*$/;
+// A short upper-case chunk ("HLZ", "BHB") next to a payer value: a code printed in pieces.
+const CODE_CHUNK = /^[A-Z0-9]{2,6}$/;
 
 // lines: OCR lines, each an array of { text, bbox, confidence }.
 export function buildLayout(rawLines) {
@@ -99,6 +101,8 @@ export function buildLayout(rawLines) {
     const labelWords = [];
     let segment = [];
     let lastSlotAuth = false;
+    let chunkAfterAuthLabel = false;
+    let chunkAfterAuthValue = false;
     for (const word of words) {
       const raw = String(word.text ?? "").trim();
       if (!raw) continue;
@@ -113,6 +117,8 @@ export function buildLayout(rawLines) {
         // A value printed in pieces ("6UN 77N JV9X") right after a payer label can't be read whole.
         const previous = out.at(-1);
         if (!segment.length && previous?.startsWith("[ID-") && lastSlotAuth) authFragments += 1;
+        if (chunkAfterAuthLabel || (!segment.length && chunkAfterAuthValue)) authFragments += 1;
+        chunkAfterAuthLabel = false;
         let slot = byValue.get(core);
         if (!slot) {
           if (slots.length >= MAX_SLOTS) { out.push("…"); continue; }
@@ -126,9 +132,19 @@ export function buildLayout(rawLines) {
         // so a card or grid row with two fields doesn't mix their labels.
         slot.segments.push(segment.join(" "));
         lastSlotAuth = AUTH_LABEL.test(segment.join(" ")) && !OTHER_LABEL.test(segment.join(" "));
+        chunkAfterAuthValue = false;
         segment = [];
         out.push(`[${slot.id}]${trailing}`);
-      } else if (LAYOUT_VOCABULARY.has(lower)) {
+      } else if (LAYOUT_VOCABULARY.has(lower) && CODE_CHUNK.test(core) && !segment.length && lastSlotAuth) {
+        // An upper-case word right after a payer value ("5G7 ALL R5FX") is another piece of it.
+        authFragments += 1;
+        chunkAfterAuthValue = true;
+        if (out.at(-1) !== "…") out.push("…");
+      } else if (LAYOUT_VOCABULARY.has(lower) && !(CODE_CHUNK.test(core) && (chunkAfterAuthLabel || chunkAfterAuthValue))) {
+        // (An upper-case word right after a code piece, like "AND" in "HPX AND QDZ5", is part of the code.)
+        chunkAfterAuthLabel = false;
+        chunkAfterAuthValue = false;
+        lastSlotAuth = false;
         out.push(lower + trailing);
         labelWords.push(lower);
         segment.push(lower);
@@ -137,7 +153,12 @@ export function buildLayout(rawLines) {
       } else {
         // A broken identifier right after a payer label means the reference can't be read whole.
         const labels = segment.join(" ");
-        if (ID_FRAGMENT.test(core) && AUTH_LABEL.test(labels) && !OTHER_LABEL.test(labels)) authFragments += 1;
+        const authLabel = AUTH_LABEL.test(labels) && !OTHER_LABEL.test(labels);
+        if (ID_FRAGMENT.test(core) && authLabel) authFragments += 1;
+        if (CODE_CHUNK.test(core)) {
+          if (authLabel) chunkAfterAuthLabel = true;
+          if (!segment.length && lastSlotAuth) { authFragments += 1; chunkAfterAuthValue = true; }
+        }
         if (out.at(-1) !== "…") out.push("…");
       }
     }

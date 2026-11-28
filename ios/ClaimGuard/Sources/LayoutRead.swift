@@ -82,6 +82,8 @@ enum LayoutRead {
 
     private static let wrapHead = try! NSRegularExpression(pattern: #"^[A-Za-z0-9][A-Za-z0-9-]*-$"#)
     private static let wrapTail = try! NSRegularExpression(pattern: #"^(?=[A-Za-z0-9-]*\d)[A-Za-z0-9][A-Za-z0-9-]*[.,;:]?$"#)
+    /// A short upper-case chunk ("HLZ", "BHB") next to a payer value: a code printed in pieces.
+    private static let codeChunk = try! NSRegularExpression(pattern: #"^[A-Z0-9]{2,6}$"#)
     private static let idFragment = try! NSRegularExpression(pattern: #"^[A-Za-z0-9]*(\d|[A-Za-z0-9]-)[A-Za-z0-9-]*$"#)
 
     /// A reference printed across a line break ("DEMO-PA-" / "459714") is one identifier.
@@ -119,6 +121,8 @@ enum LayoutRead {
             var labelWords: [String] = []
             var segment: [String] = []
             var lastSlotAuth = false
+            var chunkAfterAuthLabel = false
+            var chunkAfterAuthValue = false
             for raw in line.text.split(whereSeparator: \.isWhitespace).map(String.init) {
                 let (core, colon) = trim(raw)
                 let lower = core.lowercased()
@@ -131,6 +135,8 @@ enum LayoutRead {
                 if matches(idToken, core), core.rangeOfCharacter(from: .decimalDigits) != nil {
                     // A value printed in pieces right after a payer label can't be read whole.
                     if segment.isEmpty, out.last?.hasPrefix("[ID-") == true, lastSlotAuth { authFragments += 1 }
+                    if chunkAfterAuthLabel || (segment.isEmpty && chunkAfterAuthValue) { authFragments += 1 }
+                    chunkAfterAuthLabel = false
                     let index: Int
                     if let existing = slotIndex[core] {
                         index = existing
@@ -147,9 +153,18 @@ enum LayoutRead {
                     slots[index].segments.append(segment.joined(separator: " "))
                     let joined = segment.joined(separator: " ")
                     lastSlotAuth = matches(authLabel, joined) && !matches(otherLabel, joined)
+                    chunkAfterAuthValue = false
                     segment = []
                     out.append("[\(slots[index].id)]\(suffix)")
-                } else if vocabulary.contains(lower) {
+                } else if vocabulary.contains(lower), matches(codeChunk, core), segment.isEmpty, lastSlotAuth {
+                    // An upper-case word right after a payer value ("5G7 ALL R5FX") is another piece of it.
+                    authFragments += 1
+                    chunkAfterAuthValue = true
+                    if out.last != "…" { out.append("…") }
+                } else if vocabulary.contains(lower), !(matches(codeChunk, core) && (chunkAfterAuthLabel || chunkAfterAuthValue)) {
+                    chunkAfterAuthLabel = false
+                    chunkAfterAuthValue = false
+                    lastSlotAuth = false
                     out.append(lower + suffix)
                     labelWords.append(lower)
                     segment.append(lower)
@@ -157,7 +172,12 @@ enum LayoutRead {
                     out.append("(\(raw.filter(\.isLetter).uppercased()))\(suffix)")
                 } else {
                     let labels = segment.joined(separator: " ")
-                    if matches(idFragment, core), matches(authLabel, labels), !matches(otherLabel, labels) { authFragments += 1 }
+                    let isAuthLabel = matches(authLabel, labels) && !matches(otherLabel, labels)
+                    if matches(idFragment, core), isAuthLabel { authFragments += 1 }
+                    if matches(codeChunk, core) {
+                        if isAuthLabel { chunkAfterAuthLabel = true }
+                        if segment.isEmpty, lastSlotAuth { authFragments += 1; chunkAfterAuthValue = true }
+                    }
                     if out.last != "…" { out.append("…") }
                 }
             }

@@ -3,7 +3,7 @@ import {
   parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
-import { compareBenchmarkRuns, rateLimitDelayMs, shareableBenchmark, runLayoutBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
+import { benchmarkCsv, compareBenchmarkRuns, rateLimitDelayMs, shareableBenchmark, runLayoutBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
 import { imageModelAvailability } from "./browser-readiness.mjs";
 import { DEMO_CLAIM, DEMO_CLAIM_WITH_ERRORS, checkClaim, operationOutcome } from "./claim-check.mjs";
 import { setupInference } from "./firebase-ai.mjs";
@@ -95,16 +95,21 @@ fetch("./build.json", { cache: "no-store" }).then(response => response.ok ? resp
   if (stamp) stamp.textContent = `Build ${build.commit}${build.builtAt ? ` · ${build.builtAt.slice(0, 10)}` : ""}`;
 }).catch(() => {});
 
-el("export-trace").addEventListener("click", () => {
-  if (trace.length) {
-    downloadJson({
-      schemaVersion: 2,
-      kind: "claimguard-run-receipt",
-      scope: "In-app actions and SDK-reported inference routes. Synthetic documents only; no scan, reference or document text.",
-      build,
-      exportedAt: new Date().toISOString(),
-      events: trace,
-    }, "claimguard-run-receipt.json");
+el("export-trace").addEventListener("click", async () => {
+  if (!trace.length) return;
+  const receipt = {
+    schemaVersion: 3,
+    kind: "claimguard-run-receipt",
+    scope: "In-app actions and SDK-reported inference routes. Synthetic documents only; no scan, reference or document text.",
+    build,
+    exportedAt: new Date().toISOString(),
+    steps: trace,
+  };
+  try {
+    const { signReceipt } = await import("./receipts.mjs");
+    downloadJson(await signReceipt(receipt), "claimguard-run-receipt.json");
+  } catch {
+    downloadJson(receipt, "claimguard-run-receipt.json");
   }
 });
 
@@ -255,6 +260,7 @@ function updateControls() {
   el("evaluate-heldout").disabled = busy || !inference;
   el("proof-run").disabled = busy || !inference;
   exportEvaluation.disabled = busy || !(latestBenchmark || latestOcrBenchmark || latestLayoutBenchmark);
+  el("export-evaluation-csv").disabled = exportEvaluation.disabled;
   manual.inert = busy || !canReview;
   manual.hidden = !canReview;
   straighten.disabled = busy || scanLoading || !currentImage;
@@ -767,7 +773,16 @@ el("proof-run").addEventListener("click", async () => {
     runButton.disabled = false;
   }
 });
-el("proof-download").addEventListener("click", () => { if (proofReceipt) downloadJson(proofReceipt, "claimguard-proof-receipt.json"); });
+el("proof-download").addEventListener("click", async () => {
+  if (!proofReceipt) return;
+  const { egressManifest, signReceipt } = await import("./receipts.mjs");
+  const receipt = { ...proofReceipt, ...egressManifest(proofReceipt.steps) };
+  try {
+    downloadJson(await signReceipt(receipt), "claimguard-proof-receipt.json");
+  } catch {
+    downloadJson(receipt, "claimguard-proof-receipt.json");
+  }
+});
 
 extract.addEventListener("click", async () => {
   const scanning = mode === "scan";
@@ -1031,6 +1046,16 @@ evaluateOcr.addEventListener("click", async () => {
     busy = false;
     updateControls();
   }
+});
+
+el("export-evaluation-csv").addEventListener("click", () => {
+  const file = new Blob([benchmarkCsv(latestLayoutBenchmark, latestBenchmark, latestOcrBenchmark)], { type: "text/csv" });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "claimguard-findings.csv";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
 exportEvaluation.addEventListener("click", () => {

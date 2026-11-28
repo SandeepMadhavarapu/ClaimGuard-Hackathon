@@ -218,3 +218,15 @@ test("rate-limited model calls are retried after the delay the API asks for", as
   await assert.rejects(withRateLimitRetry(async () => { throw new Error("other"); }, { wait: async () => {} }), /other/);
   await assert.rejects(withRateLimitRetry(async () => { throw quota; }, { retries: 1, wait: async () => {} }), /429/);
 });
+
+test("benchmark CSV has one row per document and neutralizes spreadsheet formulas", async () => {
+  const { benchmarkCsv } = await import("./benchmark.mjs");
+  const csv = benchmarkCsv({ mode: "PRIVATE_LAYOUT_PREFER_ON_DEVICE", rows: [
+    { sample: "b01.jpg", label: 'b01.jpg · "look-alike", O/0', expectedReference: "AUTH-26-95I82", outcome: "Wrong suggestion", lostAt: "OCR", pick: "ID-1", inferenceSource: "ON_DEVICE", milliseconds: 1451 },
+    { sample: "=HYPERLINK(1)", outcome: "Correct abstention", expectedReference: null },
+  ] }, null);
+  const lines = csv.trim().split("\n");
+  assert.equal(lines.length, 3);
+  assert.match(lines[1], /"b01.jpg · ""look-alike"", O\/0"/);
+  assert.match(lines[2], /^PRIVATE_LAYOUT_PREFER_ON_DEVICE,"'=HYPERLINK\(1\)"/);
+});
