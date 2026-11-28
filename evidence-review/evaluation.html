@@ -56,8 +56,8 @@
       </tbody>
     </table>
 
-    <h2>Same 50 documents, four routes</h2>
-    <p>Held-out set B through the private layout read on every route Firebase AI Logic offers this app. The iPhone runs used ClaimGuard's native app on an iPhone 17, once in airplane mode (Apple Foundation Models on the device) and once online (Gemini in the cloud). The Chrome on-device run used Gemini Nano in Chrome 158.0.8127.89 on a Windows laptop; every read reported <code>ON_DEVICE</code> (report: <code>evaluation/heldout/results-B-chrome-nano-f5ebfe8.json</code>). Screenshots are in <code>evaluation/heldout/iphone/</code>.</p>
+    <h2>Same 50 documents, every route and model</h2>
+    <p>Held-out set B through the private layout read on every route Firebase AI Logic offers this app. The iPhone runs used ClaimGuard's native app on an iPhone 17, once in airplane mode (Apple Foundation Models on the device) and once online (Gemini in the cloud). The Chrome on-device run used Gemini Nano in Chrome 158.0.8127.89 on a Windows laptop; every read reported <code>ON_DEVICE</code> (report: <code>evaluation/heldout/results-B-chrome-nano-f5ebfe8.json</code>). The Gemma 4 run used the same Chrome with <code>chrome://flags/#gemma4-for-built-in-ai</code> enabled (report: <code>results-B-chrome-gemma4-f5ebfe8.json</code>). Gemma 4 held 17 readable documents where Nano 3 held 7: it answered "no slot" more often, and was 3.5× slower on this laptop. Screenshots are in <code>evaluation/heldout/iphone/</code>.</p>
     <table>
       <caption class="sr-only">Set B by route</caption>
       <thead><tr><th scope="col">Route (Nov 28)</th><th scope="col">Readable: extracted</th><th scope="col">Readable: held</th><th scope="col">Readable: wrong character</th><th scope="col">Must hold: held</th><th scope="col">Wrongly offered</th><th scope="col">Median read</th></tr></thead>
@@ -65,11 +65,12 @@
         <tr><td>iPhone 17 · on-device, airplane mode (50 on-device)</td><td>15 / 32</td><td>14</td><td>3</td><td>18 / 18</td><td><strong>0</strong></td><td>743 ms</td></tr>
         <tr><td>iPhone 17 · on-device, airplane mode, second run (screen-recorded, 50 on-device)</td><td>15 / 32</td><td>12</td><td>5</td><td>18 / 18</td><td><strong>0</strong></td><td>1,056 ms</td></tr>
         <tr><td>iPhone 17 · cloud test (50 cloud)</td><td>18 / 32</td><td>8</td><td>6</td><td>18 / 18</td><td><strong>0</strong></td><td>789 ms</td></tr>
-        <tr><td>Chrome 158 · Gemini Nano on-device (50 on-device)</td><td>20 / 32</td><td>7</td><td>5</td><td>18 / 18</td><td><strong>0</strong></td><td>780 ms</td></tr>
+        <tr><td>Chrome 158 · Gemini Nano on-device, nano_v3 2025.8.8.1141 (50 on-device)</td><td>20 / 32</td><td>7</td><td>5</td><td>18 / 18</td><td><strong>0</strong></td><td>780 ms</td></tr>
+        <tr><td>Chrome 158 · Gemma 4 on-device, experimental flag (50 on-device)</td><td>11 / 32</td><td>17</td><td>4</td><td>18 / 18</td><td><strong>0</strong></td><td>2,764 ms</td></tr>
         <tr><td>Chrome · cloud fallback (50 cloud)</td><td>19 / 32</td><td>8</td><td>5</td><td>18 / 18</td><td><strong>0</strong></td><td>705 ms</td></tr>
       </tbody>
     </table>
-    <p><strong>What this shows.</strong> The safety outcome doesn't depend on the route: 90 of 90 must-hold cases were held across the five runs, and none was offered as ready. 0 identifiers were found in any request. The two on-device runs on the same phone differ (14 vs 12 held, 3 vs 5 wrong characters), because the on-device model's answers vary between runs; we publish both rather than the better one. The on-device model is more cautious: it held 14 readable documents and showed 3 with a wrong character, against 8 and 6 in the cloud on the same phone. Apple's model sometimes answered with label words such as "APPROVAL REFERENCE" instead of a slot name, and the guard treats any answer that isn't a slot as a hold. Wrong characters come from OCR (Vision on iPhone, Tesseract in Chrome) misreading O/0 and I/1 on the correctly labeled line.</p>
+    <p><strong>What this shows.</strong> The safety outcome doesn't depend on the route: 108 of 108 must-hold cases were held across the six runs, and none was offered as ready. 0 identifiers were found in any request. The two on-device runs on the same phone differ (14 vs 12 held, 3 vs 5 wrong characters), because the on-device model's answers vary between runs; we publish both rather than the better one. The on-device model is more cautious: it held 14 readable documents and showed 3 with a wrong character, against 8 and 6 in the cloud on the same phone. Apple's model sometimes answered with label words such as "APPROVAL REFERENCE" instead of a slot name, and the guard treats any answer that isn't a slot as a hold. Wrong characters come from OCR (Vision on iPhone, Tesseract in Chrome) misreading O/0 and I/1 on the correctly labeled line.</p>
 
     <h2>Replay the real-model run, document by document</h2>
     <p class="fine">Every row of the recorded set B run (real Gemini, deployed build <code>28b575a</code>). Click a document to open the exact scan that was read.</p>
