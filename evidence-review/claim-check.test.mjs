@@ -16,7 +16,7 @@ test("a correct claim waits for the scan, then becomes ready", () => {
 });
 
 test("published ID formats are enforced", () => {
-  const result = byId(checkClaim({ ...DEMO_CLAIM, memberId: "CR123", facilityId: "FID-22-100001-1",
+  const result = byId(checkClaim({ ...DEMO_CLAIM, memberId: "CR123", facilityId: "FID-2-100001",
     practitionerId: "PUID-100001-1", serviceCode: "SHA-8-004" }, null));
   assert.equal(result["member-id"], "fail");
   assert.equal(result["facility-id"], "fail");

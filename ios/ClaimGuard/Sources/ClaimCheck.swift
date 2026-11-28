@@ -54,7 +54,7 @@ enum ClaimCheck {
     private struct Format { let name: String; let pattern: String; let example: String }
     private static let formats: [(String, Format)] = [
         ("member", Format(name: "client registry ID", pattern: #"^CR\d{11}-\d$"#, example: "CRxxxxxxxxxxx-x")),
-        ("facility", Format(name: "facility ID (FID)", pattern: #"^FID-21-\d{6}-\d$"#, example: "FID-21-xxxxxx-x")),
+        ("facility", Format(name: "facility ID (FID)", pattern: #"^FID-\d{2}-\d{6}-\d$"#, example: "FID-xx-xxxxxx-x")),
         ("practitioner", Format(name: "practitioner ID (PUID)", pattern: #"^PUID-\d{7}-\d$"#, example: "PUID-xxxxxxx-x")),
         ("service", Format(name: "SHA intervention code", pattern: #"^SHA-\d{2}-\d{3}$"#, example: "SHA-08-004")),
     ]
