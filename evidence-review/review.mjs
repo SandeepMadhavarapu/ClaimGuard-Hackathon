@@ -88,6 +88,10 @@ function downloadJson(value, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Benchmarks pace cloud calls under the free tier (15 requests per minute). ?pace=0 removes the pause
+// for long on-device runs; any cloud fallback is still retried on a rate limit.
+const PACE_MS = (() => { const value = Number(new URLSearchParams(location.search).get("pace")); return Number.isFinite(value) && value >= 0 && new URLSearchParams(location.search).has("pace") ? Math.min(value, 10000) : 4200; })();
+
 let build = { commit: "local", builtAt: null };
 fetch("./build.json", { cache: "no-store" }).then(response => response.ok ? response.json() : null).then(value => {
   if (value?.commit) build = value;
@@ -1079,7 +1083,7 @@ async function runLayout(fixtures, readSample, label) {
       readLayoutEvidence: ocr.readScanLayoutEvidence,
       readLayout: (prompt, slotIds) => inference.readLayout(prompt, slotIds),
       ...layoutRead,
-      paceMs: 4200,
+      paceMs: PACE_MS,
       onProgress: (current, total) => { status.textContent = `${label} · document ${current} of ${total} · paced under the free-tier limit of 15 requests per minute.`; },
     });
     const { summary, rows } = latestLayoutBenchmark;
@@ -1117,7 +1121,9 @@ async function runLayout(fixtures, readSample, label) {
 
 el("evaluate-heldout").addEventListener("click", async () => {
   // ?heldout=c runs the blind set C generated after the slot-enum change; set B is the default.
-  const set = new URLSearchParams(location.search).get("heldout") === "c" ? "c" : "b";
+  // ?heldout=c or d selects the later synthetic sets; set B is the default.
+  const requested = new URLSearchParams(location.search).get("heldout");
+  const set = ["c", "d"].includes(requested) ? requested : "b";
   const response = await fetch(`./heldout/cases-${set}.json`);
   if (!response.ok) { el("eval-layout-status").textContent = "The held-out set could not be loaded."; return; }
   const { documents } = await response.json();
@@ -1145,7 +1151,7 @@ el("evaluate-layout").addEventListener("click", async () => {
       readLayoutEvidence: ocr.readScanLayoutEvidence,
       readLayout: (prompt, slotIds) => inference.readLayout(prompt, slotIds),
       ...layoutRead,
-      paceMs: 4200,
+      paceMs: PACE_MS,
       onProgress: (current, total) => { status.textContent = `Private layout · scan ${current} of ${total}.`; },
     });
     const { summary } = latestLayoutBenchmark;
