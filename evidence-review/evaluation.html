@@ -78,6 +78,17 @@
     <h2>Blind set C: the miss we found, and the fix</h2>
     <p>Set C (seed 20261130, four more never-seen label wordings) was generated after the slot enum and scored once on Gemma 4 on-device (build 87e28b7, 50 of 50 reads <code>ON_DEVICE</code>, p50 2.75 s): <strong>20 / 32</strong> readable extracted, 6 held, 6 wrong characters (all look-alikes), and <strong>17 / 18 must-hold pages held, 1 wrongly offered</strong>. The miss, <code>c21</code>, is a card where "Original preauthorization: DEMO-PA-" wraps "459714" onto the next line. OCR read two fragments, neither looked like a reference, so the page seemed to have one payer reference instead of two. The fix joins an identifier wrapped across a line break and holds any page where a payer label is followed by an unreadable fragment (Web and iOS, with tests). Re-checked with the worst-case sweep, which tries every possible model answer: <code>c21</code> is held under all of them, and set B shows no regression. Because the fix came from set C, set C is now a development set. Report: <code>evaluation/heldout/results-C-chrome-gemma4-87e28b7.json</code>.</p>
 
+    <h2>At scale: set D, 600 more scans</h2>
+    <p>Set D (seed 20261201) is 600 rendered synthetic documents plus 120 degraded variants, built after the public-format hardening: public SHA formats, Kenyan ID, phone and KRA PIN shapes, prompt injection, Kiswahili labels, Unicode dashes, wrapped and split references, look-alikes, conflicts and pending fields. Scored through the app's real OCR, layout, leak gate and guard (<code>results-D-08839dd.json</code>).</p>
+    <table><thead><tr><th>Set D</th><th>Result</th></tr></thead><tbody>
+      <tr><td>Must-hold pages held (label-faithful model)</td><td><strong>250 / 250</strong></td></tr>
+      <tr><td>Readable references extracted</td><td><strong>285 / 350</strong> · 27 held · 38 wrong character (35 deliberate look-alikes, 3 plain-token misreads), each flagged for the clerk</td></tr>
+      <tr><td>Requests containing an identifier</td><td><strong>0 / 720</strong></td></tr>
+      <tr><td>Degraded variants, must-hold held</td><td>53 / 54 (skewed table, one row's label lost by OCR)</td></tr>
+      <tr><td>Generated pages, every possible model answer (fuzzer)</td><td>200,000 pages · <strong>0</strong> wrong values · <strong>0</strong> identifiers in a prompt</td></tr>
+    </tbody></table>
+    <p>Set D first found 8 must-hold pages wrongly offered: bordered table rows skipped by Tesseract's single-block mode, labels split from their values across a line break, a blank payer field lending its label to a misread "Patient ID", and garbled or truncated second references. The app now reads every scan twice (Tesseract modes 4 and 6) and holds the page when the readings disagree; labels carry across a line break and close at a colon; garbled or hyphen-ending values after a payer label hold. Sets B and C stayed at 18/18 held and rose to 24/32 and 23/32 extracted. A rule that would have caught the skewed-table miss was rejected after measurement: it held 61 more readable pages.</p>
+
     <h2>Replay the real-model run, document by document</h2>
     <p class="fine">Every row of the recorded set B run (real Gemini, deployed build <code>28b575a</code>). Click a document to open the exact scan that was read.</p>
     <div class="replay-filters" role="group" aria-label="Filter rows">

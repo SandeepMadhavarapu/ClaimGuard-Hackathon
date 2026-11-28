@@ -105,6 +105,23 @@ Two held-out sets of 50 distinct synthetic documents each (6 layouts, 5 fonts, f
 
 **Which on-device model?** Firebase AI Logic reports *where* a request ran (`ON_DEVICE` or `IN_CLOUD`), not which built-in model Chrome used, so the app labels on-device answers "Chrome built-in model". Chrome uses Gemini Nano by default; we also measured Gemma 4 through Chrome's experimental flag. Exact versions, from `chrome://on-device-internals`, are on the [evaluation page](https://claimguard-hackathon.vercel.app/evaluation.html).
 
+## At scale: 600 more scans and 200,000 generated pages
+
+**Set D** (seed 20261201, built after the public-format hardening) is 600 rendered synthetic documents plus 120 blurred, low-resolution and skewed variants, covering public SHA formats (preauth and provider tokens, CR, SHA member, FID, PUID, intervention codes, claim UUIDs), Kenyan national ID, phone and KRA PIN shapes, prompt-injection text, Kiswahili labels, Unicode dashes, references wrapped across lines or printed in pieces, look-alike characters, conflicts and pending fields. Every scan runs through the app's real OCR, layout, leak gate and guard ([`evaluation/heldout/run.py`](evaluation/heldout/run.py); results [`results-D-08839dd.json`](evaluation/heldout/results-D-08839dd.json)):
+
+| Set D, 600 documents | Result |
+|---|---|
+| Must-hold pages held (label-faithful model) | **250 / 250** |
+| Readable references extracted | **285 / 350** (27 held for review; 38 shown with a wrong character: 35 deliberate O/0, I/1 look-alikes and 3 plain-token misreads, each flagged with a look-alike warning for the clerk) |
+| Requests that contained an identifier | **0 of 720** |
+| Degraded variants: must-hold held | 53 / 54 (the miss: a skewed table where OCR lost one row's label entirely) |
+
+Set D first found **8 must-hold pages wrongly offered**. The causes were real: Tesseract's single-block mode skipped bordered table rows; a label at the end of a line lost its value on the next; a blank payer field followed by a misread "Patient ID" lent its label to a national ID; OCR garbled or truncated a second reference. The fixes: every scan is now read twice (Tesseract modes 4 and 6) and held if the readings disagree; labels carry across a line break and close at a colon; garbled or hyphen-ending values after a payer label hold the page. Sets B and C stayed at 18/18 held and rose to 24/32 and 23/32 extracted. A further rule that would have caught the skewed-table miss was measured and rejected: it held 61 more readable pages.
+
+**Fuzzer:** [`fuzz.mjs`](evidence-review/fuzz.mjs) generates pages from the same categories with random order, wraps, dashes, casing, injections and distractors, and resolves every possible model answer for each. 200,000 pages: **0 wrong values shown, 0 identifiers in a prompt, 66,604 / 66,604 readable references readable**. It found two bugs on the way (codes printed in pieces with letter-only or vocabulary-word pieces), both fixed; 5,000 pages run in the test suite.
+
+**Signed receipts:** the proof run and the run log now download as signed receipts: a SHA-256 hash chain over every step, an Ed25519 signature from a non-extractable key that stays in the browser, and an egress manifest of every request that left the device (bytes, SHA-256, identifiers: 0) and what stayed. [`verify.html`](https://claimguard-hackathon.vercel.app/verify.html) checks a receipt in the browser; change one character and it fails. Findings also export as CSV.
+
 ## Measured results (Web)
 
 Live site, Nov 27–28, 2026, same 12 synthetic scans (6 with a payer reference, 6 that require abstention):
@@ -126,7 +143,7 @@ Reading the whole image with Nano varies by machine and model build; the private
 node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test.mjs"
 ```
 
-83 Web tests (plus 23 iOS tests) cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK, plus a stress suite built from public formats in the SHA claims guide (preauth and provider tokens, CR, SHA, FID, PUID and intervention codes, claim UUIDs), Kenyan ID, phone and KRA PIN shapes, prompt injection, Kiswahili labels, OCR splits, line wraps and Unicode dashes: under every possible model answer, no wrong value is shown and no identifier reaches a prompt. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
+94 Web tests (plus 23 iOS tests) cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK, plus a stress suite built from public formats in the SHA claims guide (preauth and provider tokens, CR, SHA, FID, PUID and intervention codes, claim UUIDs), Kenyan ID, phone and KRA PIN shapes, prompt injection, Kiswahili labels, OCR splits, line wraps and Unicode dashes: under every possible model answer, no wrong value is shown and no identifier reaches a prompt. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
 
 ## Built with
 
