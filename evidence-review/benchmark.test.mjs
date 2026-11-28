@@ -204,3 +204,17 @@ test("the private layout benchmark attributes each miss to a stage and keeps fai
   assert.equal(report.summary.guardSweep.wrongShown, 0);
   assert.equal(report.status, "partial");
 });
+
+test("rate-limited model calls are retried after the delay the API asks for", async () => {
+  const { rateLimitDelayMs, withRateLimitRetry } = await import("./benchmark.mjs");
+  const quota = new Error("[429 ] You exceeded your current quota ... Please retry in 3.09s.");
+  assert.equal(rateLimitDelayMs(quota), 3590);
+  assert.equal(rateLimitDelayMs(new Error("Nano is unavailable")), null);
+  const waits = [];
+  let calls = 0;
+  const value = await withRateLimitRetry(async () => { calls += 1; if (calls < 3) throw quota; return "ok"; }, { wait: async ms => waits.push(ms) });
+  assert.equal(value, "ok");
+  assert.deepEqual(waits, [3590, 3590]);
+  await assert.rejects(withRateLimitRetry(async () => { throw new Error("other"); }, { wait: async () => {} }), /other/);
+  await assert.rejects(withRateLimitRetry(async () => { throw quota; }, { retries: 1, wait: async () => {} }), /429/);
+});

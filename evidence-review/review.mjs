@@ -3,7 +3,7 @@ import {
   parseReference, preauthorizationFinding,
   reviewScanSuggestion, verifySuggestion,
 } from "./evidence.mjs";
-import { compareBenchmarkRuns, shareableBenchmark, runLayoutBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
+import { compareBenchmarkRuns, rateLimitDelayMs, shareableBenchmark, runLayoutBenchmark, runOcrBenchmark, runScanBenchmark } from "./benchmark.mjs";
 import { imageModelAvailability } from "./browser-readiness.mjs";
 import { DEMO_CLAIM, DEMO_CLAIM_WITH_ERRORS, checkClaim, operationOutcome } from "./claim-check.mjs";
 import { setupInference } from "./firebase-ai.mjs";
@@ -671,9 +671,11 @@ extractLayout.addEventListener("click", async () => {
     recordTrace("Read private layout", response.source, outcome, response.duration);
     present(decision.candidate, "Confirmed after private layout read", `Gemini slot ${decision.pick} + local OCR`, decision.box);
     setOutcome(nextStepCode(decision.status));
-  } catch {
+  } catch (error) {
     recordTrace("Read private layout", "UNCONFIRMED", "Inference unavailable");
-    localStatus.textContent = "The private layout read is unavailable. Use local OCR or enter the reference manually.";
+    localStatus.textContent = rateLimitDelayMs(error) !== null
+      ? "The demo's free Gemini quota (15 requests per minute) is busy. Wait a few seconds and try again, or use local OCR."
+      : "The private layout read is unavailable. Use local OCR or enter the reference manually.";
   } finally {
     busy = false;
     updateControls();
@@ -941,7 +943,8 @@ async function runLayout(fixtures, readSample, label) {
       readLayoutEvidence: ocr.readScanLayoutEvidence,
       readLayout: prompt => inference.readLayout(prompt),
       ...layoutRead,
-      onProgress: (current, total) => { status.textContent = `${label} · document ${current} of ${total}.`; },
+      paceMs: 4200,
+      onProgress: (current, total) => { status.textContent = `${label} · document ${current} of ${total} · paced under the free-tier limit of 15 requests per minute.`; },
     });
     const { summary, rows } = latestLayoutBenchmark;
     const readable = rows.filter(row => row.expectedReference !== null);
@@ -1004,6 +1007,7 @@ el("evaluate-layout").addEventListener("click", async () => {
       readLayoutEvidence: ocr.readScanLayoutEvidence,
       readLayout: prompt => inference.readLayout(prompt),
       ...layoutRead,
+      paceMs: 4200,
       onProgress: (current, total) => { status.textContent = `Private layout · scan ${current} of ${total}.`; },
     });
     const { summary } = latestLayoutBenchmark;

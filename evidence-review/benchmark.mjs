@@ -250,6 +250,27 @@ export function shareableBenchmark(...runs) {
   };
 }
 
+// Free-tier Gemini allows 15 requests per minute per project. Benchmarks pace themselves under that
+// and retry rate-limited calls after the delay the API asks for, so a run measures ClaimGuard, not quota.
+export function rateLimitDelayMs(error) {
+  const text = String(error?.message ?? error ?? "");
+  if (!/\b429\b|quota|rate.?limit|RESOURCE_EXHAUSTED/i.test(text)) return null;
+  const seconds = Number(/retry in ([\d.]+)s/i.exec(text)?.[1] ?? /"retryDelay":"(\d+)s"/.exec(text)?.[1]);
+  return Math.ceil((Number.isFinite(seconds) ? seconds : 8) * 1000) + 500;
+}
+
+export async function withRateLimitRetry(call, { retries = 4, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await call();
+    } catch (error) {
+      const delay = rateLimitDelayMs(error);
+      if (delay === null || attempt >= retries) throw error;
+      await wait(delay);
+    }
+  }
+}
+
 // Private layout route: OCR on the device, slots to Gemini (on-device first, cloud fallback),
 // deterministic guard. Each row says where a miss happened, so judges can see which stage lost it.
 export function scoreLayoutCase(fixture, { evidence, layout, pick, decision, response }) {
@@ -284,8 +305,9 @@ export function scoreLayoutCase(fixture, { evidence, layout, pick, decision, res
 
 export async function runLayoutBenchmark({
   readSample, readLayoutEvidence, readLayout, buildLayout, layoutPrompt, resolveLayoutSlot, guardSweep, leakGate, onProgress,
-  fixtures = BENCHMARK_CASES,
+  fixtures = BENCHMARK_CASES, paceMs = 0, wait,
 }) {
+  let lastCall = 0;
   const startedAt = new Date().toISOString();
   const rows = [];
   for (const fixture of fixtures) {
@@ -301,7 +323,11 @@ export async function runLayoutBenchmark({
       sweep = guardSweep ? guardSweep(layout, evidence, fixture.expected) : null;
       const prompt = layoutPrompt(layout.layout);
       if (leakGate && !leakGate(prompt, layout).ok) throw new Error("Leak gate blocked the call");
-      const response = await readLayout(prompt);
+      const sleep = wait ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
+      const gap = paceMs - (Date.now() - lastCall);
+      if (gap > 0) await sleep(gap);
+      lastCall = Date.now();
+      const response = await withRateLimitRetry(() => readLayout(prompt), { wait: sleep });
       if (!["ON_DEVICE", "IN_CLOUD"].includes(response.source)) throw new Error("Unverified inference source");
       const decision = resolveLayoutSlot(response.text, layout, evidence);
       rows.push({ ...scoreLayoutCase(fixture, { evidence, layout, pick: decision.pick, decision, response }), sweep, sampleSha256 });
