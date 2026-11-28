@@ -12,6 +12,8 @@ Entry for [#BuildHybridAI 2026](https://firebasehybridaihackathon.devpost.com/).
 
 | Time | Do this | What to look for |
 |---|---|---|
+| 0–60 s | Open the [live demo](https://claimguard-hackathon.vercel.app/?judge=1) and click **Run the 60-second proof** | One pass through a clean scan and a conflict: the SDK-reported route, the exact request's size and SHA-256 with 0 identifiers, Gemini's pick, the guard's decision, your own confirmation, the claim verdict (Ready, then Hold), and a downloadable receipt. |
+| *Or step by step:* | | |
 | 0–15 s | Open the [live demo](https://claimguard-hackathon.vercel.app/?judge=1), keep **Specialist referral** selected, click **Read with Gemini · private layout** | The status shows where Firebase AI Logic ran (on-device or cloud) and which slot Gemini picked. The reference is highlighted on the scan. |
 | 15–30 s | Open **View the exact private-layout request** | The leak gate line (`0 identifiers in N outbound bytes · SHA-256 …`) and the exact text sent: form words and slots like `[ID-2]`, never the values. |
 | 30–45 s | Click **Conflicting references**, then read it the same way | The finding stays open and the claim pre-check says **Hold: conflicting payer references on the scan**. |
@@ -98,7 +100,7 @@ Full details, the benchmark methodology and the network capture tool are in [`ev
 
 Two held-out sets of 50 distinct synthetic documents each (6 layouts, 5 fonts, familiar and unfamiliar label wordings, O/0 and I/1 look-alikes, conflicts, two-document pages, pending and blank fields), plus 30 degraded variants per set, reported separately. Set A was run against frozen code and exposed a real bug: the OCR label rule offered one of two references when the second used an unfamiliar label. It became the development set. Set B was generated after the fixes, with a new seed and four never-seen label wordings, and scored once.
 
-**Set B, real Gemini on the deployed build (28b575a):** of 32 readable documents, the private layout read extracted **19** correctly and held 8. On 5, all look-alikes, OCR misread one character on the correctly labeled line. Of 18 documents that must be held, it held **18** and wrongly offered **0**; on 5 conflict pages Gemini picked a slot and the guard held them anyway. All 50 real requests (40.7 KB) were captured, and none contained a digit outside a slot name. p50 705 ms. Full tables, method and misses: [evaluation.html](https://claimguard-hackathon.vercel.app/evaluation.html) · code: [`evaluation/heldout`](evaluation/heldout).
+**Set B, real Gemini on the deployed build (28b575a):** of 32 readable documents, the private layout read extracted **19** correctly and held 8. On 5, all look-alikes, OCR misread one character on the correctly labeled line. Of 18 documents that must be held, it held **18** and wrongly offered **0**; on 5 conflict pages Gemini picked a slot and the guard held them anyway. All 50 real requests (40.7 KB) were captured, and none contained a digit outside a slot name. p50 705 ms. Full tables, method, a filterable replay of all 50 real-model rows, and misses: [evaluation.html](https://claimguard-hackathon.vercel.app/evaluation.html) · code: [`evaluation/heldout`](evaluation/heldout).
 
 ## Measured results (Web)
 

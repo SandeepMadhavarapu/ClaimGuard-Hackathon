@@ -216,3 +216,13 @@ a { color: #225843; }
 
 .judge-links { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .secondary-link { font-weight: 600; color: #4b3fa8; }
+
+.proof-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0; }
+.proof { border: 1px solid #dfe2ea; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; background: #fbfcfe; }
+.proof ol { margin: 0 0 10px; padding-left: 22px; }
+.proof li { margin: 8px 0; }
+.proof li strong { display: block; }
+.proof .proof-detail { display: block; font-size: .92rem; color: #444; }
+.proof li[data-state="running"] strong::after { content: " · in progress"; color: #8a6d00; font-weight: 600; }
+.proof li[data-state="done"] strong::after { content: " ✓"; color: #1f6b46; }
+.proof li[data-state="failed"] strong::after { content: " · not completed"; color: #a42121; }

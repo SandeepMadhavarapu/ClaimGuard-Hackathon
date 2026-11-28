@@ -44,6 +44,19 @@
           <a class="secondary-link" href="./evaluation.html">Measured results, including misses <span aria-hidden="true">↗</span></a>
         </div>
       </div>
+      <div class="proof-cta">
+        <button type="button" id="proof-run" disabled>Run the 60-second proof</button>
+        <span class="fine">A clean scan and a conflict, start to finish: evidence, exact request, SDK route, guard, your confirmation, claim verdict, receipt.</span>
+      </div>
+      <div id="proof" class="proof" hidden>
+        <ol id="proof-steps">
+          <li data-state="waiting"><strong>Clean scan, private layout read</strong><span class="proof-detail"></span></li>
+          <li data-state="waiting"><strong>Your confirmation</strong><span class="proof-detail"></span></li>
+          <li data-state="waiting"><strong>Conflicting references</strong><span class="proof-detail"></span></li>
+          <li data-state="waiting"><strong>Next-step guidance</strong><span class="proof-detail"></span></li>
+        </ol>
+        <button type="button" class="secondary" id="proof-download" hidden>Download proof receipt</button>
+      </div>
       <div class="judge-actions">
         <button type="button" class="scenario" id="judge-referral" data-scan="referral.png" aria-pressed="true">
           <strong>Specialist referral</strong><span>Find and record the reference</span>

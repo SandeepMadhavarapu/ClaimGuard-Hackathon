@@ -247,6 +247,7 @@ function updateControls() {
   evaluateOcr.disabled = busy;
   el("evaluate-layout").disabled = busy || !inference;
   el("evaluate-heldout").disabled = busy || !inference;
+  el("proof-run").disabled = busy || !inference;
   exportEvaluation.disabled = busy || !(latestBenchmark || latestOcrBenchmark || latestLayoutBenchmark);
   manual.inert = busy || !canReview;
   manual.hidden = !canReview;
@@ -633,8 +634,10 @@ const layoutMessages = {
   uncorroborated: ["OCR is not confident in that value. Review the scan before manual entry.", "Uncorroborated proposal blocked"],
 };
 
-extractLayout.addEventListener("click", async () => {
+// The private layout read, shared by the button and the judge proof run. Returns what happened.
+async function readPrivateLayout() {
   const image = currentImage;
+  const step = { at: new Date().toISOString() };
   present(null);
   setOutcome(null);
   busy = true;
@@ -652,6 +655,7 @@ extractLayout.addEventListener("click", async () => {
     el("layout-request").hidden = false;
     const gate = leakGate(prompt, layout);
     const hash = await sha256Hex(prompt);
+    Object.assign(step, { requestBytes: gate.bytes, requestSha256: hash, identifiersInRequest: gate.identifiers, slots: layout.slots.length });
     el("layout-receipt").textContent = gate.ok
       ? `Leak gate passed: 0 identifiers in ${gate.bytes} outbound bytes · SHA-256 ${hash.slice(0, 16)}…`
       : `Leak gate blocked the call: ${gate.identifiers} identifier(s) found in the outbound text.`;
@@ -660,7 +664,7 @@ extractLayout.addEventListener("click", async () => {
       recordTrace("Read private layout", "UNCONFIRMED", "Blocked by leak gate");
       localStatus.textContent = "The leak gate found an identifier in the outbound text, so nothing was sent. Use local OCR or enter the reference manually.";
       setOutcome("NEEDS_REVIEW");
-      return;
+      return { ...step, blocked: "leak gate" };
     }
     localStatus.textContent = "Asking Gemini for the slot · on-device first, cloud fallback.";
     const response = await inference.readLayout(prompt);
@@ -671,16 +675,93 @@ extractLayout.addEventListener("click", async () => {
     recordTrace("Read private layout", response.source, outcome, response.duration);
     present(decision.candidate, "Confirmed after private layout read", `Gemini slot ${decision.pick} + local OCR`, decision.box);
     setOutcome(nextStepCode(decision.status));
+    return { ...step, route: response.source, ms: response.duration, modelPick: decision.pick ?? null,
+      guard: decision.status, shownForConfirmation: decision.candidate?.reference ?? null, outcomeCode: nextStepCode(decision.status) };
   } catch (error) {
     recordTrace("Read private layout", "UNCONFIRMED", "Inference unavailable");
-    localStatus.textContent = rateLimitDelayMs(error) !== null
+    const limited = rateLimitDelayMs(error) !== null;
+    localStatus.textContent = limited
       ? "The demo's free Gemini quota (15 requests per minute) is busy. Wait a few seconds and try again, or use local OCR."
       : "The private layout read is unavailable. Use local OCR or enter the reference manually.";
+    return { ...step, error: limited ? "rate limited" : "unavailable" };
   } finally {
     busy = false;
     updateControls();
   }
+}
+
+extractLayout.addEventListener("click", () => { readPrivateLayout(); });
+
+// Judge proof run: one pass through a clean scan and a conflict, with the evidence, the exact
+// sanitized request, the SDK-reported route, the guard's decision, a human confirmation and the
+// claim verdict, then a downloadable receipt. Two model calls, well inside the free quota.
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function openScanAndWait(file) {
+  const before = currentImage;
+  openJudgeSample(file);
+  for (let i = 0; i < 100 && (currentImage === before || !currentImage || busy); i += 1) await sleep(100);
+  await sleep(300);
+}
+
+function proofStep(index, state, text) {
+  const item = el("proof-steps").children[index];
+  item.dataset.state = state;
+  item.querySelector(".proof-detail").textContent = text;
+}
+
+let proofReceipt = null;
+el("proof-run").addEventListener("click", async () => {
+  if (busy || !inference) return;
+  const runButton = el("proof-run");
+  runButton.disabled = true;
+  el("proof-download").hidden = true;
+  el("proof").hidden = false;
+  for (const item of el("proof-steps").children) { item.dataset.state = "waiting"; item.querySelector(".proof-detail").textContent = ""; }
+  fillClaim(DEMO_CLAIM);
+  proofReceipt = { kind: "claimguard-proof-run", build, startedAt: new Date().toISOString(), scope: "Synthetic documents only. No reference values or document text below; values shown are synthetic demo references.", steps: [] };
+  const guardWords = { review: "passed, shown for your confirmation", conflict: "held, two payer references", empty: "held, no payer reference",
+    unsupported: "blocked, not labeled as a payer reference", disagreement: "held, OCR disagrees", uncorroborated: "held, OCR not confident" };
+  const describe = read => read.error ? `Not completed: ${read.error}. Try again in a few seconds.`
+    : `${routeNames[read.route] ?? read.route} · ${read.ms ?? "?"} ms · request ${read.requestBytes} bytes, ${read.identifiersInRequest} identifiers, SHA-256 ${read.requestSha256.slice(0, 12)}… · Gemini picked ${read.modelPick} · guard ${guardWords[read.guard] ?? read.guard}`;
+  try {
+    // 1. Clean scan
+    proofStep(0, "running", "Reading the specialist referral: OCR on this device, slots only to Gemini.");
+    await openScanAndWait("referral.png");
+    const clean = await readPrivateLayout();
+    proofReceipt.steps.push({ step: "clean scan", ...clean });
+    proofStep(0, clean.shownForConfirmation ? "done" : "failed", `${describe(clean)}${clean.shownForConfirmation ? ` · highlighted ${clean.shownForConfirmation} on the scan` : ""}`);
+    if (!clean.shownForConfirmation) throw new Error("clean");
+    // 2. Human confirmation
+    proofStep(1, "running", "Your turn: compare the highlighted line with the scan, tick the box, then click Record reference.");
+    el("candidate").scrollIntoView({ behavior: "smooth", block: "center" });
+    await new Promise(resolve => apply.addEventListener("click", resolve, { once: true }));
+    await sleep(200);
+    const ready = el("claim-verdict").textContent;
+    proofReceipt.steps.push({ step: "clerk confirmation", at: new Date().toISOString(), by: "person at the keyboard", claimVerdict: ready });
+    proofStep(1, "done", `Recorded by you · claim pre-check: ${ready}`);
+    // 3. Conflict
+    proofStep(2, "running", "Reading a page with two payer references.");
+    el("judge-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    await openScanAndWait("conflicting.png");
+    const conflict = await readPrivateLayout();
+    const held = el("claim-verdict").textContent;
+    proofReceipt.steps.push({ step: "conflicting references", ...conflict, claimVerdict: held });
+    proofStep(2, conflict.error ? "failed" : "done", `${describe(conflict)} · nothing offered · claim pre-check: ${held}`);
+    // 4. Next step, without sending anything
+    const request = nextStepPrompt("CONFLICT");
+    proofReceipt.steps.push({ step: "next-step request (not sent)", outcomeCode: "CONFLICT", requestBytes: new TextEncoder().encode(request).length });
+    proofStep(3, "done", `Only the outcome code reaches the model for guidance: a fixed ${new TextEncoder().encode(request).length}-byte public checklist request. Open "Next step" below to send it, or to see it in Kiswahili.`);
+    proofReceipt.finishedAt = new Date().toISOString();
+    el("proof-download").hidden = false;
+  } catch {
+    proofReceipt.finishedAt = new Date().toISOString();
+    el("proof-download").hidden = false;
+  } finally {
+    runButton.disabled = false;
+  }
 });
+el("proof-download").addEventListener("click", () => { if (proofReceipt) downloadJson(proofReceipt, "claimguard-proof-receipt.json"); });
 
 extract.addEventListener("click", async () => {
   const scanning = mode === "scan";
