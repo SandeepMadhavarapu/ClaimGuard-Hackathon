@@ -3,8 +3,6 @@ const VERSION = __VERSION__;
 const PRECACHE = __PRECACHE__;
 const CACHE = `claimguard-${VERSION}`;
 const RUNTIME = "claimguard-runtime-v1";
-// Live values: always try the network first so a new deploy or config is picked up.
-const NETWORK_FIRST = /\/(index\.html)?(\?.*)?$|firebase-config\.local\.json|build\.json/;
 const CACHE_ON_USE = [/\/ocr-runtime\/core\//, /^https:\/\/www\.gstatic\.com\/firebasejs\//];
 
 self.addEventListener("install", event => {
@@ -22,7 +20,10 @@ self.addEventListener("fetch", event => {
   if (request.method !== "GET") return; // Model calls and App Check are POSTs: never cached.
   const url = new URL(request.url);
   const sameOrigin = url.origin === self.location.origin;
-  if (sameOrigin && NETWORK_FIRST.test(url.pathname + url.search)) {
+  const onUse = CACHE_ON_USE.some(pattern => pattern.test(url.href));
+  // App code: network first so a new deploy is never mixed with old cached modules; the cache is
+  // the offline fallback. Large, versioned runtime files (OCR core, Firebase SDK): cache first.
+  if (sameOrigin && !onUse) {
     event.respondWith(fetch(request).then(response => {
       if (response.ok) {
         const copy = response.clone();
@@ -32,9 +33,9 @@ self.addEventListener("fetch", event => {
     }).catch(async () => (await caches.match(request, { ignoreSearch: true })) ?? caches.match("./")));
     return;
   }
-  if (sameOrigin || CACHE_ON_USE.some(pattern => pattern.test(url.href))) {
-    event.respondWith(caches.match(request, { ignoreSearch: sameOrigin }).then(cached => cached ?? fetch(request).then(response => {
-      if (response.ok && CACHE_ON_USE.some(pattern => pattern.test(url.href))) {
+  if (onUse) {
+    event.respondWith(caches.match(request).then(cached => cached ?? fetch(request).then(response => {
+      if (response.ok) {
         const copy = response.clone();
         caches.open(RUNTIME).then(cache => cache.put(request, copy));
       }
