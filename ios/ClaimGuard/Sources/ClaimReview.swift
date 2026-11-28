@@ -240,8 +240,8 @@ final class ClaimReview {
         do {
             let result = try await ClaimInference.nextStep(code, language: language)
             trace("Next step (\(code.label), \(language.name))", result.route, result.milliseconds)
-            if let reason = NextStepGrounding.check(result.text) {
-                nextStepError = "Answer discarded (\(reason) not in the checklist). Follow the checklist."
+            if let reason = GuidancePolicy.check(result.text, code: code, verdict: claimResult.verdict) {
+                nextStepError = "Explanation discarded (\(reason)). Follow the approved action."
             } else {
                 nextStep = result
             }

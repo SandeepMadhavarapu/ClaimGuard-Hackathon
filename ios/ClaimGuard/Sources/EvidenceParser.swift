@@ -280,6 +280,68 @@ enum NextStepGrounding {
 }
 
 
+/// The app, not the model, decides which action is allowed: a vetted first action per outcome and
+/// claim verdict. Model text is only an explanation, and a deny rule overrides it when it recommends
+/// something the verdict forbids. Matches APPROVED_ACTIONS and guidancePolicy in the Web app.
+struct ApprovedAction: Equatable, Sendable {
+    let id: String
+    let text: String
+
+    static func forOutcome(_ code: NextStepCode, verdict: ClaimCheckResult.Verdict, language: NextStepLanguage) -> ApprovedAction {
+        let sw = language == .kiswahili
+        switch code {
+        case .conflict:
+            return ApprovedAction(id: "ask-payer-which-reference", text: sw
+                ? "Uliza mlipaji ni rejea ipi inayohusu huduma hii na tarehe hii. Usichague rejea wewe mwenyewe."
+                : "Ask the payer which reference applies to this service and date. Do not choose one yourself.")
+        case .noReference:
+            return ApprovedAction(id: "get-preauthorization-first", text: sw
+                ? "Simamisha dai na upate rejea ya uidhinishaji kutoka kwa mlipaji kabla ya kuwasilisha."
+                : "Hold the claim and get the preauthorization reference from the payer before submitting.")
+        case .needsReview:
+            return ApprovedAction(id: "compare-with-original", text: sw
+                ? "Linganisha rejea na nakala asili herufi kwa herufi kabla ya kuiandika."
+                : "Compare the reference with the original scan character by character before recording it.")
+        case .recorded where verdict == .ready:
+            return ApprovedAction(id: "confirm-approval-then-submit", text: sw
+                ? "Thibitisha idhini na mlipaji, kisha wasilisha dai ndani ya muda wa kuwasilisha."
+                : "Confirm the approval with the payer, then submit the claim within the filing window.")
+        case .recorded:
+            return ApprovedAction(id: "fix-claim-before-submitting", text: sw
+                ? "Rekebisha makosa ya ukaguzi wa dai kabla ya kuwasilisha. Rejea imeandikwa, lakini dai limesimamishwa."
+                : "Fix the claim pre-check issues before submitting. The reference is recorded, but the claim is on hold.")
+        }
+    }
+}
+
+enum GuidancePolicy {
+    private static let submit = #"\b(submit\w*|send(?:ing)? (?:the|this) claim|file (?:the|this) claim|lodge\w*|wasilish\w*|tuma dai|peleka dai)\b"#
+    private static let choose = #"\b(use|choose|pick|select|go with|tumia|chagua)\b[^.]{0,40}\b(first|second|newer|newest|latest|older|higher|lower|either|one of|ya kwanza|ya pili|mojawapo)\b"#
+    private static let negated = #"\b(do not|don't|never|not|no|avoid|before|until|unless|only after|once|after the payer|hold|usi\w+|kabla ya|hadi|mpaka|baada ya)\b"#
+    private static let splitter = #"[.;!?\n]+|\bbut\b|\bhowever\b|\blakini\b"#
+
+    private static func matches(_ text: String, _ pattern: String) -> Bool {
+        text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
+    }
+
+    private static func affirmativeClauses(_ text: String) -> [String] {
+        guard let regex = try? NSRegularExpression(pattern: splitter, options: [.caseInsensitive]) else { return [text] }
+        let marked = regex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "\u{1F}")
+        return marked.split(separator: "\u{1F}").map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && !matches($0, negated) }
+    }
+
+    /// Returns nil when the text may be shown, otherwise the reason it was discarded.
+    static func check(_ text: String, code: NextStepCode, verdict: ClaimCheckResult.Verdict) -> String? {
+        if let reason = NextStepGrounding.check(text) { return reason }
+        let clauses = affirmativeClauses(text)
+        let submitAllowed = code == .recorded && verdict == .ready
+        if !submitAllowed && clauses.contains(where: { matches($0, submit) }) { return "recommends submitting while the claim is not ready" }
+        if code != .recorded && clauses.contains(where: { matches($0, choose) }) { return "picks a reference without payer confirmation" }
+        return nil
+    }
+}
+
 /// Characters OCR and people confuse, named with 1-based positions. Matches lookalikeNote on Web.
 enum Lookalikes {
     private static let names: [Character: String] = ["0": "zero", "O": "letter O", "o": "letter o", "1": "one", "I": "letter I", "l": "letter l"]

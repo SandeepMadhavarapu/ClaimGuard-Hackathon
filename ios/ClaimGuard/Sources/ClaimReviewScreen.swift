@@ -269,6 +269,12 @@ struct ClaimReviewScreen: View {
             }
             Text("Only this outcome type and a public demo checklist are sent. On-device first, cloud if needed. No scan, reference, or document text.")
                 .font(.footnote).foregroundStyle(.secondary)
+            let action = ApprovedAction.forOutcome(code, verdict: review.claimResult.verdict, language: review.language)
+            (Text(review.language == .kiswahili ? "Hatua iliyoidhinishwa: " : "Approved action: ").bold() + Text(action.text))
+                .font(.subheadline)
+                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.privacyGreen.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                .accessibilityIdentifier("approved-action")
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(Array(code.checklist.enumerated()), id: \.offset) { item in
                     Text("\(item.offset + 1). \(item.element)").font(.subheadline).foregroundStyle(.secondary)
