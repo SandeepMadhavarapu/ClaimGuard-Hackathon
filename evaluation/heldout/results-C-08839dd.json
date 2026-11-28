@@ -1,6 +1,6 @@
 {
  "summary": {
-  "commit": "87e28b7-dirty",
+  "commit": "08839dd",
   "documents": 50,
   "variants": 30,
   "ocr_rule": {
@@ -15,8 +15,8 @@
    },
    "variants": {
     "readable": 24,
-    "extracted": 3,
-    "readable_held": 19,
+    "extracted": 2,
+    "readable_held": 20,
     "readable_wrong": 2,
     "should_hold": 6,
     "held": 6,
@@ -26,8 +26,8 @@
   "private_layout_best_case": {
    "documents": {
     "readable": 32,
-    "extracted": 20,
-    "readable_held": 12,
+    "extracted": 23,
+    "readable_held": 9,
     "readable_wrong": 0,
     "should_hold": 18,
     "held": 18,
@@ -35,8 +35,8 @@
    },
    "variants": {
     "readable": 24,
-    "extracted": 12,
-    "readable_held": 12,
+    "extracted": 10,
+    "readable_held": 14,
     "readable_wrong": 0,
     "should_hold": 6,
     "held": 6,
@@ -46,26 +46,27 @@
   "private_layout_label_faithful_model": {
    "documents": {
     "readable": 32,
-    "extracted": 20,
-    "readable_held": 6,
-    "readable_wrong": 6,
+    "extracted": 23,
+    "readable_held": 2,
+    "readable_wrong": 7,
     "should_hold": 18,
     "held": 18,
     "wrongly_ready": 0
    },
    "variants": {
     "readable": 24,
-    "extracted": 12,
-    "readable_held": 9,
-    "readable_wrong": 3,
+    "extracted": 10,
+    "readable_held": 10,
+    "readable_wrong": 4,
     "should_hold": 6,
     "held": 6,
     "wrongly_ready": 0
    }
   },
   "private_layout_any_model": {
-   "documents_with_a_wrong_value_possible": 6,
+   "documents_with_a_wrong_value_possible": 7,
    "documents_list": [
+    "c01.jpg",
     "c04.jpg",
     "c13.jpg",
     "c17.jpg",
@@ -73,15 +74,15 @@
     "c32.jpg",
     "c38.jpg"
    ],
-   "variants_with_a_wrong_value_possible": 3,
-   "picks_tried": 289
+   "variants_with_a_wrong_value_possible": 4,
+   "picks_tried": 299
   },
   "leak_gate": {
    "blocked": 0,
    "requests": 80
   },
-  "ocr_read_expected_value": 21,
-  "set": "B"
+  "ocr_read_expected_value": 24,
+  "set": "C"
  },
  "rows": {
   "documents": [
@@ -91,18 +92,18 @@
     "expected": "PA-80O932",
     "note": "O/0 or I/1 look-alike",
     "layout": "table",
-    "ocrReferences": 0,
+    "ocrReferences": 1,
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 743,
+    "gateBytes": 786,
     "bestShown": null,
     "bestStatus": "empty",
     "sweep": {
-     "tried": 1,
-     "wrongShown": 0
+     "tried": 3,
+     "wrongShown": 1
     },
-    "faithfulShown": null
+    "faithfulShown": "PA-800932"
    },
    {
     "file": "c02.jpg",
@@ -338,18 +339,18 @@
     "expected": "PA-396794",
     "note": "familiar label",
     "layout": "table",
-    "ocrReferences": 0,
+    "ocrReferences": 1,
     "ocrShown": null,
-    "valueRead": false,
+    "valueRead": true,
     "gateOk": true,
-    "gateBytes": 767,
-    "bestShown": null,
-    "bestStatus": "empty",
+    "gateBytes": 838,
+    "bestShown": "PA-396794",
+    "bestStatus": "review",
     "sweep": {
-     "tried": 1,
+     "tried": 4,
      "wrongShown": 0
     },
-    "faithfulShown": null
+    "faithfulShown": "PA-396794"
    },
    {
     "file": "c15.jpg",
@@ -437,11 +438,11 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 831,
+    "gateBytes": 828,
     "bestShown": null,
     "bestStatus": "empty",
     "sweep": {
-     "tried": 4,
+     "tried": 3,
      "wrongShown": 1
     },
     "faithfulShown": "AUTH-26-70162"
@@ -513,11 +514,11 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 788,
+    "gateBytes": 824,
     "bestShown": null,
     "bestStatus": "empty",
     "sweep": {
-     "tried": 2,
+     "tried": 3,
      "wrongShown": 0
     },
     "faithfulShown": null
@@ -547,18 +548,18 @@
     "expected": "AUTH-26-25350",
     "note": "familiar label",
     "layout": "table",
-    "ocrReferences": 0,
+    "ocrReferences": 1,
     "ocrShown": null,
-    "valueRead": false,
+    "valueRead": true,
     "gateOk": true,
-    "gateBytes": 750,
-    "bestShown": null,
-    "bestStatus": "empty",
+    "gateBytes": 822,
+    "bestShown": "AUTH-26-25350",
+    "bestStatus": "review",
     "sweep": {
-     "tried": 1,
+     "tried": 4,
      "wrongShown": 0
     },
-    "faithfulShown": null
+    "faithfulShown": "AUTH-26-25350"
    },
    {
     "file": "c26.jpg",
@@ -912,7 +913,7 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 791,
+    "gateBytes": 818,
     "bestShown": null,
     "bestStatus": "empty",
     "sweep": {
@@ -984,18 +985,18 @@
     "expected": "PA-692030",
     "note": "unfamiliar label 'PA ref.:'",
     "layout": "table",
-    "ocrReferences": 0,
+    "ocrReferences": 1,
     "ocrShown": null,
-    "valueRead": false,
+    "valueRead": true,
     "gateOk": true,
-    "gateBytes": 743,
-    "bestShown": null,
-    "bestStatus": "empty",
+    "gateBytes": 794,
+    "bestShown": "PA-692030",
+    "bestStatus": "review",
     "sweep": {
-     "tried": 1,
+     "tried": 4,
      "wrongShown": 0
     },
-    "faithfulShown": null
+    "faithfulShown": "PA-692030"
    },
    {
     "file": "c49.jpg",
@@ -1047,11 +1048,11 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 752,
+    "gateBytes": 761,
     "bestShown": null,
     "bestStatus": "empty",
     "sweep": {
-     "tried": 3,
+     "tried": 1,
      "wrongShown": 0
     },
     "faithfulShown": null
@@ -1081,18 +1082,18 @@
     "kind": "skew",
     "category": "lookalike",
     "expected": "PA-80O932",
-    "ocrReferences": 0,
+    "ocrReferences": 1,
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 743,
+    "gateBytes": 790,
     "bestShown": null,
     "bestStatus": "empty",
     "sweep": {
-     "tried": 1,
-     "wrongShown": 0
+     "tried": 3,
+     "wrongShown": 1
     },
-    "faithfulShown": null
+    "faithfulShown": "PA-800932"
    },
    {
     "file": "c03-blur.jpg",
@@ -1104,7 +1105,7 @@
     "ocrShown": null,
     "valueRead": true,
     "gateOk": true,
-    "gateBytes": 803,
+    "gateBytes": 805,
     "bestShown": "DEMO-PA-148737",
     "bestStatus": "review",
     "sweep": {
@@ -1123,7 +1124,7 @@
     "ocrShown": null,
     "valueRead": true,
     "gateOk": true,
-    "gateBytes": 804,
+    "gateBytes": 812,
     "bestShown": null,
     "bestStatus": "uncorroborated",
     "sweep": {
@@ -1140,16 +1141,16 @@
     "expected": "DEMO-PA-148737",
     "ocrReferences": 1,
     "ocrShown": null,
-    "valueRead": true,
+    "valueRead": false,
     "gateOk": true,
-    "gateBytes": 803,
-    "bestShown": "DEMO-PA-148737",
-    "bestStatus": "review",
+    "gateBytes": 812,
+    "bestShown": null,
+    "bestStatus": "disagreement",
     "sweep": {
      "tried": 4,
      "wrongShown": 0
     },
-    "faithfulShown": "DEMO-PA-148737"
+    "faithfulShown": null
    },
    {
     "file": "c04-blur.jpg",
@@ -1199,11 +1200,11 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 804,
+    "gateBytes": 797,
     "bestShown": null,
     "bestStatus": "empty",
     "sweep": {
-     "tried": 3,
+     "tried": 2,
      "wrongShown": 0
     },
     "faithfulShown": null
@@ -1218,7 +1219,7 @@
     "ocrShown": null,
     "valueRead": true,
     "gateOk": true,
-    "gateBytes": 768,
+    "gateBytes": 779,
     "bestShown": "DPA3390998",
     "bestStatus": "review",
     "sweep": {
@@ -1294,7 +1295,7 @@
     "ocrShown": null,
     "valueRead": true,
     "gateOk": true,
-    "gateBytes": 808,
+    "gateBytes": 811,
     "bestShown": "PA-749202",
     "bestStatus": "review",
     "sweep": {
@@ -1315,7 +1316,7 @@
     "gateOk": true,
     "gateBytes": 797,
     "bestShown": null,
-    "bestStatus": "unsupported",
+    "bestStatus": "empty",
     "sweep": {
      "tried": 5,
      "wrongShown": 0
@@ -1332,7 +1333,7 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 793,
+    "gateBytes": 826,
     "bestShown": null,
     "bestStatus": "empty",
     "sweep": {
@@ -1370,7 +1371,7 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 825,
+    "gateBytes": 816,
     "bestShown": null,
     "bestStatus": "empty",
     "sweep": {
@@ -1389,7 +1390,7 @@
     "ocrShown": null,
     "valueRead": true,
     "gateOk": true,
-    "gateBytes": 856,
+    "gateBytes": 839,
     "bestShown": "DEMO-PA-651673",
     "bestStatus": "review",
     "sweep": {
@@ -1446,7 +1447,7 @@
     "ocrShown": "AUTH-26-33433",
     "valueRead": true,
     "gateOk": true,
-    "gateBytes": 828,
+    "gateBytes": 825,
     "bestShown": "AUTH-26-33433",
     "bestStatus": "review",
     "sweep": {
@@ -1465,7 +1466,7 @@
     "ocrShown": "AUTH-26-33433",
     "valueRead": true,
     "gateOk": true,
-    "gateBytes": 808,
+    "gateBytes": 813,
     "bestShown": "AUTH-26-33433",
     "bestStatus": "review",
     "sweep": {
@@ -1481,17 +1482,17 @@
     "category": "readable",
     "expected": "AUTH-26-33433",
     "ocrReferences": 1,
-    "ocrShown": "AUTH-26-33433",
+    "ocrShown": null,
     "valueRead": true,
     "gateOk": true,
-    "gateBytes": 813,
-    "bestShown": "AUTH-26-33433",
-    "bestStatus": "review",
+    "gateBytes": 815,
+    "bestShown": null,
+    "bestStatus": "unsupported",
     "sweep": {
      "tried": 5,
      "wrongShown": 0
     },
-    "faithfulShown": "AUTH-26-33433"
+    "faithfulShown": null
    },
    {
     "file": "c02-blur.jpg",
@@ -1503,7 +1504,7 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 804,
+    "gateBytes": 809,
     "bestShown": null,
     "bestStatus": "conflict",
     "sweep": {
@@ -1522,7 +1523,7 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 800,
+    "gateBytes": 808,
     "bestShown": null,
     "bestStatus": "conflict",
     "sweep": {
@@ -1541,7 +1542,7 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 808,
+    "gateBytes": 800,
     "bestShown": null,
     "bestStatus": "conflict",
     "sweep": {
@@ -1560,7 +1561,7 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 914,
+    "gateBytes": 870,
     "bestShown": null,
     "bestStatus": "conflict",
     "sweep": {
@@ -1598,7 +1599,7 @@
     "ocrShown": null,
     "valueRead": false,
     "gateOk": true,
-    "gateBytes": 930,
+    "gateBytes": 926,
     "bestShown": null,
     "bestStatus": "conflict",
     "sweep": {
