@@ -100,7 +100,7 @@ Full details, the benchmark methodology and the network capture tool are in [`ev
 
 Two held-out sets of 50 distinct synthetic documents each (6 layouts, 5 fonts, familiar and unfamiliar label wordings, O/0 and I/1 look-alikes, conflicts, two-document pages, pending and blank fields), plus 30 degraded variants per set, reported separately. Set A was run against frozen code and exposed a real bug: the OCR label rule offered one of two references when the second used an unfamiliar label. It became the development set. Set B was generated after the fixes, with a new seed and four never-seen label wordings, and scored once.
 
-**Set B, real Gemini on the deployed build (28b575a):** of 32 readable documents, the private layout read extracted **19** correctly and held 8. On 5, all look-alikes, OCR misread one character on the correctly labeled line. Of 18 documents that must be held, it held **18** and wrongly offered **0**; on 5 conflict pages Gemini picked a slot and the guard held them anyway. All 50 real requests (40.7 KB) were captured, and none contained a digit outside a slot name. p50 705 ms. **Same 50 documents on iPhone 17:** on-device in airplane mode 15/32 extracted, 14 held, 3 wrong characters; cloud 18/32, 8 held, 6 wrong characters. **18/18 held and 0 wrongly offered on every route** (Chrome cloud, iPhone cloud, iPhone on-device), with 0 identifiers in any request. Full tables, method, a filterable replay of all 50 real-model rows, and misses: [evaluation.html](https://claimguard-hackathon.vercel.app/evaluation.html) · code: [`evaluation/heldout`](evaluation/heldout).
+**Set B, real Gemini on the deployed build (28b575a):** of 32 readable documents, the private layout read extracted **19** correctly and held 8. On 5, all look-alikes, OCR misread one character on the correctly labeled line. Of 18 documents that must be held, it held **18** and wrongly offered **0**; on 5 conflict pages Gemini picked a slot and the guard held them anyway. All 50 real requests (40.7 KB) were captured, and none contained a digit outside a slot name. p50 705 ms. **Same 50 documents on Gemini Nano in Chrome, fully on-device (Chrome 158.0.8127.89, Windows laptop, build f5ebfe8):** **20/32** extracted (the best of any route), 7 held, 5 wrong characters, **18/18 held, 0 wrongly offered**, all 50 reads `ON_DEVICE`, p50 780 ms. **Same 50 documents on iPhone 17:** on-device in airplane mode 15/32 extracted, 14 held, 3 wrong characters; cloud 18/32, 8 held, 6 wrong characters. **18/18 held and 0 wrongly offered on every route** (Chrome on-device, Chrome cloud, iPhone cloud, iPhone on-device), with 0 identifiers in any request. Full tables, method, a filterable replay of all 50 real-model rows, and misses: [evaluation.html](https://claimguard-hackathon.vercel.app/evaluation.html) · code: [`evaluation/heldout`](evaluation/heldout).
 
 ## Measured results (Web)
 
@@ -108,12 +108,13 @@ Live site, Nov 27–28, 2026, same 12 synthetic scans (6 with a payer reference,
 
 | Method | Route | Correct outcomes | Notes |
 |---|---|---|---|
-| Private layout read + guard | Cloud (no Nano on the test machine) | 11/12 | p50 669 ms · 0 of 40 possible slot picks would show a wrong value · 12 requests, 0 with an identifier value |
-| Gemini Nano (image, JSON schema) alone | On-device | 9/12 | p50 1.6 s · up from 8/12 before structured output |
-| Gemini Nano + OCR gate | On-device | 11/12 | 3 wrong proposals blocked |
+| Private layout read + guard | **Gemini Nano on-device** (Chrome 158, all 12 `ON_DEVICE`) | **11/12** | p50 740 ms · 0 of 40 possible slot picks would show a wrong value · 5 wrong slot picks blocked |
+| Private layout read + guard | Cloud (earlier machine without Nano) | 11/12 | p50 669 ms · 0 of 40 possible slot picks would show a wrong value · 12 requests, 0 with an identifier value |
+| Gemini Nano (image, JSON schema) alone | On-device | 9/12 earlier · **7/12** on Chrome 158 | p50 1.6 s earlier · 2.2 s on Chrome 158 (first read 27 s while the model loads) |
+| Gemini Nano + OCR gate | On-device | 11/12 earlier · **10/12** on Chrome 158 | 3 and 4 wrong proposals blocked |
 | Local OCR only | On-device | 11/12 | |
 
-The one miss on every Web route is the deliberate O-versus-0 scan: OCR reads the zero as a letter O, and ClaimGuard withholds rather than shows it.
+Reading the whole image with Nano varies by machine and model build; the private layout read, where Nano only picks a slot from OCR text, held at 11/12 on-device and in the cloud. That is why it is the default read. The one miss on every Web route is the deliberate O-versus-0 scan: OCR reads the zero as a letter O, and ClaimGuard withholds rather than shows it.
 
 ## Tests
 
