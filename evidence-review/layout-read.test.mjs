@@ -132,3 +132,28 @@ test("labels belong to the field they precede, so grid rows and prose work and o
   const two = buildLayout(page("Preauthorization number: DEMO-PA-1", "Authorization code: AUTH-26-84909"));
   assert.equal(resolveLayoutSlot('{"slot":"ID-1"}', two).status, "conflict");
 });
+
+test("a reference wrapped across lines is one identifier, so an amended second reference is a conflict (set C, c21)", async () => {
+  const { joinWrappedIdentifiers, labeledValues } = await import("./layout-read.mjs");
+  const card = page(
+    "Referral ID: REF-8616 Original preauthorization: DEMO-PA-",
+    "459714",
+    "Amended preauthorization: PA-261090",
+  );
+  assert.equal(joinWrappedIdentifiers(card)[0].at(-1).text, "DEMO-PA-459714");
+  const layout = buildLayout(card);
+  assert.deepEqual(labeledValues(layout).sort(), ["DEMO-PA-459714", "PA-261090"]);
+  for (const slot of [...layout.slots.map(entry => entry.id), "NONE"]) {
+    assert.equal(resolveLayoutSlot(JSON.stringify({ slot }), layout).candidate, null, `${slot} must not be shown`);
+  }
+});
+
+test("a payer label followed by an unreadable identifier fragment holds instead of offering another slot", () => {
+  const layout = buildLayout(page(
+    "Preauthorization number: DEMO-PA-",
+    "Amended preauthorization: PA-261090",
+  ));
+  assert.equal(layout.authFragments, 1);
+  const pick = layout.slots.find(slot => slot.value === "PA-261090").id;
+  assert.equal(resolveLayoutSlot(JSON.stringify({ slot: pick }), layout).status, "uncorroborated");
+});

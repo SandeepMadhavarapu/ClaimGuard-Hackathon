@@ -21,6 +21,8 @@ struct PageLayout: Equatable, Sendable {
     let lineLabels: [String]
     let slots: [LayoutSlot]
     let lines: [OCRLine]
+    /// Identifier fragments right after a payer label: the reference can't be read whole.
+    var authFragments = 0
 
     static func == (lhs: PageLayout, rhs: PageLayout) -> Bool {
         lhs.layout == rhs.layout && lhs.lineLabels == rhs.lineLabels && lhs.slots == rhs.slots
@@ -73,7 +75,32 @@ enum LayoutRead {
         return (String(core), suffix.contains(":"))
     }
 
-    static func build(_ lines: [OCRLine]) -> PageLayout {
+    private static let wrapHead = try! NSRegularExpression(pattern: #"^[A-Za-z0-9][A-Za-z0-9-]*-$"#)
+    private static let wrapTail = try! NSRegularExpression(pattern: #"^(?=[A-Za-z0-9-]*\d)[A-Za-z0-9][A-Za-z0-9-]*[.,;:]?$"#)
+    private static let idFragment = try! NSRegularExpression(pattern: #"^[A-Za-z0-9]*(\d|[A-Za-z0-9]-)[A-Za-z0-9-]*$"#)
+
+    /// A reference printed across a line break ("DEMO-PA-" / "459714") is one identifier.
+    static func joinWrapped(_ lines: [OCRLine]) -> [OCRLine] {
+        var out = lines
+        var index = 0
+        while index < out.count - 1 {
+            var head = out[index].text.split(whereSeparator: \.isWhitespace).map(String.init)
+            var tail = out[index + 1].text.split(whereSeparator: \.isWhitespace).map(String.init)
+            if let last = head.last, let first = tail.first, out[index].page == out[index + 1].page,
+               matches(wrapHead, last), matches(wrapTail, first) {
+                head[head.count - 1] = last + first
+                tail.removeFirst()
+                out[index] = OCRLine(text: head.joined(separator: " "), bounds: out[index].bounds.union(out[index + 1].bounds), page: out[index].page)
+                out[index + 1] = OCRLine(text: tail.joined(separator: " "), bounds: out[index + 1].bounds, page: out[index + 1].page)
+            }
+            index += 1
+        }
+        return out
+    }
+
+    static func build(_ rawLines: [OCRLine]) -> PageLayout {
+        let lines = joinWrapped(rawLines)
+        var authFragments = 0
         var slots: [LayoutSlot] = []
         var slotIndex: [String: Int] = [:]
         var texts: [String] = []
@@ -109,8 +136,10 @@ enum LayoutRead {
                     segment.append(lower)
                 } else if matches(letterTag, raw) {
                     out.append("(\(raw.filter(\.isLetter).uppercased()))\(suffix)")
-                } else if out.last != "…" {
-                    out.append("…")
+                } else {
+                    let labels = segment.joined(separator: " ")
+                    if matches(idFragment, core), matches(authLabel, labels), !matches(otherLabel, labels) { authFragments += 1 }
+                    if out.last != "…" { out.append("…") }
                 }
             }
             while out.last == "…" { out.removeLast() }
@@ -119,7 +148,7 @@ enum LayoutRead {
             labels.append(labelWords.joined(separator: " "))
         }
         return PageLayout(layout: texts.filter { !$0.isEmpty }.joined(separator: "\n"),
-                          lineLabels: labels, slots: slots, lines: lines)
+                          lineLabels: labels, slots: slots, lines: lines, authFragments: authFragments)
     }
 
     static func prompt(_ page: PageLayout) -> String {
@@ -149,6 +178,7 @@ enum LayoutRead {
         if ocr.references.count > 1 || labeled.count > 1 { return .conflict }
         guard let choice = pick(in: output) else { return .unsupported }
         if choice == "NONE" { return .abstained }
+        if page.authFragments > 0 { return .corroborationMissing }
         guard let slot = page.slots.first(where: { $0.id == choice }),
               authorizationLabeled(page, slot) else { return .unsupported }
         if let independent = ocr.candidate, independent.value.reference != slot.value { return .disagreement }

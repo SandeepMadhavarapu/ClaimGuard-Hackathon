@@ -1,0 +1,804 @@
+{
+ "schemaVersion": 2,
+ "platform": "web",
+ "dataset": "claimguard-synthetic-v3",
+ "runs": [],
+ "comparison": null,
+ "privateLayout": {
+  "mode": "PRIVATE_LAYOUT_PREFER_ON_DEVICE",
+  "status": "complete",
+  "startedAt": "2026-11-28T03:39:11.735Z",
+  "finishedAt": "2026-11-28T03:42:58.447Z",
+  "summary": {
+   "planned": 50,
+   "correctOutcomes": 37,
+   "counts": {
+    "Missed reference": 6,
+    "Correct abstention": 17,
+    "Correct extraction": 20,
+    "Wrong suggestion": 6,
+    "False suggestion": 1
+   },
+   "lostAt": {
+    "OCR": 11,
+    "Model + guard": 1,
+    "Guard": 1
+   },
+   "routes": {
+    "ON_DEVICE": 50
+   },
+   "wrongProposalsBlocked": 16,
+   "guardSweep": {
+    "scans": 50,
+    "picksTried": 175,
+    "wrongShown": 7
+   },
+   "latencyMs": {
+    "samples": 50,
+    "p50": 2751,
+    "p95": 2863
+   }
+  },
+  "rows": [
+   {
+    "sample": "c01.jpg",
+    "sampleSha256": "ba2d3e103e67bc14f843df0dcf5ef5b7bf6b0088c06aca75b9e2f559b6a05fb3",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 21335,
+    "pick": "CONFIRM APPROVAL STATUS IN THE PAYER",
+    "decision": "unsupported",
+    "outcome": "Missed reference",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 1,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c02.jpg",
+    "sampleSha256": "cb5d8f0cc1087377c83a7882a0d287cc78de94579e8688a1d7ddfdf57039fc47",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2710,
+    "pick": "ID-1",
+    "decision": "conflict",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c03.jpg",
+    "sampleSha256": "f392ef58628e841d5177ef196fb59f1ca2cc4ca6930e5ac0d47a596aab0ab0d7",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2700,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c04.jpg",
+    "sampleSha256": "72902b578ae0140123b773212db5d8ab03d6aeb8066b9c481831779522f6456f",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2698,
+    "pick": "ID-2",
+    "decision": "review",
+    "outcome": "Wrong suggestion",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 1
+    }
+   },
+   {
+    "sample": "c05.jpg",
+    "sampleSha256": "be59558ff58f3fc8884549e7eeaa1e2ce98daa30596d7201c96ffaf835558428",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2708,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c06.jpg",
+    "sampleSha256": "3981d9f292fe8336ab065246e6b97d315511fa76b0dde105cb9433aac89386bd",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2708,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c07.jpg",
+    "sampleSha256": "a6ab493c97273352ed4d315860bd12100fed9d8b79bc930f6cb1c2a3066c675b",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2875,
+    "pick": "ID-3",
+    "decision": "conflict",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c08.jpg",
+    "sampleSha256": "b7c6b8539dc53a4660361900c86bfe47b14dd663ebca10d78b63d6c75f7ce94e",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2855,
+    "pick": "ID-1",
+    "decision": "unsupported",
+    "outcome": "Missed reference",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c09.jpg",
+    "sampleSha256": "8db0c0b4bd565ccbe8c17cd3ba5cb191b3b21796f64b4cd3d96d23e3337aab11",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2843,
+    "pick": "ID-3",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c10.jpg",
+    "sampleSha256": "30500db7b3c2526d277b895277a135782afcc09b31f2fbb85b38cbdacadbfbe7",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2849,
+    "pick": "ID-2",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c11.jpg",
+    "sampleSha256": "c88e96967b5888375823f670f07cf0585309bd28785c9ab8f07f36d0c13d7d51",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2836,
+    "pick": "ID-3",
+    "decision": "unsupported",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c12.jpg",
+    "sampleSha256": "ad7988e392b0a6ec71ca30f5f3f31b0a62ab2dd8576ff23e44b10d7c075b0022",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2827,
+    "pick": "ID-2",
+    "decision": "conflict",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c13.jpg",
+    "sampleSha256": "d314143ac895d6ae0d505017f378bec5663ba617dab69890cf2ff51fbf12bd50",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2826,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Wrong suggestion",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 1
+    }
+   },
+   {
+    "sample": "c14.jpg",
+    "sampleSha256": "fb381e90088d950f3624278c0a271e2eab4baf92142425d159d1f75c97b775d5",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2832,
+    "pick": "CONFIRM APPROVAL STATUS IN THE PAYER",
+    "decision": "unsupported",
+    "outcome": "Missed reference",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 1,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c15.jpg",
+    "sampleSha256": "e622856028d0e0f3c88effcda1632b4fd26dd41f4430e7462dd5081c381ee5e6",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2659,
+    "pick": "ID-3",
+    "decision": "conflict",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c16.jpg",
+    "sampleSha256": "919f427f2f5570e9c0b6af0d2488ffe68ba7bb40ebc216b34b9dff59e0f97cfa",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2845,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c17.jpg",
+    "sampleSha256": "f93d4430a9f1ba609f10043f8ce4a5f933def45f9fac6d3fddc7b45351a93bee",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2792,
+    "pick": "ID-2",
+    "decision": "review",
+    "outcome": "Wrong suggestion",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 1
+    }
+   },
+   {
+    "sample": "c18.jpg",
+    "sampleSha256": "09ea8c3d35ee89165a979e9015057c6babcf7b00b1e241b86193588428fa231d",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2827,
+    "pick": "ID-3",
+    "decision": "conflict",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c19.jpg",
+    "sampleSha256": "ccf6ba5be33841d164ccb0f6d9e4bcd33517117d34052cf01bcf405391e2a894",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2781,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Wrong suggestion",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 1
+    }
+   },
+   {
+    "sample": "c20.jpg",
+    "sampleSha256": "3a516295409b3f41619989832774f9814d5f638922914c3178e2bc18144d37fa",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2812,
+    "pick": "ID-1",
+    "decision": "unsupported",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c21.jpg",
+    "sampleSha256": "85469c5915e39090f2300866fb9a8cec848d89e6bd7fff7a7df48d1618d8c69d",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2784,
+    "pick": "ID-3",
+    "decision": "review",
+    "outcome": "False suggestion",
+    "lostAt": "Model + guard",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 1
+    }
+   },
+   {
+    "sample": "c22.jpg",
+    "sampleSha256": "5840eafa0f2f4690b400002c17781c966fea9d86306eafadb3f56b759fb6d936",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2815,
+    "pick": "ID-1",
+    "decision": "uncorroborated",
+    "outcome": "Missed reference",
+    "lostAt": "Guard",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c23.jpg",
+    "sampleSha256": "2c8b3171ca34d5e3c8af9969d6d39d8dbc4d8abfd9a0f42530dec427c8ed8cbb",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2754,
+    "pick": "ID-1",
+    "decision": "unsupported",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 2,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c24.jpg",
+    "sampleSha256": "e991bdcd91312fd7b2f4fd1afdea2d73ea6129214b05edd8b98e9c9dd356b6a6",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2796,
+    "pick": "ID-1",
+    "decision": "unsupported",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c25.jpg",
+    "sampleSha256": "078a41ea906f245db2e6ad9e5884328606ea2823a05944e0958f69f9addb211c",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2779,
+    "pick": "CONFIRM APPROVAL STATUS IN THE PAYER",
+    "decision": "unsupported",
+    "outcome": "Missed reference",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 1,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c26.jpg",
+    "sampleSha256": "1158f5a40fe3f7409442fd04decedee6dda28ffdfe31f993227e19fae5ce129b",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2785,
+    "pick": "ID-3",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c27.jpg",
+    "sampleSha256": "dd71ceee7c87bb1620a574f9de0cdfc8cf23a295f84d9e76280c8f7865c44484",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2751,
+    "pick": "ID-1",
+    "decision": "unsupported",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c28.jpg",
+    "sampleSha256": "9a566a9924477199879de80169d35964bc957d458f9c165767f49711c4f6325e",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2771,
+    "pick": "ID-2",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c29.jpg",
+    "sampleSha256": "5feab4e0bb057aeba9205c8f01c580527cad02b6c624db612e1ce17dc4ea16e7",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2717,
+    "pick": "ID-2",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c30.jpg",
+    "sampleSha256": "5a6a62cf948b49fac1c67de84b5a3516c927700c6c9cfc14e1b378ce627e43e7",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2776,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c31.jpg",
+    "sampleSha256": "5991870ee589392396e1331f056297005f8a5a8394fb1b75e6c92f158152fa9d",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2740,
+    "pick": "ID-3",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c32.jpg",
+    "sampleSha256": "6ea48b11cb863952639ea56f78df1f8b8f22d30fdb465600c3ca7354ecba6a49",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2747,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Wrong suggestion",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 1
+    }
+   },
+   {
+    "sample": "c33.jpg",
+    "sampleSha256": "73857abbba70289b545b1864f01626e8ed8ff29c06885210e62dab08943e3dc5",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2712,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c34.jpg",
+    "sampleSha256": "12ccb43266b42fe38fabdd4fb45213afe5edb40013f7887156839f114866928f",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2745,
+    "pick": "ID-3",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c35.jpg",
+    "sampleSha256": "867d59583a947149d0e6ead87f3c5797ceb8950c9f10b40589cbfd98c68f30a9",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2733,
+    "pick": "ID-2",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c36.jpg",
+    "sampleSha256": "927cd6e29c385797e71546c2259ee169e37e095b176d5fa2dbe651019419146f",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2755,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 5,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c37.jpg",
+    "sampleSha256": "b9cbdcf2727be67d488c26e7bd6021185fe8d941b6c4916984df34f86fd3c957",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2726,
+    "pick": "ID-2",
+    "decision": "conflict",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c38.jpg",
+    "sampleSha256": "aae8cbfc19ac5206b855dd7447ca2f8387d9b6fa9f7c3fce8b485f446de0093b",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2710,
+    "pick": "ID-2",
+    "decision": "review",
+    "outcome": "Wrong suggestion",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 1
+    }
+   },
+   {
+    "sample": "c39.jpg",
+    "sampleSha256": "3ed32a5eb73611f65666931aaf661f89a83e71899ac732c97c23a0db8ffa3a72",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2734,
+    "pick": "ID-2",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c40.jpg",
+    "sampleSha256": "8ae529dcaece409e832e16c36252e99ad8fff974f78a4e50d90ac0a536d80bc4",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2719,
+    "pick": "ID-1",
+    "decision": "unsupported",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c41.jpg",
+    "sampleSha256": "0286d2752a11ccc10664a9890701285e2b9497c4ac3f9dc9d23cc66b92ee5613",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2691,
+    "pick": "ID-2",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c42.jpg",
+    "sampleSha256": "047c2fe219545dc6cfe56f78d5cbb03c6835af40f82148affc6615f35f237154",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2670,
+    "pick": "NONE",
+    "decision": "empty",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c43.jpg",
+    "sampleSha256": "0815b53c432b9bbae3e55337f7ada0d7026a82ffcf1dc7819699ad809e434841",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2863,
+    "pick": "ID-1",
+    "decision": "unsupported",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c44.jpg",
+    "sampleSha256": "8742c48664668f15c4234dd85551da8ca8e001a58d53b899508eddc40b2fc7b4",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2519,
+    "pick": "ID-1",
+    "decision": "unsupported",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c45.jpg",
+    "sampleSha256": "cfbd93413bbb3daaac432d5d98de5b2e4c0974b362be3e34a9733ce905b6bc99",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2674,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c46.jpg",
+    "sampleSha256": "3b7669583d725c85e8e33ff3c2486ad06688d627a21bb309c49b0eaf804d07c0",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2667,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c47.jpg",
+    "sampleSha256": "3766ad3d2482876b29a8c012fb2a34b27aa154d9ee65562c686a42f18c26d476",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2663,
+    "pick": "ID-2",
+    "decision": "conflict",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": true,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c48.jpg",
+    "sampleSha256": "e0cb201c937f7b1732a1ef64783be79beb738cedd177d8d4881d59b1b5b93553",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2852,
+    "pick": "CONFIRM APPROVAL STATUS IN THE PAYER",
+    "decision": "unsupported",
+    "outcome": "Missed reference",
+    "lostAt": "OCR",
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 1,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c49.jpg",
+    "sampleSha256": "325f2f6886db341ebf92f42daa5e9cac17a1588907e7414fbad3140fa49bd879",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2512,
+    "pick": "NONE",
+    "decision": "empty",
+    "outcome": "Correct abstention",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 3,
+     "wrongShown": 0
+    }
+   },
+   {
+    "sample": "c50.jpg",
+    "sampleSha256": "fd9e506300f566198e4c753cbfe364695099658c93bebc1267ebfcf9dbcff829",
+    "inferenceSource": "ON_DEVICE",
+    "milliseconds": 2640,
+    "pick": "ID-1",
+    "decision": "review",
+    "outcome": "Correct extraction",
+    "lostAt": null,
+    "wrongProposalBlocked": false,
+    "sweep": {
+     "tried": 4,
+     "wrongShown": 0
+    }
+   }
+  ]
+ },
+ "build": {
+  "commit": "87e28b7",
+  "builtAt": "2026-11-28T03:38:54.145Z"
+ },
+ "extra": {
+  "set": "C",
+  "model": "gemma4_gpu_high_tier_model 2026.11.3.1140 (Chrome 158.0.8127.89, flag gemma4-for-built-in-ai)",
+  "scoredOnce": true
+ }
+}

@@ -1,10 +1,10 @@
 import { labeledReferences } from "./evidence.mjs";
-import { buildLayout, labeledValues } from "./layout-read.mjs";
+import { buildLayout, joinWrappedIdentifiers, labeledValues } from "./layout-read.mjs";
 import { joinOcrWords, wordsOverlappingFindings } from "./vendor/plainsight/ocr-map.mjs";
 
 function labeledLines(lines) {
   const labels = [];
-  for (const words of lines) {
+  for (const words of joinWrappedIdentifiers(lines)) {
     const { text, spans } = joinOcrWords(words);
     for (const match of labeledReferences(text)) labels.push({ match, text, spans });
   }

@@ -55,8 +55,35 @@ function trimPunctuation(text) {
   return { core: match[2], trailing: match[3].includes(":") ? ":" : "" };
 }
 
+// A reference printed across a line break ("DEMO-PA-" / "459714") is one identifier. Join a line's
+// last word that ends with a hyphen to the next line's first word, so it becomes one slot.
+const WRAP_HEAD = /^[A-Za-z0-9][A-Za-z0-9-]*-$/;
+const WRAP_TAIL = /^(?=[A-Za-z0-9-]*\d)[A-Za-z0-9][A-Za-z0-9-]*[.,;:]?$/;
+export function joinWrappedIdentifiers(lines) {
+  const out = lines.map(words => [...words]);
+  for (let index = 0; index < out.length - 1; index += 1) {
+    const head = out[index].at(-1);
+    const tail = out[index + 1][0];
+    if (!head || !tail || !WRAP_HEAD.test(String(head.text ?? "").trim()) || !WRAP_TAIL.test(String(tail.text ?? "").trim())) continue;
+    const boxes = [head.bbox, tail.bbox].filter(Boolean);
+    out[index][out[index].length - 1] = {
+      ...head,
+      text: `${String(head.text).trim()}${String(tail.text).trim()}`,
+      confidence: Math.min(head.confidence ?? 0, tail.confidence ?? 0),
+      bbox: boxes.length === 2 ? { x0: Math.min(boxes[0].x0, boxes[1].x0), y0: Math.min(boxes[0].y0, boxes[1].y0),
+        x1: Math.max(boxes[0].x1, boxes[1].x1), y1: Math.max(boxes[0].y1, boxes[1].y1) } : head.bbox,
+    };
+    out[index + 1] = out[index + 1].slice(1);
+  }
+  return out;
+}
+
+const ID_FRAGMENT = /^[A-Za-z0-9]*(\d|[A-Za-z0-9]-)[A-Za-z0-9-]*$/;
+
 // lines: OCR lines, each an array of { text, bbox, confidence }.
-export function buildLayout(lines) {
+export function buildLayout(rawLines) {
+  const lines = joinWrappedIdentifiers(rawLines);
+  let authFragments = 0;
   const slots = [];
   const byValue = new Map();
   const layoutLines = [];
@@ -90,8 +117,11 @@ export function buildLayout(lines) {
         segment.push(lower);
       } else if (LETTER_TAG.test(raw)) {
         out.push(`(${raw.replace(/[^A-Za-z]/g, "").toUpperCase()})${trailing}`);
-      } else if (out.at(-1) !== "…") {
-        out.push("…");
+      } else {
+        // A broken identifier right after a payer label means the reference can't be read whole.
+        const labels = segment.join(" ");
+        if (ID_FRAGMENT.test(core) && AUTH_LABEL.test(labels) && !OTHER_LABEL.test(labels)) authFragments += 1;
+        if (out.at(-1) !== "…") out.push("…");
       }
     }
     while (out.at(-1) === "…") out.pop();
@@ -99,6 +129,7 @@ export function buildLayout(lines) {
     layoutLines.push({ text: out.join(" "), labels: labelWords.join(" ") });
   }
   return {
+    authFragments,
     layout: layoutLines.map(line => line.text).filter(Boolean).join("\n"),
     lineLabels: layoutLines.map(line => line.labels),
     slots,
@@ -134,6 +165,8 @@ export function resolveLayoutSlot(output, layoutResult, ocrEvidence = { referenc
   const pick = parseSlot(output);
   const labeled = layoutResult.slots.filter(slot => authorizationLabeled(layoutResult, slot));
   if (ocrEvidence.references > 1 || labeled.length > 1) return { status: "conflict", candidate: null, pick };
+  // A payer label followed by an unreadable identifier fragment: there may be a second reference.
+  if (layoutResult.authFragments > 0 && pick !== "NONE") return { status: "uncorroborated", candidate: null, pick };
   if (pick === undefined) return { status: "unsupported", candidate: null, pick };
   if (pick === "NONE") return { status: "empty", candidate: null, pick };
   const slot = layoutResult.slots.find(entry => entry.id === pick);
