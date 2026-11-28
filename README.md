@@ -98,7 +98,7 @@ Full details, the benchmark methodology and the network capture tool are in [`ev
 
 Two held-out sets of 50 distinct synthetic documents each (6 layouts, 5 fonts, familiar and unfamiliar label wordings, O/0 and I/1 look-alikes, conflicts, two-document pages, pending and blank fields), plus 30 degraded variants per set, reported separately. Set A was run against frozen code and exposed a real bug: the OCR label rule offered one of two references when the second used an unfamiliar label. It became the development set. Set B was generated after the fixes, with a new seed and four never-seen label wordings, and scored once.
 
-**Set B:** of 32 readable documents, the private layout read extracted **20** correctly and held 7. On 5, all look-alikes, OCR misread one character on the correctly labeled line. Of 18 documents that must be held, it held **18** and wrongly offered **0**. The leak gate found 0 identifier values in 80 outbound requests. Full tables, method and misses: [evaluation.html](https://claimguard-hackathon.vercel.app/evaluation.html) · code: [`evaluation/heldout`](evaluation/heldout).
+**Set B, real Gemini on the deployed build (28b575a):** of 32 readable documents, the private layout read extracted **19** correctly and held 8. On 5, all look-alikes, OCR misread one character on the correctly labeled line. Of 18 documents that must be held, it held **18** and wrongly offered **0**; on 5 conflict pages Gemini picked a slot and the guard held them anyway. All 50 real requests (40.7 KB) were captured, and none contained a digit outside a slot name. p50 705 ms. Full tables, method and misses: [evaluation.html](https://claimguard-hackathon.vercel.app/evaluation.html) · code: [`evaluation/heldout`](evaluation/heldout).
 
 ## Measured results (Web)
 
@@ -119,7 +119,7 @@ The one miss on every Web route is the deliberate O-versus-0 scan: OCR reads the
 node --experimental-vm-modules --test "evidence-review/*.test.mjs" "tools/*.test.mjs"
 ```
 
-57 tests cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
+58 tests cover evidence parsing and abstention, the private layout redaction (including a randomized check that no identifier value or out-of-vocabulary word can reach a prompt), the benchmark scorer, scan tools, the privacy meter, and inference routing against a simulated Firebase SDK. The routing tests check that private canaries only reach on-device calls and that only the public prompt reaches cloud or hybrid calls.
 
 ## Built with
 

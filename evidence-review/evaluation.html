@@ -23,14 +23,14 @@
     <h1>Measured results</h1>
     <p class="fine">Every number below was measured, and the misses are published on purpose. All documents are synthetic.</p>
 
-    <p class="headline"><strong>Held-out set B (50 new documents, never seen during development):</strong> of 32 readable documents, ClaimGuard's private layout read extracted <strong>20</strong> correctly and held 7 for review. On 5, all O/0 or I/1 look-alikes, OCR misread one character on the correctly labeled line, so the value offered would be off by one character. The confirmation step names those characters by position. Of 18 documents that must be held (conflicting references, pending, blank, denied or no payer reference), it held <strong>18</strong> and offered <strong>0</strong> as ready. The leak gate found <strong>0</strong> identifier values in 80 outbound requests.</p>
+    <p class="headline"><strong>Held-out set B, real Gemini, on the deployed build (<code>28b575a</code>, Nov 28):</strong> of 32 readable documents never seen during development, ClaimGuard's private layout read extracted <strong>19</strong> correctly and held 8 for review. On 5, all O/0 or I/1 look-alikes, OCR misread one character on the correctly labeled line, so the value offered was off by one character; the confirmation step names those characters by position. Of 18 documents that must be held (conflicting references, pending, blank, denied or no payer reference), it held <strong>18</strong> and offered <strong>0</strong> as ready. On 5 of the conflict pages, Gemini picked a slot anyway, and the deterministic guard held every one. All 50 real requests (40.7 KB) were captured, and none contained a digit outside a slot name.</p>
 
     <h2>How the held-out sets were built</h2>
     <ul>
       <li><strong>50 distinct documents per set</strong>, generated from a fixed seed (<code>evaluation/heldout/generate.py</code>) across 6 layouts (letter, table, fax, memo, card, plain) and 5 fonts. Each set has 32 readable documents (familiar and unfamiliar label wordings, references in prose, the same reference printed twice, O/0 and I/1 look-alikes) and 18 that must be held (two different references on one page, two documents with different references, original and amended references, pending, blank, denied, not applicable, and hospital identifiers only).</li>
       <li><strong>Variants are reported separately.</strong> Ten documents per set also get a blurred, a low-resolution and a skewed, compressed copy: 30 variants, not 30 new documents.</li>
       <li><strong>Set A</strong> was generated and run against frozen code (<code>e017a83</code>) before any results existed. It exposed a real bug, so it became the development set. <strong>Set B</strong> was generated after the fixes with a new seed and four label wordings that never appeared during development, then scored once at <code>e737968</code>.</li>
-      <li><strong>What runs here:</strong> the app's own modules in Chrome: on-device Tesseract OCR, the OCR label rule, the private-layout builder, the leak gate and the slot guard (<code>evaluation/heldout/run.py</code>). The model step needs Firebase App Check in a real browser, so this run reports it as a realistic model (it picks the one value whose own label says payer authorization) and as a best case. The real-model run is the <strong>Run held-out set B</strong> button in the app's benchmark panel.</li>
+      <li><strong>What runs here:</strong> the app's own modules in Chrome: on-device Tesseract OCR, the OCR label rule, the private-layout builder, the leak gate and the slot guard (<code>evaluation/heldout/run.py</code>). The model step needs Firebase App Check in a real browser, so this run reports it as a realistic model (it picks the one value whose own label says payer authorization) and as a best case. The real-model run is the <strong>Run held-out set B</strong> button in the app's benchmark panel. It paces itself under Gemini's free-tier limit of 15 requests per minute. A first attempt that didn't pace hit that limit after 19 documents, which is why pacing exists.</li>
     </ul>
 
     <h2>Set B: the decision a claims reviewer sees</h2>
@@ -38,7 +38,8 @@
       <caption class="sr-only">Held-out set B results by route</caption>
       <thead><tr><th scope="col">Route (50 documents)</th><th scope="col">Readable: extracted</th><th scope="col">Readable: held</th><th scope="col">Readable: wrong value offered</th><th scope="col">Must hold: held</th><th scope="col">Must hold: wrongly offered</th></tr></thead>
       <tbody>
-        <tr><td>Private layout + guard, realistic model</td><td>20 / 32</td><td>7</td><td>5 (look-alike misreads)</td><td>18 / 18</td><td>0</td></tr>
+        <tr><td><strong>Private layout + guard, real Gemini (cloud), deployed build</strong></td><td><strong>19 / 32</strong></td><td>8</td><td>5 (look-alike misreads)</td><td><strong>18 / 18</strong></td><td><strong>0</strong></td></tr>
+        <tr><td>Private layout + guard, simulated realistic model</td><td>20 / 32</td><td>7</td><td>5 (look-alike misreads)</td><td>18 / 18</td><td>0</td></tr>
         <tr><td>Private layout + guard, best case</td><td>20 / 32</td><td>12</td><td>0</td><td>18 / 18</td><td>0</td></tr>
         <tr><td>OCR label rule only</td><td>7 / 32</td><td>24</td><td>1</td><td>18 / 18</td><td>0</td></tr>
       </tbody>
@@ -79,7 +80,7 @@
     <h2>Published misses</h2>
     <div class="miss">
       <p><strong>O versus 0, I versus 1.</strong> On held-out look-alikes, Tesseract read the correctly labeled value with one character wrong, at the same confidence (89–93) as correct reads, so confidence can't catch it. The guard holds the case when nothing confirms the value; otherwise the clerk's character check is the safeguard, and the app names each look-alike character's position. On the iPhone 12-scan run, Apple Intelligence and Vision OCR both read the trap's zero as a letter O.</p>
-      <p><strong>Unseen label wording.</strong> "Pre-approval no.", one of set B's four new wordings, wasn't recognized as a payer label, so that document was held, not misread.</p>
+      <p><strong>Unseen label wording.</strong> In the real run, Gemini answered NONE for "Pre-approval no." and "Approval #:", two of set B's four new wordings, so those documents were held, not misread.</p>
       <p><strong>OCR misreads.</strong> On a few readable documents, OCR misread a digit of the value, and those were held.</p>
     </div>
 
@@ -88,7 +89,7 @@
 node tools/build-vercel.mjs
 python3 evaluation/heldout/run.py cases      # set A
 python3 evaluation/heldout/run.py cases-b    # set B</pre>
-    <p class="fine">Raw results: <code>evaluation/heldout/results-A-e017a83.json</code>, <code>evaluation/heldout/results-B-e737968.json</code>.</p>
+    <p class="fine">Raw results: <code>evaluation/heldout/results-A-e017a83.json</code>, <code>evaluation/heldout/results-B-e737968.json</code>, <code>evaluation/heldout/results-B-real-model-28b575a.json</code>.</p>
   </main>
 </body>
 </html>
