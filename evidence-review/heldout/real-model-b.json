@@ -1,0 +1,428 @@
+{
+ "rows": [
+  {
+   "document": "b01.jpg \u00b7 O/0 or I/1 look-alike",
+   "expected": "AUTH-26-95I82",
+   "pick": "ID-1",
+   "outcome": "Wrong suggestion",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 916 ms"
+  },
+  {
+   "document": "b02.jpg \u00b7 two documents, different references",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 775 ms"
+  },
+  {
+   "document": "b03.jpg \u00b7 hospital identifiers only",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 753 ms"
+  },
+  {
+   "document": "b04.jpg \u00b7 unfamiliar label 'Insurer approval ref:'",
+   "expected": "DEMO-PA-141278",
+   "pick": "ID-2",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 858 ms"
+  },
+  {
+   "document": "b05.jpg \u00b7 pending/blank/denied",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 640 ms"
+  },
+  {
+   "document": "b06.jpg \u00b7 familiar label",
+   "expected": "DPA2569667",
+   "pick": "ID-1",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 735 ms"
+  },
+  {
+   "document": "b07.jpg \u00b7 unfamiliar label 'Authorization ID:'",
+   "expected": "DEMO-PA-074077",
+   "pick": "NONE",
+   "outcome": "Missed reference",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 723 ms"
+  },
+  {
+   "document": "b08.jpg \u00b7 two different payer references on one page",
+   "expected": "Hold",
+   "pick": "ID-2",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 584 ms"
+  },
+  {
+   "document": "b09.jpg \u00b7 reference stated in prose",
+   "expected": "DEMO-PA-283781",
+   "pick": "ID-3",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 711 ms"
+  },
+  {
+   "document": "b10.jpg \u00b7 unfamiliar label 'Preauth #:'",
+   "expected": "PA-776625",
+   "pick": "ID-3",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 706 ms"
+  },
+  {
+   "document": "b11.jpg \u00b7 pending/blank/denied",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 698 ms"
+  },
+  {
+   "document": "b12.jpg \u00b7 pending/blank/denied",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 489 ms"
+  },
+  {
+   "document": "b13.jpg \u00b7 two different payer references on one page",
+   "expected": "Hold",
+   "pick": "ID-3",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 580 ms"
+  },
+  {
+   "document": "b14.jpg \u00b7 reference stated in prose",
+   "expected": "DEMO-PA-240249",
+   "pick": "ID-3",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 675 ms"
+  },
+  {
+   "document": "b15.jpg \u00b7 two different payer references on one page",
+   "expected": "Hold",
+   "pick": "ID-3",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 772 ms"
+  },
+  {
+   "document": "b16.jpg \u00b7 familiar label",
+   "expected": "PA-438995",
+   "pick": "ID-3",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 660 ms"
+  },
+  {
+   "document": "b17.jpg \u00b7 two different payer references on one page",
+   "expected": "Hold",
+   "pick": "ID-2",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 630 ms"
+  },
+  {
+   "document": "b18.jpg \u00b7 same reference twice",
+   "expected": "DPA6775485",
+   "pick": "ID-1",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 609 ms"
+  },
+  {
+   "document": "b19.jpg \u00b7 O/0 or I/1 look-alike",
+   "expected": "DEM0-PA-962155",
+   "pick": "ID-1",
+   "outcome": "Missed reference",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 862 ms"
+  },
+  {
+   "document": "b20.jpg \u00b7 unfamiliar label 'Approval reference:'",
+   "expected": "AUTH-26-08290",
+   "pick": "ID-2",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 716 ms"
+  },
+  {
+   "document": "b21.jpg \u00b7 pending/blank/denied",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 733 ms"
+  },
+  {
+   "document": "b22.jpg \u00b7 unfamiliar label 'Approval #:'",
+   "expected": "DEMO-PA-753779",
+   "pick": "NONE",
+   "outcome": "Missed reference",
+   "lostAt": "Model",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 518 ms"
+  },
+  {
+   "document": "b23.jpg \u00b7 hospital identifiers only",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 678 ms"
+  },
+  {
+   "document": "b24.jpg \u00b7 pending/blank/denied",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 765 ms"
+  },
+  {
+   "document": "b25.jpg \u00b7 unfamiliar label 'PA number:'",
+   "expected": "DPA3996416",
+   "pick": "ID-1",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 759 ms"
+  },
+  {
+   "document": "b26.jpg \u00b7 familiar label",
+   "expected": "DPA8691625",
+   "pick": "ID-1",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 751 ms"
+  },
+  {
+   "document": "b27.jpg \u00b7 original and amended references",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 537 ms"
+  },
+  {
+   "document": "b28.jpg \u00b7 O/0 or I/1 look-alike",
+   "expected": "PA-8670O7",
+   "pick": "ID-1",
+   "outcome": "Wrong suggestion",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 724 ms"
+  },
+  {
+   "document": "b29.jpg \u00b7 O/0 or I/1 look-alike",
+   "expected": "PA-77O375",
+   "pick": "ID-1",
+   "outcome": "Wrong suggestion",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 653 ms"
+  },
+  {
+   "document": "b30.jpg \u00b7 O/0 or I/1 look-alike",
+   "expected": "PA-104l33",
+   "pick": "NONE",
+   "outcome": "Missed reference",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 634 ms"
+  },
+  {
+   "document": "b31.jpg \u00b7 O/0 or I/1 look-alike",
+   "expected": "DPA181O337",
+   "pick": "ID-2",
+   "outcome": "Wrong suggestion",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 705 ms"
+  },
+  {
+   "document": "b32.jpg \u00b7 two different payer references on one page",
+   "expected": "Hold",
+   "pick": "ID-3",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 615 ms"
+  },
+  {
+   "document": "b33.jpg \u00b7 O/0 or I/1 look-alike",
+   "expected": "DEMO-PA-032O08",
+   "pick": "ID-3",
+   "outcome": "Wrong suggestion",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 681 ms"
+  },
+  {
+   "document": "b34.jpg \u00b7 O/0 or I/1 look-alike",
+   "expected": "AUTH-2I-20317",
+   "pick": "ID-1",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 977 ms"
+  },
+  {
+   "document": "b35.jpg \u00b7 familiar label",
+   "expected": "AUTH-26-73341",
+   "pick": "ID-2",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 684 ms"
+  },
+  {
+   "document": "b36.jpg \u00b7 pending/blank/denied",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 745 ms"
+  },
+  {
+   "document": "b37.jpg \u00b7 familiar label",
+   "expected": "DPA6764346",
+   "pick": "ID-3",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 745 ms"
+  },
+  {
+   "document": "b38.jpg \u00b7 familiar label",
+   "expected": "DEMO-PA-442933",
+   "pick": "NONE",
+   "outcome": "Missed reference",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 736 ms"
+  },
+  {
+   "document": "b39.jpg \u00b7 unfamiliar label 'Pre-auth ref:'",
+   "expected": "DPA3410678",
+   "pick": "ID-2",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 727 ms"
+  },
+  {
+   "document": "b40.jpg \u00b7 unfamiliar label 'Pre-approval no.:'",
+   "expected": "PA-959476",
+   "pick": "NONE",
+   "outcome": "Missed reference",
+   "lostAt": "Model",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 818 ms"
+  },
+  {
+   "document": "b41.jpg \u00b7 two documents, different references",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 813 ms"
+  },
+  {
+   "document": "b42.jpg \u00b7 hospital identifiers only",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 809 ms"
+  },
+  {
+   "document": "b43.jpg \u00b7 unfamiliar label 'Payer auth code:'",
+   "expected": "DEMO-PA-333528",
+   "pick": "ID-1",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 794 ms"
+  },
+  {
+   "document": "b44.jpg \u00b7 familiar label",
+   "expected": "PA-067227",
+   "pick": "NONE",
+   "outcome": "Missed reference",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 613 ms"
+  },
+  {
+   "document": "b45.jpg \u00b7 familiar label",
+   "expected": "DEMO-PA-642064",
+   "pick": "ID-2",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 672 ms"
+  },
+  {
+   "document": "b46.jpg \u00b7 same reference twice",
+   "expected": "PA-196909",
+   "pick": "ID-1",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 662 ms"
+  },
+  {
+   "document": "b47.jpg \u00b7 unfamiliar label 'Prior authorization number:'",
+   "expected": "DEMO-PA-823745",
+   "pick": "ID-1",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 646 ms"
+  },
+  {
+   "document": "b48.jpg \u00b7 unfamiliar label 'Payer authorization no.:'",
+   "expected": "DPA4068284",
+   "pick": "ID-1",
+   "outcome": "Correct extraction",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 674 ms"
+  },
+  {
+   "document": "b49.jpg \u00b7 pending/blank/denied",
+   "expected": "Hold",
+   "pick": "NONE",
+   "outcome": "Correct abstention",
+   "lostAt": "\u2014",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 584 ms"
+  },
+  {
+   "document": "b50.jpg \u00b7 unfamiliar label 'Authorization code:'",
+   "expected": "DPA7755229",
+   "pick": "NONE",
+   "outcome": "Missed reference",
+   "lostAt": "OCR",
+   "route": "Cloud \u00b7 Firebase AI Logic \u00b7 648 ms"
+  }
+ ],
+ "set": "B",
+ "build": "28b575a",
+ "when": "2026-11-28",
+ "route": "Firebase AI Logic PREFER_ON_DEVICE; Gemini Nano was not available on the test machine, so all 50 reads ran in the cloud (gemini-3.5-flash-lite)",
+ "summary": {
+  "readable": 32,
+  "extracted": 19,
+  "readable_held": 8,
+  "readable_wrong_character": 5,
+  "should_hold": 18,
+  "held": 18,
+  "wrongly_offered": 0,
+  "model_picked_a_slot_on_conflict_pages_held_by_guard": 5,
+  "requests": 50,
+  "requests_with_any_digit_outside_slots": 0,
+  "prompt_bytes_total": 40748,
+  "p50_ms": 705,
+  "p95_ms": 862,
+  "misses_by_stage": {
+   "OCR": 11,
+   "Model": 2
+  }
+ },
+ "method": "Run held-out set B button in the deployed app, paced under the free-tier limit of 15 requests per minute. Outbound request bodies were captured in the page and checked for any digit outside a slot name."
+}
