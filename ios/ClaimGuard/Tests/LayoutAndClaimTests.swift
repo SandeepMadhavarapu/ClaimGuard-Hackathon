@@ -85,6 +85,14 @@ final class LayoutAndClaimTests: XCTestCase {
         XCTAssertEqual(Lookalikes.note("PA-64O730")?.contains("letter O at position 6, zero at position 9"), true)
     }
 
+    func testLeakGatePassesCleanLayoutsAndCatchesValues() {
+        let page = LayoutRead.build(referral)
+        let prompt = LayoutRead.prompt(page)
+        XCTAssertEqual(LayoutRead.leakGate(prompt, page: page).identifiers, 0)
+        XCTAssertEqual(LayoutRead.leakGate(prompt + "\nDEMO-PA-240817", page: page).identifiers, 1)
+        XCTAssertGreaterThan(LayoutRead.leakGate(prompt + "\nCR10000000001-1", page: page).identifiers, 0)
+    }
+
     func testClaimPreCheckMatchesTheWebRules() {
         let waiting = ClaimCheck.check(.demo, confirmedReference: nil, scanOutcome: nil)
         XCTAssertEqual(waiting.verdict, .pending)

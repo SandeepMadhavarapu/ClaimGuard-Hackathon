@@ -159,6 +159,19 @@ enum LayoutRead {
                       ocr.candidate?.location ?? EvidenceLocation(page: line.page, bounds: line.bounds))
     }
 
+    /// Leak gate: re-scan the exact outbound text. Any OCR identifier value, or any token with a digit
+    /// that isn't a slot name, counts as an identifier and the request is not sent.
+    static func leakGate(_ prompt: String, page: PageLayout) -> (identifiers: Int, bytes: Int) {
+        let lower = prompt.lowercased()
+        var hits = Set(page.slots.map(\.value).filter { lower.contains($0.lowercased()) })
+        let tokens = prompt.split(whereSeparator: { !($0.isLetter || $0.isNumber || $0 == "-") }).map(String.init)
+        for token in tokens where token.rangeOfCharacter(from: .decimalDigits) != nil
+            && token.range(of: #"^ID-\d+$"#, options: .regularExpression) == nil {
+            hits.insert(token)
+        }
+        return (hits.count, prompt.utf8.count)
+    }
+
     /// Tries every slot (and NONE) as the model's answer and counts wrong values the guard would show.
     static func sweep(_ page: PageLayout, ocr: OCREvidence, expected: String?) -> (tried: Int, wrongShown: Int) {
         var wrong = 0
