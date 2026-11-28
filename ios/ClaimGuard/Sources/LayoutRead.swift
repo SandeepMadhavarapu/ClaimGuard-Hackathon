@@ -35,9 +35,9 @@ enum LayoutRead {
     which with without one only each per all both other another
     payer insurer scheme sha nhif shif fund provider
     preauthorization pre-authorization preauthorisation pre-authorisation preauth pre-auth authorization authorisation pa prior
-    auth approval approved approve denied declined rejected pending issued requested request requests awaiting await
+    auth approval idhini uidhinishaji nambari ya approved approve denied declined rejected pending issued requested request requests awaiting await
     reference references ref refs number numbers no. no id ids code codes identifier
-    hospital facility clinic tracking case referral referrals referred claim claims member patient practitioner
+    hospital facility clinic tracking case referral referrals referred claim claims member patient practitioner provider token
     service services intervention date dates period start end admission discharge
     status confirm confirmed check verify verification blank none n/a tbd unknown missing
     letter note summary page sheet cover document supporting evidence form attached
@@ -55,8 +55,13 @@ enum LayoutRead {
     private static let maxSlots = 40
     private static let idToken = try! NSRegularExpression(pattern: #"^[A-Za-z0-9][A-Za-z0-9-]{2,39}$"#)
     private static let letterTag = try! NSRegularExpression(pattern: #"^\([A-Za-z]\):?$"#)
-    private static let authLabel = try! NSRegularExpression(pattern: #"\b(pre-?auth\w*|authori[sz]ation|auth|approval|pa)\b"#)
-    private static let otherLabel = try! NSRegularExpression(pattern: #"\b(tracking|case|referral|referred|claim|hospital|facility|member|patient|practitioner|service|date)\b"#)
+    private static let authLabel = try! NSRegularExpression(pattern: #"\b(pre-?auth\w*|authori[sz]ation|auth|approval|pa|idhini|uidhinishaji)\b"#)
+    /// "provider" covers the SHA guide's provider-auth-token, the facility's token, not the payer's.
+    private static let otherLabel = try! NSRegularExpression(pattern: #"\b(tracking|case|referral|referred|claim|hospital|facility|member|patient|practitioner|provider|service|date)\b"#)
+    /// Public SHA formats that are never a payer preauthorization reference.
+    private static let notAPayerReference = try! NSRegularExpression(pattern: #"^(CR\d{11,13}-\d|SHA\d{13}-\d|FID-[\d-]+|PUID-\d+-\d|SHA-\d{2}-\d{3}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"#, options: [.caseInsensitive])
+    private static let slotName = try! NSRegularExpression(pattern: #"^ID-\d+$"#, options: [.caseInsensitive])
+    private static let dashes = try! NSRegularExpression(pattern: "[\u{2010}-\u{2015}\u{2212}\u{FE58}\u{FE63}\u{FF0D}]")
 
     private static func matches(_ expression: NSRegularExpression, _ text: String) -> Bool {
         expression.firstMatch(in: text, range: NSRange(text.startIndex..<text.endIndex, in: text)) != nil
@@ -81,7 +86,11 @@ enum LayoutRead {
 
     /// A reference printed across a line break ("DEMO-PA-" / "459714") is one identifier.
     static func joinWrapped(_ lines: [OCRLine]) -> [OCRLine] {
-        var out = lines
+        // Unicode dashes (en dash, minus, ...) read as plain hyphens.
+        var out = lines.map { line in
+            OCRLine(text: dashes.stringByReplacingMatches(in: line.text, range: NSRange(line.text.startIndex..., in: line.text), withTemplate: "-"),
+                    bounds: line.bounds, page: line.page)
+        }
         var index = 0
         while index < out.count - 1 {
             var head = out[index].text.split(whereSeparator: \.isWhitespace).map(String.init)
@@ -109,11 +118,19 @@ enum LayoutRead {
             var out: [String] = []
             var labelWords: [String] = []
             var segment: [String] = []
+            var lastSlotAuth = false
             for raw in line.text.split(whereSeparator: \.isWhitespace).map(String.init) {
                 let (core, colon) = trim(raw)
                 let lower = core.lowercased()
                 let suffix = colon ? ":" : ""
+                if matches(slotName, core) {
+                    // Text shaped like our own slot names is never a value: it could only be an injection.
+                    if out.last != "…" { out.append("…") }
+                    continue
+                }
                 if matches(idToken, core), core.rangeOfCharacter(from: .decimalDigits) != nil {
+                    // A value printed in pieces right after a payer label can't be read whole.
+                    if segment.isEmpty, out.last?.hasPrefix("[ID-") == true, lastSlotAuth { authFragments += 1 }
                     let index: Int
                     if let existing = slotIndex[core] {
                         index = existing
@@ -128,6 +145,8 @@ enum LayoutRead {
                     }
                     if slots[index].lineIndexes.last != lineIndex { slots[index].lineIndexes.append(lineIndex) }
                     slots[index].segments.append(segment.joined(separator: " "))
+                    let joined = segment.joined(separator: " ")
+                    lastSlotAuth = matches(authLabel, joined) && !matches(otherLabel, joined)
                     segment = []
                     out.append("[\(slots[index].id)]\(suffix)")
                 } else if vocabulary.contains(lower) {
@@ -156,7 +175,8 @@ enum LayoutRead {
     }
 
     private static func authorizationLabeled(_ page: PageLayout, _ slot: LayoutSlot) -> Bool {
-        slot.segments.contains { matches(authLabel, $0) && !matches(otherLabel, $0) }
+        if matches(notAPayerReference, slot.value) { return false }
+        return slot.segments.contains { matches(authLabel, $0) && !matches(otherLabel, $0) }
     }
 
     /// Distinct values whose own label says payer authorization. Used to detect conflicts on every route.
@@ -176,9 +196,12 @@ enum LayoutRead {
     static func resolve(_ output: String, page: PageLayout, ocr: OCREvidence) -> ScanDecision {
         let labeled = page.slots.filter { authorizationLabeled(page, $0) }
         if ocr.references.count > 1 || labeled.count > 1 { return .conflict }
-        guard let choice = pick(in: output) else { return .unsupported }
+        let choice = pick(in: output)
+        if page.authFragments > 0, choice != "NONE" { return .corroborationMissing }
+        // No payer-labeled value on the page and none from OCR: whatever the model said, there is no reference.
+        if labeled.isEmpty, ocr.references.isEmpty { return .abstained }
+        guard let choice else { return .unsupported }
         if choice == "NONE" { return .abstained }
-        if page.authFragments > 0 { return .corroborationMissing }
         guard let slot = page.slots.first(where: { $0.id == choice }),
               authorizationLabeled(page, slot) else { return .unsupported }
         if let independent = ocr.candidate, independent.value.reference != slot.value { return .disagreement }

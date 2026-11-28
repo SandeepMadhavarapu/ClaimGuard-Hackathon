@@ -7,7 +7,7 @@ export const RULE_SOURCE = "https://afyalink.dha.go.ke/claim-integration";
 
 const FORMATS = Object.freeze({
   member: { pattern: /^CR\d{11}-\d$/, example: "CRxxxxxxxxxxx-x", name: "client registry ID" },
-  facility: { pattern: /^FID-21-\d{6}-\d$/, example: "FID-21-xxxxxx-x", name: "facility ID (FID)" },
+  facility: { pattern: /^FID-\d{2}-\d{6}-\d$/, example: "FID-xx-xxxxxx-x", name: "facility ID (FID)" },
   practitioner: { pattern: /^PUID-\d{7}-\d$/, example: "PUID-xxxxxxx-x", name: "practitioner ID (PUID)" },
   service: { pattern: /^SHA-\d{2}-\d{3}$/, example: "SHA-08-004", name: "SHA intervention code" },
 });

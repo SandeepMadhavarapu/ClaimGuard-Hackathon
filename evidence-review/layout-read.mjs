@@ -13,9 +13,9 @@ a an and or of the to for from by on in at is are was were be been has have had 
 which with without one only each per all both other another
 payer insurer scheme sha nhif shif fund provider
 preauthorization pre-authorization preauthorisation pre-authorisation preauth pre-auth authorization authorisation pa prior
-auth approval approved approve denied declined rejected pending issued requested request requests awaiting await
+auth approval idhini uidhinishaji nambari ya approved approve denied declined rejected pending issued requested request requests awaiting await
 reference references ref refs number numbers no. no id ids code codes identifier
-hospital facility clinic tracking case referral referrals referred claim claims member patient practitioner
+hospital facility clinic tracking case referral referrals referred claim claims member patient practitioner provider token
 service services intervention date dates period start end admission discharge
 status confirm confirmed check verify verification blank none n/a tbd unknown missing
 letter note summary page sheet cover document supporting evidence form attached
@@ -23,8 +23,14 @@ letter note summary page sheet cover document supporting evidence form attached
 
 const ID_TOKEN = /^[A-Za-z0-9][A-Za-z0-9-]{2,39}$/;
 const LETTER_TAG = /^\([A-Za-z]\):?$/;
-const AUTH_LABEL = /\b(pre-?auth\w*|authori[sz]ation|auth|approval|pa)\b/;
-const OTHER_LABEL = /\b(tracking|case|referral|referred|claim|hospital|facility|member|patient|practitioner|service|date)\b/;
+const AUTH_LABEL = /\b(pre-?auth\w*|authori[sz]ation|auth|approval|pa|idhini|uidhinishaji)\b/;
+// "provider" covers the SHA guide's provider-auth-token, which is the facility's token, not the payer's.
+const OTHER_LABEL = /\b(tracking|case|referral|referred|claim|hospital|facility|member|patient|practitioner|provider|service|date)\b/;
+// Public SHA formats for identifiers that are never a payer preauthorization reference
+// (client registry, SHA member, facility, practitioner, intervention code, claim UUID).
+const NOT_A_PAYER_REFERENCE = /^(CR\d{11,13}-\d|SHA\d{13}-\d|FID-[\d-]+|PUID-\d+-\d|SHA-\d{2}-\d{3}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+const SLOT_NAME = /^ID-\d+$/i;
+const DASHES = /[‐-―−﹘﹣－]/g;
 const MAX_SLOTS = 40;
 
 export const SLOT_SCHEMA = Object.freeze({
@@ -60,7 +66,8 @@ function trimPunctuation(text) {
 const WRAP_HEAD = /^[A-Za-z0-9][A-Za-z0-9-]*-$/;
 const WRAP_TAIL = /^(?=[A-Za-z0-9-]*\d)[A-Za-z0-9][A-Za-z0-9-]*[.,;:]?$/;
 export function joinWrappedIdentifiers(lines) {
-  const out = lines.map(words => [...words]);
+  // Unicode dashes (en dash, minus, ...) read as plain hyphens.
+  const out = lines.map(words => words.map(word => (DASHES.test(String(word.text ?? "")) ? { ...word, text: String(word.text).replace(DASHES, "-") } : word)));
   for (let index = 0; index < out.length - 1; index += 1) {
     const head = out[index].at(-1);
     const tail = out[index + 1][0];
@@ -91,12 +98,21 @@ export function buildLayout(rawLines) {
     const out = [];
     const labelWords = [];
     let segment = [];
+    let lastSlotAuth = false;
     for (const word of words) {
       const raw = String(word.text ?? "").trim();
       if (!raw) continue;
       const { core, trailing } = trimPunctuation(raw);
       const lower = core.toLowerCase();
+      if (SLOT_NAME.test(core)) {
+        // Text that looks like our own slot names is never a value: it could only be an injection.
+        if (out.at(-1) !== "…") out.push("…");
+        continue;
+      }
       if (ID_TOKEN.test(core) && /\d/.test(core)) {
+        // A value printed in pieces ("6UN 77N JV9X") right after a payer label can't be read whole.
+        const previous = out.at(-1);
+        if (!segment.length && previous?.startsWith("[ID-") && lastSlotAuth) authFragments += 1;
         let slot = byValue.get(core);
         if (!slot) {
           if (slots.length >= MAX_SLOTS) { out.push("…"); continue; }
@@ -109,6 +125,7 @@ export function buildLayout(rawLines) {
         // The label for this value is the form words since the previous value on the same line,
         // so a card or grid row with two fields doesn't mix their labels.
         slot.segments.push(segment.join(" "));
+        lastSlotAuth = AUTH_LABEL.test(segment.join(" ")) && !OTHER_LABEL.test(segment.join(" "));
         segment = [];
         out.push(`[${slot.id}]${trailing}`);
       } else if (LAYOUT_VOCABULARY.has(lower)) {
@@ -152,6 +169,7 @@ function parseSlot(output) {
 }
 
 function authorizationLabeled(layoutResult, slot) {
+  if (NOT_A_PAYER_REFERENCE.test(slot.value)) return false;
   return (slot.segments ?? []).some(labels => AUTH_LABEL.test(labels) && !OTHER_LABEL.test(labels));
 }
 
@@ -167,6 +185,8 @@ export function resolveLayoutSlot(output, layoutResult, ocrEvidence = { referenc
   if (ocrEvidence.references > 1 || labeled.length > 1) return { status: "conflict", candidate: null, pick };
   // A payer label followed by an unreadable identifier fragment: there may be a second reference.
   if (layoutResult.authFragments > 0 && pick !== "NONE") return { status: "uncorroborated", candidate: null, pick };
+  // No payer-labeled value on the page and none from OCR: whatever the model said, there is no reference.
+  if (!labeled.length && !(ocrEvidence.references > 0)) return { status: "empty", candidate: null, pick };
   if (pick === undefined) return { status: "unsupported", candidate: null, pick };
   if (pick === "NONE") return { status: "empty", candidate: null, pick };
   const slot = layoutResult.slots.find(entry => entry.id === pick);
